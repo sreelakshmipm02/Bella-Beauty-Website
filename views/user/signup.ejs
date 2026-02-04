@@ -1,0 +1,330 @@
+<%- include('../partials/indexHeader', { title: 'Bella Beauty' }) %>
+    <section class="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+        <div
+            class="w-full max-w-5xl bg-white dark:bg-card-dark rounded-3xl shadow-2xl overflow-hidden flex flex-col md:flex-row min-h-[700px] border border-gray-100 dark:border-gray-800">
+            <div class="md:w-1/2 relative hidden md:block group">
+                <img alt="Sign Up Visual"
+                    class="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+                    src="https://lh3.googleusercontent.com/aida-public/AB6AXuBhZZtH0q636bJJ7nHajiLQCyoBSoVZxQjLYZZPwoEHPAJBT0li9YfJDjcEu_3JxTsfWOx7kmRVhcMFIbgP9OJSXxfUBHPDuI1b1OEr0AUugqZhDMEywIRfkT43s-fFqxJrYwgdCReEAdXToIoR9erpXF_cKpo_mGnbWqfazWd0DxP1T10_iahjR1Yc3SbVhd7u_3xW6uJ7y_Zk_28wBP7THOVn4Hsl--Poto1TRgutKiPwSMwb6FCZgCZ3HufzfyxjUf9vjbUWbg" />
+                <div class="absolute inset-0 bg-gradient-to-t from-primary/90 to-primary/20 mix-blend-multiply"></div>
+                <div class="absolute bottom-0 left-0 p-12 text-white z-10">
+                    <h3 class="font-display text-4xl font-bold mb-4 leading-tight">Unlock Your <br /> Inner Beauty</h3>
+                    <p class="text-white/90 text-lg font-light leading-relaxed">Create an account to receive
+                        personalized recommendations, early access to sales, and beauty tips.</p>
+                </div>
+            </div>
+            <div
+                class="w-full md:w-1/2 p-8 md:p-12 lg:p-12 flex flex-col justify-center relative bg-white dark:bg-card-dark">
+                <div class="text-center md:text-left mb-6">
+                    <h2 class="font-display text-3xl md:text-4xl font-bold text-gray-900 dark:text-white mb-2">Create
+                        Account</h2>
+                    <p class="text-gray-500 dark:text-gray-400">Join us for a personalized shopping experience.</p>
+                </div>
+
+                <% if (error) { %>
+                    <div class="mb-4 bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded-lg">
+                        <strong>Error:</strong>
+                        <%= error %>
+                    </div>
+                    <% } %>
+
+
+                        <form id="signupForm" class="space-y-6">
+
+                            <!-- First & Last Name -->
+                            <div class="flex flex-col sm:flex-row gap-4">
+
+                                <!-- First Name -->
+                                <div class="w-full">
+                                    <!-- <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                        First Name
+                                    </label> -->
+
+                                    <div class="relative h-[52px]">
+                                        <span
+                                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">
+                                            person
+                                        </span>
+
+                                        <input id="first-name" name="firstName" type="text" placeholder="First Name"
+                                            class="w-full h-full pl-10 pr-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                                    </div>
+
+                                    <p id="firstNameError" class="error-text text-red-500 text-sm mt-1 min-h-[20px]">
+                                    </p>
+                                </div>
+
+                                <!-- Last Name -->
+                                <div class="w-full">
+                                    <!-- <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                        Last Name
+                                    </label> -->
+
+                                    <div class="relative h-[52px]">
+                                        <span
+                                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">
+                                            person
+                                        </span>
+
+                                        <input id="last-name" name="lastName" type="text" placeholder="Second Name"
+                                            class="w-full h-full pl-10 pr-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                                    </div>
+
+                                    <p id="lastNameError" class="error-text text-red-500 text-sm mt-1 min-h-[20px]"></p>
+                                </div>
+                            </div>
+
+                            <!-- Email -->
+                            <div>
+                                <!-- <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                    Email Address
+                                </label> -->
+
+                                <div class="relative h-[52px]">
+                                    <span
+                                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">
+                                        mail
+                                    </span>
+
+                                    <input id="email" name="email" type="email" placeholder="Email Address"
+                                        class="w-full h-full pl-10 pr-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                                </div>
+
+                                <p id="emailError" class="error-text text-red-500 text-sm mt-1 min-h-[20px]"></p>
+                            </div>
+
+                            <!-- Mobile -->
+                            <div>
+                                <!-- <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5">
+                                    Mobile Number
+                                </label> -->
+
+                                <div class="relative h-[52px]">
+                                    <span
+                                        class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">
+                                        smartphone
+                                    </span>
+
+                                    <input id="mobile" name="phone" type="tel" placeholder="Mobile Number"
+                                        class="w-full h-full pl-10 pr-3 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+                                </div>
+
+                                <p id="mobileError" class="error-text text-red-500 text-sm mt-1 min-h-[20px]"></p>
+                            </div>
+
+                            <!-- Password & Confirm Password -->
+                            <div class="flex flex-col sm:flex-row gap-4">
+
+                                <!-- Password -->
+                                <div class="w-full">
+                                    <div class="relative h-[52px]">
+                                        <span
+                                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">lock</span>
+
+                                        <input id="password" name="password" type="password" placeholder="Password"
+                                            class="w-full h-full pl-10 pr-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+
+                                        <button type="button" onclick="togglePassword('password', 'eye-pass')"
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition cursor-pointer outline-none">
+                                            <span id="eye-pass"
+                                                class="material-symbols-outlined text-xl">visibility_off</span>
+                                        </button>
+                                    </div>
+                                    <p id="passwordError"
+                                        class="error-text text-red-500 text-xs mt-1 ml-1 min-h-[16px]"></p>
+                                </div>
+
+                                <!-- Confirm Password -->
+                                <div class="w-full">
+                                    <div class="relative h-[52px]">
+                                        <span
+                                            class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">lock_reset</span>
+
+                                        <input id="confirm-password" name="confirmPassword" type="password"
+                                            placeholder="Confirm Password"
+                                            class="w-full h-full pl-10 pr-12 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 focus:ring-2 focus:ring-primary/20 focus:border-primary transition" />
+
+                                        <button type="button" onclick="togglePassword('confirm-password', 'eye-cpass')"
+                                            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition cursor-pointer outline-none">
+                                            <span id="eye-cpass"
+                                                class="material-symbols-outlined text-xl">visibility_off</span>
+                                        </button>
+                                    </div>
+                                    <p id="confirmPasswordError"
+                                        class="error-text text-red-500 text-xs mt-1 ml-1 min-h-[16px]"></p>
+                                </div>
+                            </div>
+                            <div>
+                                <!-- <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1.5"
+                                    for="referral">
+                                    Referral Code <span class="text-gray-400 font-normal ml-1">(Optional)</span>
+                                </label> -->
+                                <div class="relative group">
+                                    <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                                        <span
+                                            class="material-symbols-outlined text-gray-400 group-focus-within:text-primary transition-colors text-xl">confirmation_number</span>
+                                    </div>
+                                    <input
+                                        class="block w-full pl-9 pr-24 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl leading-5 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition duration-200 ease-in-out"
+                                        id="referral" placeholder="Referral Code" type="text" />
+                                    <div class="absolute inset-y-0 right-0 flex items-center pr-2">
+                                        <button
+                                            class="bg-primary/10 hover:bg-primary text-primary hover:text-white px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all"
+                                            type="button">
+                                            Verify
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+
+                            <!-- Submit Button -->
+                            <button type="submit" id="submitBtn" disabled
+                                class="w-full bg-primary hover:bg-pink-700 disabled:bg-gray-300 disabled:cursor-not-allowed disabled:shadow-none text-white py-3.5 rounded-xl font-bold transition-all shadow-lg shadow-pink-500/30 hover:shadow-pink-500/40 flex items-center justify-center gap-2 group active:scale-[0.98]">
+                                Sign Up
+                                <span
+                                    class="material-symbols-outlined text-sm transition-transform group-hover:translate-x-1">
+                                    arrow_forward
+                                </span>
+                            </button>
+
+
+                        </form>
+
+                        <div class="mt-8 text-center">
+                            <p class="text-sm text-gray-500 dark:text-gray-400">
+                                Already have an account? <a
+                                    class="font-bold text-primary hover:text-pink-700 transition"
+                                    href="/login">Login</a>
+                            </p>
+                        </div>
+            </div>
+        </div>
+    </section>
+    <!-- OTP Verification Popup -->
+    <div id="otpPopup"
+        class="fixed inset-0 z-[100] hidden items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+
+        <div class="relative w-full max-w-md bg-white dark:bg-card-dark rounded-3xl shadow-2xl p-8 text-center">
+
+            <!-- Close Button -->
+            <button onclick="closeOtpPopup()"
+                class="absolute top-6 right-6 text-gray-400 hover:text-gray-600 dark:hover:text-white transition-colors">
+                <span class="material-symbols-outlined">close</span>
+            </button>
+
+            <!-- Icon -->
+            <div class="mb-6">
+                <div
+                    class="w-16 h-16 bg-secondary dark:bg-primary/20 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-outlined text-primary text-3xl">mark_email_read</span>
+                </div>
+
+                <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    Verify Email
+                </h2>
+
+                <p class="text-gray-500 dark:text-gray-400 text-sm">
+                    We've sent a 4-digit verification code to your email
+                </p>
+            </div>
+
+            <!-- OTP Inputs -->
+            <div class="flex justify-center gap-4 mb-8">
+                <input maxlength="1"
+                    class="otp-input w-14 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none" />
+
+                <input maxlength="1"
+                    class="otp-input w-14 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none" />
+
+                <input maxlength="1"
+                    class="otp-input w-14 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none" />
+
+                <input maxlength="1"
+                    class="otp-input w-14 h-14 text-center text-2xl font-bold border-2 border-gray-200 rounded-xl focus:border-primary focus:ring-2 focus:ring-primary/30 outline-none" />
+            </div>
+            <!-- Timer -->
+            <p id="otpTimer" class="text-sm text-gray-500 mb-4">
+                OTP expires in <span class="font-bold">60</span> seconds
+            </p>
+
+            <!-- Timeout Message -->
+            <p id="otpTimeoutMsg" class="text-red-500 text-sm mb-4 hidden">
+                OTP expired. Please resend OTP.
+            </p>
+
+
+
+            <!-- Error -->
+            <p id="otpError" class="text-red-500 text-sm mb-4 hidden"></p>
+
+            <!-- Verify Button -->
+            <button id="verifyBtn" onclick="verifyOtp()"
+                class="w-full bg-primary hover:bg-pink-700 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-pink-500/30 hover:shadow-pink-500/40 mb-6">
+                Verify
+            </button>
+
+            <!-- Resend -->
+            <div class="flex flex-col gap-2">
+                <p class="text-sm text-gray-500 dark:text-gray-400">Didn't receive the code?</p>
+                <button id="resendOtpBtn" onclick="resendOtp()" class="text-primary font-bold hover:underline mt-2">
+                    Resend OTP
+                </button>
+
+            </div>
+
+        </div>
+    </div>
+    <!-- Loading Spinner Popup -->
+    <div id="loadingPopup"
+        class="fixed inset-0 z-[150] hidden items-center justify-center bg-black/40 backdrop-blur-sm">
+
+        <div class="bg-white dark:bg-card-dark rounded-2xl shadow-xl p-8 flex flex-col items-center gap-4">
+
+            <!-- Spinner -->
+            <div class="w-14 h-14 border-4 border-pink-200 border-t-primary rounded-full animate-spin"></div>
+
+            <p class="text-gray-600 dark:text-gray-300 font-medium">
+                Sending OTP...
+            </p>
+
+        </div>
+    </div>
+
+
+    <!-- Signup Success Popup -->
+    <div id="successPopup"
+        class="fixed inset-0 z-[200] hidden items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
+
+        <div class="relative w-full max-w-md bg-white dark:bg-card-dark rounded-3xl shadow-2xl p-8 text-center">
+
+            <!-- Icon -->
+            <div class="mb-6">
+                <div class="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+                    <span class="material-symbols-outlined text-green-600 text-4xl">check_circle</span>
+                </div>
+
+                <h2 class="font-display text-2xl font-bold text-gray-900 dark:text-white mb-2">
+                    Account Created!
+                </h2>
+
+                <p class="text-gray-500 dark:text-gray-400 text-sm">
+                    Your account has been successfully created.
+                </p>
+            </div>
+
+            <!-- Login Button -->
+            <button onclick="goToLogin()"
+                class="w-full bg-primary hover:bg-pink-700 text-white py-4 rounded-xl font-bold transition-all shadow-lg shadow-pink-500/30 hover:shadow-pink-500/40">
+                Login to Account →
+            </button>
+
+        </div>
+    </div>
+    
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/validation.js"></script>
+    <script src="/js/otp.js"></script>
+    <script src="/js/signup.js"></script>
+
+    <%- include('../partials/footer') %>

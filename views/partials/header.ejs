@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>
+        <%= title %>
+    </title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link href="https://fonts.googleapis.com" rel="preconnect" />
+    <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect" />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;1,400&amp;family=Inter:wght@300;400;500;600&amp;display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet" />
+    <link rel="stylesheet"
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons+Outlined" rel="stylesheet">
+
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#E91E63", // Pink from the screenshot
+                        secondary: "#FCE4EC", // Light pink for backgrounds
+                        "background-light": "#F9FAFB",
+                        "background-dark": "#121212",
+                        "card-light": "#FFFFFF",
+                        "card-dark": "#1E1E1E",
+                        "text-light": "#1F2937",
+                        "text-dark": "#F3F4F6",
+                        "text-muted-light": "#6B7280",
+                        "text-muted-dark": "#9CA3AF",
+                    },
+                    fontFamily: {
+                        display: ["Playfair Display", "serif"],
+                        body: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.5rem",
+                        'xl': '1rem',
+                        '2xl': '1.5rem',
+                        '3xl': '2rem',
+                    },
+                },
+            },
+        };
+    </script>
+</head>
+
+<body
+    class="bg-background-light dark:bg-background-dark text-text-light dark:text-text-dark font-body transition-colors duration-200">
+    <nav
+        class="sticky top-0 z-50 bg-white/80 dark:bg-card-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-20">
+                <div class="flex items-center gap-8">
+                    <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
+                        <span class="material-icons-outlined text-primary text-3xl">spa</span>
+                        <span
+                            class="font-display font-bold text-2xl tracking-wide text-gray-900 dark:text-white">Bella</span>
+                    </div>
+                    <div class="hidden md:flex items-center gap-6">
+                        <a class="text-primary font-bold hover:text-primary transition" href="/">Home</a>
+                        <a class="text-gray-600 dark:text-gray-300 hover:text-primary font-medium transition"
+                            href="/about_us">About Us</a>
+                    </div>
+                </div>
+                <div class="hidden md:block flex-1 max-w-lg mx-8">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-icons-outlined text-gray-400">search</span>
+                        </div>
+                        <input
+                            class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-full leading-5 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition duration-150 ease-in-out"
+                            placeholder="Search for products..." type="text" />
+                    </div>
+                </div>
+                <div class="flex items-center gap-5">
+                    <button class="md:hidden p-2 text-gray-500 dark:text-gray-400">
+                        <span class="material-icons-outlined">search</span>
+                    </button>
+                    <button
+                        class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
+                        title="Wishlist">
+                        <span class="material-icons-outlined text-2xl">favorite_border</span>
+                    </button>
+                    <button
+                        class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
+                        title="Cart">
+                        <span class="material-icons-outlined text-2xl">shopping_bag</span>
+                        <span
+                            class="absolute top-1 right-0.5 bg-primary text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-card-dark shadow-sm">2</span>
+                    </button>
+                    <a href="/account"
+                        class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
+                        title="Profile">
+                        <span class="material-icons-outlined text-2xl">person_outline</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
