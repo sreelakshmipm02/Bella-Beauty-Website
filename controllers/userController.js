@@ -4,6 +4,8 @@ import {
 
 } from "../services/userServices/userSignup.js";
 import { createUser } from "../services/userServices/createUser.js";
+import { loginUser } from "../services/userServices/userLogin.js";
+
 //home page (index+home)
 export const homePage = (req, res) => {
     const isLoggedIn = !!req.session.userId;
@@ -54,14 +56,21 @@ export const verifySignupOtp = async (req, res) => {
     }
 };
 //get login page
-export const loginPage = (req,res) => {
-    res.render("user/login",{ error : null });
+export const loginPage = (req, res) => {
+    res.render("user/login", { error: null });
 };
 
-// //post login page
-// export const loginsubmit = async(req,res) => {
-//     try{
-//         const { identifier , password } = req.body;
-//         const user = await login
-//     }
-//  }
+//post login page
+export const loginSubmit = async (req, res) => {
+    try {
+        const { identifier, password } = req.body;
+
+        const user = await loginUser(identifier, password);
+        req.session.userId = user._id;
+        res.redirect("/home");
+
+
+    } catch (error) {
+        res.render("user/login", { error: error.message });
+    }
+};

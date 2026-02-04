@@ -4,6 +4,8 @@ dotenv.config();
 import express from "express";
 import path from "path";
 import session from "express-session";
+import passport from "passport";
+import configurePassport from "./config/passport.js";
 import MongoStore from "connect-mongo";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
@@ -44,6 +46,11 @@ app.use(
         }
     }
     ));
+
+//passport
+configurePassport();
+app.use(passport.initialize());
+app.use(passport.session());
 
 //routes
 app.use("/", userRoutes);
