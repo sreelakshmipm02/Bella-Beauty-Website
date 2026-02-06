@@ -1,328 +1,186 @@
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-    <meta charset="utf-8" />
-    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
-    <title>Bella Admin - Dashboard Overview</title>
-    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
-    <link
-        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;family=Playfair+Display:wght@700&amp;family=Material+Icons+Outlined&amp;display=swap"
-        rel="stylesheet" />
-    <script>
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        primary: "#E91E63",
-                        "background-light": "#F8F9FA",
-                        "background-dark": "#111827",
-                    },
-                    fontFamily: {
-                        display: ["Playfair Display", "serif"],
-                        sans: ["Inter", "sans-serif"],
-                    },
-                    borderRadius: {
-                        DEFAULT: "0.75rem",
-                    },
-                },
-            },
-        };
-    </script>
-    <style>
-        body {
-            font-family: 'Inter', sans-serif;
-        }
-
-        .font-display {
-            font-family: 'Playfair Display', serif;
-        }
-
-        .material-icons-outlined {
-            vertical-align: middle;
-            font-size: 20px;
-        }
-    </style>
-</head>
-
-<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 min-h-screen flex flex-col">
-    <header
-        class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-30">
-        <div class="flex items-center gap-2">
-            <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white">
-                <span class="material-icons-outlined">spa</span>
-            </div>
-            <h1 class="text-2xl font-display text-primary font-bold">Bella Admin</h1>
+<%- include("../partials/adminHeader") %>
+    <main class="flex-1 overflow-y-auto p-8">
+        <div class="mb-10">
+            <h2 class="text-4xl font-display text-slate-900 dark:text-white mb-2">Dashboard Overview</h2>
+            <p class="text-slate-500 dark:text-slate-400">Welcome back, Admin! Here's what's happening today.</p>
         </div>
-        <div class="flex items-center gap-6">
-            <button
-                class="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-                <span class="material-icons-outlined">notifications</span>
-                <span
-                    class="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
-            </button>
-            <div class="flex items-center gap-3">
-                <div
-                    class="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 text-primary flex items-center justify-center rounded-full font-bold">
-                    AD
-                </div>
-                <span class="text-sm font-medium hidden sm:block">Admin User</span>
-            </div>
-        </div>
-    </header>
-    <div class="flex flex-1 overflow-hidden">
-        <aside
-            class="w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 hidden md:flex flex-col p-6 overflow-y-auto">
-            <nav class="space-y-1 mb-10">
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl bg-primary text-white shadow-lg shadow-primary/20 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">dashboard</span>
-                    <span class="font-medium">Dashboard</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">shopping_cart</span>
-                    <span class="font-medium">Order Management</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">category</span>
-                    <span class="font-medium">Category Management</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">inventory_2</span>
-                    <span class="font-medium">Product Management</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">layers</span>
-                    <span class="font-medium">Variant Management</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">confirmation_number</span>
-                    <span class="font-medium">Coupon Management</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">assignment_return</span>
-                    <span class="font-medium">Return &amp; Refund</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">people</span>
-                    <span class="font-medium">User Management</span>
-                </a>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">payments</span>
-                    <span class="font-medium">Sales &amp; Revenue</span>
-                </a>
-            </nav>
-            <div class="mt-auto border-t border-slate-100 dark:border-slate-800 pt-6">
-                <p class="text-[10px] font-bold uppercase tracking-wider text-slate-400 mb-4 px-4">Settings</p>
-                <a class="flex items-center gap-3 px-4 py-3 rounded-xl text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all"
-                    href="#">
-                    <span class="material-icons-outlined">logout</span>
-                    <span class="font-medium">Sign Out</span>
-                </a>
-            </div>
-        </aside>
-        <main class="flex-1 overflow-y-auto p-8">
-            <div class="mb-10">
-                <h2 class="text-4xl font-display text-slate-900 dark:text-white mb-2">Dashboard Overview</h2>
-                <p class="text-slate-500 dark:text-slate-400">Welcome back, Admin! Here's what's happening today.</p>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-                <div
-                    class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                    <div class="flex justify-between items-start mb-4">
-                        <div
-                            class="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                            <span class="material-icons-outlined">account_balance_wallet</span>
-                        </div>
-                        <span
-                            class="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-full">+12.5%
-                            ↑</span>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <div
+                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-start mb-4">
+                    <div
+                        class="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl">
+                        <span class="material-icons-outlined">account_balance_wallet</span>
                     </div>
-                    <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Revenue</p>
-                    <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">₹4,25,390</p>
+                    <span
+                        class="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-full">+12.5%
+                        ↑</span>
                 </div>
-                <div
-                    class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                    <div class="flex justify-between items-start mb-4">
-                        <div class="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl">
-                            <span class="material-icons-outlined">shopping_bag</span>
-                        </div>
-                        <span
-                            class="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full">+5.2%
-                            ↑</span>
-                    </div>
-                    <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Orders</p>
-                    <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">1,245</p>
-                </div>
-                <div
-                    class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                    <div class="flex justify-between items-start mb-4">
-                        <div
-                            class="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl">
-                            <span class="material-icons-outlined">group</span>
-                        </div>
-                        <span
-                            class="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full">-1.4%
-                            ↓</span>
-                    </div>
-                    <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Active Users</p>
-                    <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">8,520</p>
-                </div>
-                <div
-                    class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                    <div class="flex justify-between items-start mb-4">
-                        <div
-                            class="p-3 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl">
-                            <span class="material-icons-outlined">support_agent</span>
-                        </div>
-                        <span
-                            class="text-[10px] font-bold text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full tracking-wider uppercase">New</span>
-                    </div>
-                    <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Pending Queries</p>
-                    <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">42</p>
-                </div>
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Revenue</p>
+                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">₹4,25,390</p>
             </div>
             <div
-                class="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-                <div
-                    class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                    <h3 class="text-xl font-display font-bold text-slate-900 dark:text-white">Recent Orders</h3>
-                    <a class="text-primary hover:underline text-sm font-semibold flex items-center gap-1" href="#">
-                        View All <span class="material-icons-outlined !text-sm">trending_flat</span>
-                    </a>
+                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl">
+                        <span class="material-icons-outlined">shopping_bag</span>
+                    </div>
+                    <span
+                        class="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full">+5.2%
+                        ↑</span>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full text-left">
-                        <thead>
-                            <tr
-                                class="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                                <th class="px-8 py-4">Order ID</th>
-                                <th class="px-8 py-4">Customer</th>
-                                <th class="px-8 py-4">Status</th>
-                                <th class="px-8 py-4">Amount</th>
-                                <th class="px-8 py-4 text-center">Action</th>
-                            </tr>
-                        </thead>
-                        <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                    #ORD-9281</td>
-                                <td class="px-8 py-5">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-xs font-bold flex items-center justify-center">
-                                            SJ</div>
-                                        <span class="text-sm font-medium">Sarah J.</span>
-                                    </div>
-                                </td>
-                                <td class="px-8 py-5">
-                                    <span
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                                        Processing
-                                    </span>
-                                </td>
-                                <td class="px-8 py-5 text-sm font-display font-bold">₹1,491.00</td>
-                                <td class="px-8 py-5 text-center">
-                                    <button class="text-slate-400 hover:text-primary transition-colors">
-                                        <span class="material-icons-outlined">visibility</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                    #ORD-9280</td>
-                                <td class="px-8 py-5">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center">
-                                            MK</div>
-                                        <span class="text-sm font-medium">Mike K.</span>
-                                    </div>
-                                </td>
-                                <td class="px-8 py-5">
-                                    <span
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                        Delivered
-                                    </span>
-                                </td>
-                                <td class="px-8 py-5 text-sm font-display font-bold">₹5,200.00</td>
-                                <td class="px-8 py-5 text-center">
-                                    <button class="text-slate-400 hover:text-primary transition-colors">
-                                        <span class="material-icons-outlined">visibility</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                    #ORD-9279</td>
-                                <td class="px-8 py-5">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold flex items-center justify-center">
-                                            AL</div>
-                                        <span class="text-sm font-medium">Amy L.</span>
-                                    </div>
-                                </td>
-                                <td class="px-8 py-5">
-                                    <span
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                        Pending
-                                    </span>
-                                </td>
-                                <td class="px-8 py-5 text-sm font-display font-bold">₹899.00</td>
-                                <td class="px-8 py-5 text-center">
-                                    <button class="text-slate-400 hover:text-primary transition-colors">
-                                        <span class="material-icons-outlined">visibility</span>
-                                    </button>
-                                </td>
-                            </tr>
-                            <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                                <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                    #ORD-9278</td>
-                                <td class="px-8 py-5">
-                                    <div class="flex items-center gap-3">
-                                        <div
-                                            class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center justify-center">
-                                            RP</div>
-                                        <span class="text-sm font-medium">Raj P.</span>
-                                    </div>
-                                </td>
-                                <td class="px-8 py-5">
-                                    <span
-                                        class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
-                                        <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-                                        Cancelled
-                                    </span>
-                                </td>
-                                <td class="px-8 py-5 text-sm font-display font-bold">₹2,150.00</td>
-                                <td class="px-8 py-5 text-center">
-                                    <button class="text-slate-400 hover:text-primary transition-colors">
-                                        <span class="material-icons-outlined">visibility</span>
-                                    </button>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Orders</p>
+                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">1,245</p>
             </div>
-            <footer class="mt-12 text-center">
-                <p class="text-xs text-slate-400 dark:text-slate-500">© 2024 Bella Beauty Admin. Internal Use Only.</p>
-            </footer>
-        </main>
-    </div>
-
-</body>
-
-</html>
+            <div
+                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl">
+                        <span class="material-icons-outlined">group</span>
+                    </div>
+                    <span
+                        class="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full">-1.4%
+                        ↓</span>
+                </div>
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Active Users</p>
+                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">8,520</p>
+            </div>
+            <div
+                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
+                <div class="flex justify-between items-start mb-4">
+                    <div class="p-3 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl">
+                        <span class="material-icons-outlined">support_agent</span>
+                    </div>
+                    <span
+                        class="text-[10px] font-bold text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full tracking-wider uppercase">New</span>
+                </div>
+                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Pending Queries</p>
+                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">42</p>
+            </div>
+        </div>
+        <div
+            class="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+            <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                <h3 class="text-xl font-display font-bold text-slate-900 dark:text-white">Recent Orders</h3>
+                <a class="text-primary hover:underline text-sm font-semibold flex items-center gap-1" href="#">
+                    View All <span class="material-icons-outlined !text-sm">trending_flat</span>
+                </a>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full text-left">
+                    <thead>
+                        <tr
+                            class="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
+                            <th class="px-8 py-4">Order ID</th>
+                            <th class="px-8 py-4">Customer</th>
+                            <th class="px-8 py-4">Status</th>
+                            <th class="px-8 py-4">Amount</th>
+                            <th class="px-8 py-4 text-center">Action</th>
+                        </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
+                                #ORD-9281</td>
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-xs font-bold flex items-center justify-center">
+                                        SJ</div>
+                                    <span class="text-sm font-medium">Sarah J.</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
+                                    Processing
+                                </span>
+                            </td>
+                            <td class="px-8 py-5 text-sm font-display font-bold">₹1,491.00</td>
+                            <td class="px-8 py-5 text-center">
+                                <button class="text-slate-400 hover:text-primary transition-colors">
+                                    <span class="material-icons-outlined">visibility</span>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
+                                #ORD-9280</td>
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center">
+                                        MK</div>
+                                    <span class="text-sm font-medium">Mike K.</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
+                                    Delivered
+                                </span>
+                            </td>
+                            <td class="px-8 py-5 text-sm font-display font-bold">₹5,200.00</td>
+                            <td class="px-8 py-5 text-center">
+                                <button class="text-slate-400 hover:text-primary transition-colors">
+                                    <span class="material-icons-outlined">visibility</span>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
+                                #ORD-9279</td>
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold flex items-center justify-center">
+                                        AL</div>
+                                    <span class="text-sm font-medium">Amy L.</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
+                                    Pending
+                                </span>
+                            </td>
+                            <td class="px-8 py-5 text-sm font-display font-bold">₹899.00</td>
+                            <td class="px-8 py-5 text-center">
+                                <button class="text-slate-400 hover:text-primary transition-colors">
+                                    <span class="material-icons-outlined">visibility</span>
+                                </button>
+                            </td>
+                        </tr>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
+                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
+                                #ORD-9278</td>
+                            <td class="px-8 py-5">
+                                <div class="flex items-center gap-3">
+                                    <div
+                                        class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center justify-center">
+                                        RP</div>
+                                    <span class="text-sm font-medium">Raj P.</span>
+                                </div>
+                            </td>
+                            <td class="px-8 py-5">
+                                <span
+                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
+                                    <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
+                                    Cancelled
+                                </span>
+                            </td>
+                            <td class="px-8 py-5 text-sm font-display font-bold">₹2,150.00</td>
+                            <td class="px-8 py-5 text-center">
+                                <button class="text-slate-400 hover:text-primary transition-colors">
+                                    <span class="material-icons-outlined">visibility</span>
+                                </button>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <%- include("../partials/adminFooter") %>
