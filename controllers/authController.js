@@ -1,3 +1,4 @@
+//google login
 export const googleAuthCallback = (req, res) => {
   try {
     // Passport attaches the user to req.user

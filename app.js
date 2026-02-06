@@ -10,6 +10,7 @@ import MongoStore from "connect-mongo";
 import { fileURLToPath } from "url";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
+import adminRoutes from "./routes/adminRoutes.js";
 
 //fix __dirname in ES module
 const __filename = fileURLToPath(import.meta.url);
@@ -54,6 +55,7 @@ app.use(passport.session());
 
 //routes
 app.use("/", userRoutes);
+app.use("/admin",adminRoutes);
 //404 handler
 app.use((req, res) => {
     res.status(404).send("Page Not Found!");

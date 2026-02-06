@@ -1,0 +1,47 @@
+import Admin from "../../models/admin.js";
+import bcrypt from "bcrypt";
+import dotenv from "dotenv";
+
+dotenv.config();
+
+export const authenticateAdmin = async (email, password) => {
+    
+    // 1. Check against .env credentials FIRST
+    if (email === process.env.ADMIN_EMAIL && password === process.env.ADMIN_PASSWORD) {
+        
+        // Check if this super admin is already saved in MongoDB
+        let admin = await Admin.findOne({ email: email });
+
+        if (!admin) {
+            // If not found in DB, auto-create the Super Admin now
+            const hashedPassword = await bcrypt.hash(password, 10);
+            
+            admin = new Admin({
+                email: email,
+                password: hashedPassword,
+                fullName: "Super Admin",
+                phone: "0000000000"
+            });
+            
+            await admin.save();
+            console.log("Super Admin created in database from .env");
+        }
+        
+        return admin;
+    }
+
+    // 2. If not .env admin, check Database for other sub-admins
+    const admin = await Admin.findOne({ email: email });
+
+    if (!admin) {
+        throw new Error("Invalid email or password");
+    }
+
+    const isMatch = await bcrypt.compare(password, admin.password);
+
+    if (!isMatch) {
+        throw new Error("Invalid email or password");
+    }
+
+    return admin;
+};

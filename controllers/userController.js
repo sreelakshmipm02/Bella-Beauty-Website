@@ -57,6 +57,9 @@ export const verifySignupOtp = async (req, res) => {
 };
 //get login page
 export const loginPage = (req, res) => {
+    if (req.session.userId) {
+        return res.redirect("/home");
+    }
     res.render("user/login", { error: null });
 };
 

@@ -7,30 +7,31 @@ import {
     verifySignupOtp,
     loginPage,
     loginSubmit
-    
 } from "../controllers/userController.js";
 import { googleAuthCallback } from "../controllers/authController.js";
 
+import { preventCache } from "../middlewares/authMiddleware.js";
+
 const router = express.Router();
 
-//index page
-router.get("/",homePage);
+// Index/Home page
+router.get("/", preventCache, homePage);
 
-//signup page
-router.get("/signup",signupPage);
-router.post("/send-signup-otp",sendSignupOtpController);
-router.post("/verify-signup-otp",verifySignupOtp);
+// Signup page
+router.get("/signup", preventCache, signupPage);
+router.post("/send-signup-otp", sendSignupOtpController);
+router.post("/verify-signup-otp", verifySignupOtp);
 
-//login page
-router.get("/login",loginPage);
-router.post("/login",loginSubmit);
+// Login page
+router.get("/login", preventCache, loginPage);
+router.post("/login", loginSubmit);
 
-//google login
+// Google login
 router.get("/auth/google",
     passport.authenticate("google", { scope: ["profile", "email"] })
 );
 
-//google callback
+// Google callback
 router.get(
   "/auth/google/callback",
   passport.authenticate("google", { failureRedirect: "/login" }),

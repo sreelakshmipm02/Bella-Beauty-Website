@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <title>Bella Admin Login</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;700&family=Inter:wght@300;400;500;600&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
+
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#e91e63",
+                        "background-light": "#f8f9fa",
+                        "background-dark": "#121212",
+                    },
+                    fontFamily: {
+                        display: ["Playfair Display", "serif"],
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                        "xl": "1.5rem",
+                    },
+                },
+            },
+        };
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .display-font { font-family: 'Playfair Display', serif; }
+        .bg-login-gradient { background: linear-gradient(to bottom, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.8) 100%); }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark min-h-screen flex flex-col transition-colors duration-300">
+    <header class="p-6 md:px-12 bg-white dark:bg-zinc-900 border-b border-gray-100 dark:border-zinc-800 flex items-center gap-2">
+        <div class="w-8 h-8 bg-primary rounded-lg flex items-center justify-center text-white">
+            <span class="material-icons text-lg">shield</span>
+        </div>
+        <span class="text-xl font-bold display-font text-gray-900 dark:text-white">Bella Admin</span>
+    </header>
+    <main class="flex-grow flex items-center justify-center p-4">
+        <div class="max-w-5xl w-full bg-white dark:bg-zinc-900 rounded-xl overflow-hidden shadow-2xl flex flex-col md:flex-row min-h-[600px]">
+            <div class="relative md:w-1/2 min-h-[400px] md:min-h-0 bg-zinc-800">
+                <img alt="Bella Beauty Portrait" class="absolute inset-0 w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBBpYDjMgJe_q3_sw9LJJZom02T9nyuCARLyfCuzsr7eCtuq4XAu-IRyX8C7J2CtTxEghSLutpsc1s1qBYLsC1K7qf5K24fm_yd512A1VoVC5qn9DFzVBr_vbpvD6cPw6His8r7vZpLI9bSorB-DFARhBS-5eKUdAKdMblnKC5BZOcY2C-H8pEnZWk6pjsgru0PcvMTn28hLHwadFambm3wULzG2t3O4q0Q_d6Su9jPtlsVaH4_GwJLeWl4AR_TljGELmJN6evYFw" />
+                <div class="absolute inset-0 bg-login-gradient flex flex-col justify-end p-8 md:p-12 text-white">
+                    <div class="mb-6">
+                        <span class="bg-white/20 backdrop-blur-md border border-white/30 text-[10px] tracking-widest uppercase font-semibold px-3 py-1 rounded">
+                            Internal Access
+                        </span>
+                    </div>
+                    <h1 class="display-font text-4xl md:text-5xl font-bold mb-4">Dashboard Access</h1>
+                    <p class="text-white/80 text-sm md:text-base max-w-sm leading-relaxed">
+                        Secure login for Bella Beauty administrators. Manage your store, inventory, and orders.
+                    </p>
+                </div>
+            </div>
+            <div class="md:w-1/2 p-8 md:p-16 flex flex-col justify-center bg-white dark:bg-zinc-900">
+                <div class="max-w-sm mx-auto w-full">
+                    <h2 class="display-font text-3xl font-bold text-gray-900 dark:text-white mb-2">Admin Login</h2>
+                    <p class="text-gray-500 dark:text-gray-400 text-sm mb-8">Please enter your credentials to proceed.</p>
+
+                    <form id="loginForm" class="space-y-6" method="POST" action="/admin/login" novalidate>
+
+                        <% if (error) { %>
+                            <div class="bg-red-100 text-red-700 p-3 rounded-xl text-sm border border-red-200">
+                                <%= error %>
+                            </div>
+                        <% } %>
+
+                        <div id="jsError" class="hidden bg-red-100 text-red-700 p-3 rounded-xl text-sm border border-red-200"></div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Email</label>
+                            <div class="relative">
+                                <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">person</span>
+                                <input id="email" name="email" type="email" placeholder="admin@bellabeauty.com"
+                                    class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-12 pr-4 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" />
+                            </div>
+                            <p id="emailError" class="text-red-500 text-xs mt-1 ml-1 hidden"></p>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Password</label>
+                            <div class="relative">
+                                <span class="material-icons absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-xl">lock</span>
+                                
+                                <input id="password" name="password" type="password" placeholder="••••••••"
+                                    class="w-full bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl py-4 pl-12 pr-12 focus:ring-2 focus:ring-primary focus:border-transparent transition-all outline-none" />
+                                
+                                <button type="button" onclick="togglePassword()" 
+                                    class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-primary transition-colors cursor-pointer outline-none">
+                                    <span id="eyeIcon" class="material-icons text-xl">visibility_off</span>
+                                </button>
+                            </div>
+                            <p id="passwordError" class="text-red-500 text-xs mt-1 ml-1 hidden"></p>
+                        </div>
+
+                        <div class="flex items-center justify-end text-sm">
+                            <a class="text-primary font-semibold hover:underline" href="/admin/forgot-password">Forgot password?</a>
+                        </div>
+
+                        <button id="submitBtn" disabled
+                            class="w-full bg-primary hover:bg-opacity-90 disabled:bg-gray-300 disabled:cursor-not-allowed text-white py-4 rounded-xl font-bold flex items-center justify-center gap-2 transition-all transform hover:scale-[1.01] active:scale-[0.98] shadow-lg shadow-pink-100 dark:shadow-none"
+                            type="submit">
+                            Login
+                            <span class="material-icons text-sm transition-transform group-hover:translate-x-1">arrow_forward</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </main>
+    <footer class="p-8 text-center">
+        <p class="text-gray-500 dark:text-zinc-500 text-xs md:text-sm tracking-wide">
+            © 2024 Bella Beauty. Admin Dashboard.
+        </p>
+    </footer>
+
+    <script src = "/js/login.js"></script>
+</body>
+
+</html>
