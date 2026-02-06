@@ -1,0 +1,60 @@
+<%- include('../partials/header', { title: 'Bella Beauty' }) %>
+<%- include('../partials/userSideNavbar') %>
+            <div class="tab-content flex-1 space-y-1" id="account">
+                <header class="flex flex-col md:flex-row md:items-center justify-between gap-2">
+                    <div>
+                        <h1 class="font-display text-3xl font-bold mb-1">My Account</h1>
+                        <p class="text-sm text-slate-500 dark:text-slate-400">
+                            Welcome back, <%= user.firstName %>!
+                        </p>
+                    </div>
+                    <a class="nav-link hover:bg-primary/90 text-black px-6 py-2 rounded-full text-xs font-semibold shadow-md flex items-center gap-1"
+                        href="#" data-target="edit-profile">
+                        <span class="material-symbols-outlined text-sm">edit</span>
+                        Edit
+                    </a>
+                </header>
+
+                <div
+                    class="bg-white dark:bg-slate-800 rounded-xl border border-pink-50 dark:border-slate-700/50 overflow-hidden">
+
+                    <div class="p-5 md:p-6 flex items-center gap-4 border-b border-slate-100 dark:border-slate-700/50">
+                        <div
+                            class="w-16 h-16 rounded-full bg-pink-100 flex items-center justify-center text-primary text-xl font-semibold">
+                            <%= (user.firstName?.charAt(0) || '' ) + (user.lastName?.charAt(0) ||
+                                user.firstName?.charAt(1)) %>
+
+                        </div>
+                        <div>
+                            <h4 class="font-medium">Profile Picture</h4>
+                        </div>
+                    </div>
+
+                    <div class="divide-y divide-slate-100 dark:divide-slate-700/50">
+                        <div class="p-5 md:p-6">
+                            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Username</p>
+                            <p class="font-medium">
+                                <%= user.userName %>
+                            </p>
+                        </div>
+
+                        <div class="p-5 md:p-6">
+                            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Email</p>
+                            <p class="font-medium">
+                                <%= user.email %>
+                            </p>
+                        </div>
+
+                        <div class="p-5 md:p-6">
+                            <p class="text-[10px] uppercase tracking-widest font-bold text-slate-400">Mobile</p>
+                            <p class="font-medium">
+                                <%= user.phone %>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <%- include('../partials/footer') %>

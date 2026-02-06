@@ -5,6 +5,7 @@ import {
 } from "../services/userServices/userSignup.js";
 import { createUser } from "../services/userServices/createUser.js";
 import { loginUser } from "../services/userServices/userLogin.js";
+import { getUserData } from "../services/userServices/userAccount.js";
 
 //home page (index+home)
 export const homePage = (req, res) => {
@@ -76,4 +77,36 @@ export const loginSubmit = async (req, res) => {
     } catch (error) {
         res.render("user/login", { error: error.message });
     }
+};
+
+//render user account page
+export const userAccount = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const user = await getUserData(userId);
+        res.render("user/account", { 
+            title: "My Account",
+            user: user 
+        });
+    } catch (error) {
+        console.error("Account Page Error:", error);
+        res.redirect("/login");
+    }
+};
+
+// Logout process 
+export const userLogout = (req, res) => {
+    // 1. Destroy the session
+    req.session.destroy((err) => {
+        if (err) {
+            console.log("Error destroying session:", err);
+            return res.redirect("/");
+        }
+
+        // 2. Clear the cookie 
+        res.clearCookie("connect.sid");
+
+        // 3. Redirect to Login
+        res.redirect("/login");
+    });
 };

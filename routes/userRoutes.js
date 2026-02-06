@@ -6,11 +6,13 @@ import {
     sendSignupOtpController,
     verifySignupOtp,
     loginPage,
-    loginSubmit
+    loginSubmit,
+    userAccount,
+    userLogout
 } from "../controllers/userController.js";
 import { googleAuthCallback } from "../controllers/authController.js";
 
-import { preventCache } from "../middlewares/authMiddleware.js";
+import { preventCache, checkUserSession} from "../middlewares/authMiddleware.js";
 
 const router = express.Router();
 
@@ -37,5 +39,11 @@ router.get(
   passport.authenticate("google", { failureRedirect: "/login" }),
   googleAuthCallback
 );
+
+//user account
+router.get('/account', checkUserSession, preventCache, userAccount);
+
+// Logout Route
+router.get('/logout', userLogout);
 
 export default router;

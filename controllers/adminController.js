@@ -30,3 +30,20 @@ export const adminLogin = async (req, res) => {
 export const dashboardPage = (req, res) => {
     res.render('admin/dashboard');
 };
+
+// Logout process 
+export const adminLogout = (req, res) => {
+    // 1. Destroy the session
+    req.session.destroy((err) => {
+        if (err) {
+            console.log("Error destroying session:", err);
+            return res.redirect("/admin/dashboard");
+        }
+        
+        // 2. Clear the cookie 
+        res.clearCookie("connect.sid"); 
+
+        // 3. Redirect to Login
+        res.redirect("/admin/login");
+    });
+};

@@ -2,7 +2,8 @@ import express from "express";
 import {
     adminLoginPage,
     adminLogin,
-    dashboardPage
+    dashboardPage,
+    adminLogout
 } from "../controllers/adminController.js";
 
 import { 
@@ -19,5 +20,8 @@ router.post('/login', adminLogin);
 
 // Dashboard (Protected + No Cache)
 router.get('/dashboard', checkAdminSession, preventCache, dashboardPage);
+
+// Logout Route
+router.get('/logout', adminLogout);
 
 export default router;
