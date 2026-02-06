@@ -63,7 +63,9 @@ const userSchema = new mongoose.Schema(
     authProviders: {
       google: { type: Boolean, default: false },
       local: { type: Boolean, default: false }
-    }
+    },
+    resetPasswordToken: { type: String },
+    resetPasswordExpires: { type: Date }
 
   },
   {

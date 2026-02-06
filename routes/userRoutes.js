@@ -6,7 +6,11 @@ import {
     sendSignupOtpController,
     verifySignupOtp,
     loginPage,
-    loginSubmit
+    loginSubmit,
+    forgotPasswordPage, 
+    forgotPasswordSubmit, 
+    resetPasswordPage, 
+    resetPasswordSubmit
 } from "../controllers/userController.js";
 import { googleAuthCallback } from "../controllers/authController.js";
 
@@ -38,4 +42,11 @@ router.get(
   googleAuthCallback
 );
 
+// Forgot Password
+router.get("/forgot-password", preventCache, forgotPasswordPage);
+router.post("/forgot-password", forgotPasswordSubmit);
+
+// Reset Password
+router.get("/reset-password/:token", preventCache, resetPasswordPage);
+router.post("/reset-password/:token", resetPasswordSubmit);
 export default router;
