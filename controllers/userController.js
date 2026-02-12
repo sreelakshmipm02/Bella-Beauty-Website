@@ -1,6 +1,7 @@
 import {
     sendSignupOtp,
-    verifySignupOtpService
+    verifySignupOtpService,
+    resendOtpService
 
 } from "../services/userServices/userSignup.js";
 import { createUser } from "../services/userServices/createUser.js";
@@ -56,10 +57,22 @@ export const verifySignupOtp = async (req, res) => {
         res.json({ success: false, message: error.message });
     }
 };
+
+//resend signup otp
+export const resendSignupOtp = async (req, res) => {
+    try {
+        const { email } = req.body;
+        await resendOtpService(email);
+        res.json({ success: true, message: "OTP resent successfully" });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
 //get login page
 export const loginPage = (req, res) => {
     if (req.session.userId) {
-        return res.redirect("/home");
+        return res.redirect("/");
     }
     res.render("user/login", { error: null });
 };
@@ -71,7 +84,7 @@ export const loginSubmit = async (req, res) => {
 
         const user = await loginUser(identifier, password);
         req.session.userId = user._id;
-        res.redirect("/home");
+        res.redirect("/");
 
 
     } catch (error) {

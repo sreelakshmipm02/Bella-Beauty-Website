@@ -273,24 +273,24 @@ function startOtpTimer() {
 // Resend OTP Wrapper
 async function resendOtp() {
     const email = document.getElementById("email").value.trim();
-    if(!email) return;
+    if(!email) {
+        showErrorAlert("Email is required to resend OTP.");
+        return;
+    }
 
     try {
         showLoading();
-        const res = await fetch("/send-signup-otp", {
+        // Change the URL to a specific resend endpoint
+        const res = await fetch("/resend-signup-otp", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ 
-                email: email,
-                firstName: "Resend", lastName: "User", phone: "0000000000", password: "ResendPassword1!" 
-            })
+            body: JSON.stringify({ email }) // ONLY send the email
         });
         
         const result = await res.json();
         hideLoading();
         
         if(result.success) {
-            // UI Update: Success Toast
             Toast.fire({
                 icon: 'success',
                 title: 'New code sent to your email'
@@ -300,10 +300,10 @@ async function resendOtp() {
             clearOtpInputs();
             document.getElementById("otpError").classList.add("hidden");
         } else {
-            // UI Update: Error Alert
             showErrorAlert(result.message);
         }
     } catch(err) {
+        hideLoading();
         console.error(err);
         showErrorAlert("Failed to resend OTP.");
     }

@@ -87,3 +87,31 @@ export const verifySignupOtpService = async (email, otp) => {
   await TempUser.deleteMany({ email });
   return userData;
 };
+
+//resend otp service
+// resend otp service
+export const resendOtpService = async (email) => {
+  // 1. Check if TempUser still exists (if not, the session is truly dead)
+  const userData = await TempUser.findOne({ email });
+  if (!userData) {
+    throw new Error("Signup session expired. Please sign up again.");
+  }
+
+  // 2. Generate new OTP
+  const newOtp = generateOtp();
+
+  // 3. Update the OTP collection (The source of truth for verification)
+  await Otp.deleteMany({ email });
+  await Otp.create({ email, otp: newOtp }); // Ensure key is 'otp' to match verify service
+
+  // 4. Update TempUser timestamp only
+  // We don't strictly need to store the OTP in TempUser if we use the Otp collection
+  await TempUser.findOneAndUpdate(
+    { email },
+    { $set: { updatedAt: new Date() } }
+  );
+
+  // 5. Send email
+  await sendOtpEmail(email, newOtp);
+  return true;
+};

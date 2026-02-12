@@ -5,6 +5,7 @@ import {
     signupPage,
     sendSignupOtpController,
     verifySignupOtp,
+    resendSignupOtp,
     loginPage,
     loginSubmit,
     userAccount,
@@ -23,6 +24,7 @@ router.get("/", preventCache, homePage);
 router.get("/signup", preventCache, signupPage);
 router.post("/send-signup-otp", sendSignupOtpController);
 router.post("/verify-signup-otp", verifySignupOtp);
+router.post("/resend-signup-otp", resendSignupOtp);
 
 // Login page
 router.get("/login", preventCache, loginPage);
