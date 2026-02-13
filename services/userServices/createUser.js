@@ -30,7 +30,7 @@ export const createUser = async (userData) => {
   password,
   authProviders: {
     google: false,
-    local: true // 🔴 REQUIRED
+    local: true //required
   }
 });
 

@@ -1,7 +1,3 @@
-//
-
-// --- SweetAlert2 Configuration Mixins ---
-
 // 1. Standard Error Popup
 const showErrorAlert = (message) => {
     Swal.fire({
@@ -28,7 +24,7 @@ const Toast = Swal.mixin({
 
 
 document.addEventListener("DOMContentLoaded", () => {
-    // === 1. Form Submission ===
+    //  1. Form Submission 
     const form = document.getElementById("signupForm");
     const submitBtn = document.getElementById("submitBtn");
 
@@ -67,7 +63,7 @@ document.addEventListener("DOMContentLoaded", () => {
                             text: result.message,
                             showCancelButton: true,
                             confirmButtonText: 'Go to Login',
-                            confirmButtonColor: '#db2777' // Your primary pink
+                            confirmButtonColor: '#db2777' //  primary pink
                         }).then((result) => {
                             if (result.isConfirmed) {
                                 window.location.href = "/login";
@@ -81,9 +77,9 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 // Success
                 openOtpPopup();
-                startOtpTimer(); 
+                startOtpTimer();
 
-                // Optional: Success Toast
+                // Success Toast
                 Toast.fire({
                     icon: 'success',
                     title: 'OTP Sent successfully'
@@ -99,7 +95,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 
-// === 2. OTP Verification Logic ===
+//  2. OTP Verification Logic
 
 async function verifyOtp() {
     const inputs = document.querySelectorAll(".otp-input");
@@ -107,7 +103,7 @@ async function verifyOtp() {
     inputs.forEach(input => otp += input.value);
 
     if (otp.length < 4) {
-        // Validation error inside the modal (kept text for speed, or use Swal)
+        // Validation error inside the modal
         const errorBox = document.getElementById("otpError");
         errorBox.innerText = "Please enter the full 4-digit code.";
         errorBox.classList.remove("hidden");
@@ -136,12 +132,10 @@ async function verifyOtp() {
         if (data.success) {
             document.getElementById("otpError").classList.add("hidden");
             closeOtpPopup();
-            
-            // Success Popup (SweetAlert instead of custom popup, or keep custom)
-            // Since you have a custom success popup in EJS, let's keep it consistent:
-            openSuccessPopup(); 
-            
-            // OR use Swal for success if you prefer:
+
+            openSuccessPopup();
+
+            // Swal for success
             /*
             Swal.fire({
                 icon: 'success',
@@ -153,14 +147,14 @@ async function verifyOtp() {
                 window.location.href = "/login";
             });
             */
-            
+
         } else {
             const errorBox = document.getElementById("otpError");
             errorBox.innerText = data.message || "Invalid OTP";
             errorBox.classList.remove("hidden");
             clearOtpInputs();
-            
-            // Optional: Shake the popup for visual feedback
+
+            //  Shake the popup for visual feedback
             const popupContent = document.querySelector("#otpPopup > div");
             popupContent.classList.add('animate-shake');
             setTimeout(() => popupContent.classList.remove('animate-shake'), 500);
@@ -173,7 +167,7 @@ async function verifyOtp() {
 }
 
 
-// === 3. Helper Functions ===
+//  3. Helper Functions
 
 function showLoading() {
     const popup = document.getElementById("loadingPopup");
@@ -197,7 +191,7 @@ function openOtpPopup() {
         popup.classList.remove("hidden");
         popup.classList.add("flex");
         const firstInput = document.querySelector(".otp-input");
-        if(firstInput) firstInput.focus();
+        if (firstInput) firstInput.focus();
     }
 }
 
@@ -228,11 +222,11 @@ function goToLogin() {
     window.location.href = "/login";
 }
 
-// === 4. OTP Timer Logic ===
+//  4. OTP Timer Logic 
 let timerInterval;
 
 function startOtpTimer() {
-    let timeLeft = 60; 
+    let timeLeft = 60;
     const timerDisplay = document.getElementById("otpTimer");
     const timeoutMsg = document.getElementById("otpTimeoutMsg");
     const resendBtn = document.getElementById("resendOtpBtn");
@@ -242,14 +236,14 @@ function startOtpTimer() {
         timerDisplay.classList.remove("hidden");
     }
     if (timeoutMsg) timeoutMsg.classList.add("hidden");
-    
+
     if (resendBtn) {
         resendBtn.disabled = true;
         resendBtn.classList.add("opacity-50", "cursor-not-allowed");
     }
 
     clearInterval(timerInterval);
-    
+
     timerInterval = setInterval(() => {
         timeLeft--;
 
@@ -261,7 +255,7 @@ function startOtpTimer() {
             clearInterval(timerInterval);
             if (timerDisplay) timerDisplay.classList.add("hidden");
             if (timeoutMsg) timeoutMsg.classList.remove("hidden");
-            
+
             if (resendBtn) {
                 resendBtn.disabled = false;
                 resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
@@ -273,7 +267,7 @@ function startOtpTimer() {
 // Resend OTP Wrapper
 async function resendOtp() {
     const email = document.getElementById("email").value.trim();
-    if(!email) {
+    if (!email) {
         showErrorAlert("Email is required to resend OTP.");
         return;
     }
@@ -286,11 +280,11 @@ async function resendOtp() {
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }) // ONLY send the email
         });
-        
+
         const result = await res.json();
         hideLoading();
-        
-        if(result.success) {
+
+        if (result.success) {
             Toast.fire({
                 icon: 'success',
                 title: 'New code sent to your email'
@@ -302,7 +296,7 @@ async function resendOtp() {
         } else {
             showErrorAlert(result.message);
         }
-    } catch(err) {
+    } catch (err) {
         hideLoading();
         console.error(err);
         showErrorAlert("Failed to resend OTP.");

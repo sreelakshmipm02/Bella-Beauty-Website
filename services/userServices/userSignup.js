@@ -88,7 +88,6 @@ export const verifySignupOtpService = async (email, otp) => {
   return userData;
 };
 
-//resend otp service
 // resend otp service
 export const resendOtpService = async (email) => {
   // 1. Check if TempUser still exists (if not, the session is truly dead)
