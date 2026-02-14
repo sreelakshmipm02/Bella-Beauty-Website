@@ -1,3 +1,4 @@
+// admin login form validation
 //1. LIVE VALIDATION LOGIC
 document.addEventListener('DOMContentLoaded', () => {
     const emailInput = document.getElementById('email');

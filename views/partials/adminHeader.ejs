@@ -13,6 +13,7 @@
         href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&family=Material+Icons+Outlined&display=swap"
         rel="stylesheet" />
 
+    <link rel="stylesheet" href="/css/style.css">
     <script>
         tailwind.config = {
             darkMode: "class",
@@ -131,7 +132,7 @@
             </nav>
 
             <!-- SIGN OUT (fixed bottom) -->
-             <script src="/js/logoutPopup.js"></script>
+            <script src="/js/logoutPopup.js"></script>
             <div class="p-4 border-t border-slate-200 dark:border-slate-800">
                 <button onclick="confirmLogout('/admin/logout')"
                     class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition shadow-lg shadow-red-500/20">
@@ -140,25 +141,25 @@
                 </button>
             </div>
         </aside>
-        <!-- SIDEBAR LINK STYLE -->
-        <style>
-            .sidebar-link {
-                display: flex;
-                align-items: center;
-                gap: 0.75rem;
-                padding: 0.75rem 1rem;
-                border-radius: 0.75rem;
-                color: rgb(100 116 139);
-                transition: background 0.2s, color 0.2s;
-            }
 
-            .sidebar-link:hover {
-                background: rgb(241 245 249);
-                color: rgb(15 23 42);
-            }
+        <!-- SIDEBAR LINK SCRIPT -->
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                const currentPath = window.location.pathname;
+                const links = document.querySelectorAll(".sidebar-link");
 
-            .dark .sidebar-link:hover {
-                background: rgb(30 41 59);
-                color: white;
-            }
-        </style>
+                links.forEach(link => {
+                    const linkPath = link.getAttribute("href");
+
+                    // Check if current path matches the link path
+                    if (currentPath === linkPath) {
+                        link.classList.add("active");
+                        // Remove the default hover classes if they interfere with active state
+                        link.classList.remove("text-slate-500");
+                    } else {
+                        // Ensure active is removed from non-matching links
+                        link.classList.remove("active");
+                    }
+                });
+            });
+        </script>
