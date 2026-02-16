@@ -1,9 +1,50 @@
-<footer class="mt-12 text-center">
-        <p class="text-xs text-slate-400 dark:text-slate-500">© 2024 Bella Beauty Admin. Internal Use Only.</p>
-    </footer>
+<footer class="mt-12 py-8 text-center border-t border-slate-100 dark:border-slate-800">
+    <p class="text-xs text-slate-400 dark:text-slate-500">© 2024 Bella Beauty Admin. Internal Use Only.</p>
+</footer>
 </main>
 </div>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const currentPath = window.location.pathname;
+        const links = document.querySelectorAll(".sidebar-link");
+        const breadcrumbCurrent = document.getElementById("breadcrumb-current");
 
+        // MOBILE MENU ELEMENTS
+        const toggleBtn = document.getElementById("mobile-menu-toggle");
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebar-overlay");
+
+        // 1. HIGHLIGHT ACTIVE LINK & SET BREADCRUMBS
+        links.forEach(link => {
+            const linkPath = link.getAttribute("href");
+
+            if (currentPath === linkPath) {
+                link.classList.add("active");
+
+                if (breadcrumbCurrent) {
+                    // FIX: Get only the text that IS NOT inside the <span> icon
+                    // cloneNode ensures we don't mess with the actual sidebar
+                    const linkClone = link.cloneNode(true);
+                    const icon = linkClone.querySelector('.material-icons-outlined');
+                    if (icon) icon.remove(); // Remove the icon text ("people", "dashboard", etc)
+
+                    breadcrumbCurrent.innerText = linkClone.innerText.trim();
+                }
+            } else {
+                link.classList.remove("active");
+            }
+        });
+
+        // 2. MOBILE SIDEBAR LOGIC
+        const toggleSidebar = () => {
+            sidebar.classList.toggle("-translate-x-full");
+            overlay.classList.toggle("hidden");
+        };
+
+        if (toggleBtn) toggleBtn.addEventListener("click", toggleSidebar);
+        if (overlay) overlay.addEventListener("click", toggleSidebar);
+    });
+</script>
 </body>
 
 </html>

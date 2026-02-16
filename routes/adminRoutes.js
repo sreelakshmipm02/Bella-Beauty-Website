@@ -3,6 +3,7 @@ import {
     adminLoginPage,
     adminLogin,
     dashboardPage,
+    userManagementPage,
     adminLogout
 } from "../controllers/adminController.js";
 
@@ -20,6 +21,9 @@ router.post('/login', adminLogin);
 
 // Dashboard (Protected + No Cache)
 router.get('/dashboard', checkAdminSession, preventCache, dashboardPage);
+
+// User management
+router.get('/user', checkAdminSession, preventCache, userManagementPage)
 
 // Logout Route
 router.get('/logout', adminLogout);

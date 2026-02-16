@@ -31,6 +31,10 @@ export const dashboardPage = (req, res) => {
     res.render('admin/dashboard');
 };
 
+// Render user management page
+export const userManagementPage = (rreq,res) => {
+    res.render('admin/user');
+}
 // Logout process 
 export const adminLogout = (req, res) => {
     // 1. Destroy the session

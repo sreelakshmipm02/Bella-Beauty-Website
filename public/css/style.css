@@ -39,37 +39,34 @@
     color: white !important;
 }
 
-
-/* Base Sidebar Link Style */
 .sidebar-link {
     display: flex;
     align-items: center;
     gap: 0.75rem;
     padding: 0.75rem 1rem;
     border-radius: 0.75rem;
-    color: rgb(100 116 139);
-    /* Slate-500 */
-    transition: all 0.2s ease-in-out;
+    color: #64748b;
+    transition: all 0.2s ease;
 }
 
-/* HOVER STATE: Highlight when mouse moves over */
 .sidebar-link:hover {
-    background: #fdf2f8;
-    /* Very light pink */
-    color: #E91E63;
-    /* Bella Primary Pink */
-    transform: translateX(4px);
-    /* Subtle slide effect */
+    background: #f1f5f9;
+    color: #0f172a;
 }
 
 .dark .sidebar-link:hover {
-    background: rgb(30 41 59);
-    color: white;
+    background: #1e293b;
+    color: #ffffff;
 }
 
-/* ACTIVE STATE: For the current page */
+/* The Active State */
 .sidebar-link.active {
     background-color: #E91E63 !important;
     color: white !important;
     box-shadow: 0 4px 12px rgba(233, 30, 99, 0.2);
+}
+
+/* Ensure the icon also turns white when active */
+.sidebar-link.active span {
+    color: white !important;
 }
