@@ -1,3 +1,5 @@
+import User from "../models/user.js";
+
 // 1. Prevent Browser Caching
 export const preventCache = (req, res, next) => {
     res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
@@ -16,8 +18,14 @@ export const checkAdminSession = (req, res, next) => {
 };
 
 // 3. Protect User Routes 
-export const checkUserSession = (req, res, next) => {
+export const checkUserSession = async (req, res, next) => {
     if (req.session.userId) {
+        const user = await User.findById(req.session.userId);
+
+        // If user was blocked while logged in, destroy session
+        if (!user || user.status === "suspended") {
+            return req.session.destroy(() => res.redirect("/login"));
+        }
         next();
     } else {
         res.redirect("/login");

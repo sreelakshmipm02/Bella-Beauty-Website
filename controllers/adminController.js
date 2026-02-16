@@ -1,4 +1,5 @@
 import { authenticateAdmin } from "../services/adminServices/adminAuth.js";
+import { getAllUsers, toggleUserBlockStatus, fetchUsersWithFilter } from "../services/adminServices/userManagement.js";
 
 // Render Login Page
 export const adminLoginPage = (req, res) => {
@@ -11,7 +12,7 @@ export const adminLoginPage = (req, res) => {
 // Handle Login Submission
 export const adminLogin = async (req, res) => {
     try {
-        const { email, password } = req.body; 
+        const { email, password } = req.body;
 
         // Call the service to handle logic
         const admin = await authenticateAdmin(email, password);
@@ -32,9 +33,49 @@ export const dashboardPage = (req, res) => {
 };
 
 // Render user management page
-export const userManagementPage = (rreq,res) => {
-    res.render('admin/user');
-}
+export const userManagementPage = async (req, res) => {
+    try {
+        const page = parseInt(req.query.page) || 1;
+        const limit = 5; // Users per page
+        const { status, search } = req.query;
+
+        const {users, totalUsers} = await fetchUsersWithFilter(status, search, page, limit);
+        const totalPages = Math.ceil(totalUsers / limit);
+
+        res.render('admin/user', {
+            users,
+            currentStatus: status || 'all',
+            searchQuery: search || '', // Pass search text back to EJS 
+            currentPage: page,
+            totalPages,
+            totalUsers,
+            limit
+        });
+    } catch (error) {
+        console.error("User Management Error:", error);
+        res.status(500).send("Error fetching users");
+    }
+};
+
+// Toggle user status (Block/Unblock)
+export const toggleUserStatus = async (req, res) => {
+    try {
+        const { userId } = req.params;
+        const newStatus = await toggleUserBlockStatus(userId);
+
+        res.json({
+            success: true,
+            newStatus: newStatus
+        });
+    } catch (error) {
+        res.status(500).json({
+            success: false,
+            message: error.message
+        });
+    }
+};
+
+
 // Logout process 
 export const adminLogout = (req, res) => {
     // 1. Destroy the session
@@ -43,9 +84,9 @@ export const adminLogout = (req, res) => {
             console.log("Error destroying session:", err);
             return res.redirect("/admin/dashboard");
         }
-        
+
         // 2. Clear the cookie 
-        res.clearCookie("connect.sid"); 
+        res.clearCookie("connect.sid");
 
         // 3. Redirect to Login
         res.redirect("/admin/login");

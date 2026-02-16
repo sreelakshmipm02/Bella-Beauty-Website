@@ -10,22 +10,17 @@
             <div class="relative flex-1 max-w-md">
                 <span
                     class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">search</span>
-                <input
+                <input id="userSearch"
                     class="w-full pl-10 pr-4 py-2 bg-slate-50 dark:bg-slate-800 border-none focus:ring-2 focus:ring-primary/20 rounded-xl text-sm transition-all"
-                    placeholder="Search by name, email or ID..." type="text" />
+                    placeholder="Search by name, email or username..." type="text" value="<%= searchQuery %>" />
             </div>
             <div class="flex items-center space-x-4">
-                <select
-                    class="bg-slate-50 dark:bg-slate-800 border-none text-sm rounded-xl py-2 pl-4 pr-10 focus:ring-2 focus:ring-primary/20">
-                    <option>All Status</option>
-                    <option>Active</option>
-                    <option>Inactive</option>
+                <select id="statusFilter"
+                    class="bg-slate-50 dark:bg-slate-800 border-none text-sm rounded-xl py-2 pl-4 pr-10 focus:ring-2 focus:ring-primary/20 cursor-pointer">
+                    <option value="all">All Status</option>
+                    <option value="active" <%=currentStatus==='active' ? 'selected' : '' %>>Active</option>
+                    <option value="suspended" <%=currentStatus==='suspended' ? 'selected' : '' %>>Suspended</option>
                 </select>
-                <button
-                    class="bg-primary hover:bg-pink-600 text-white px-4 py-2 rounded-xl text-sm font-medium flex items-center space-x-2 transition-colors">
-                    <span class="material-symbols-outlined text-sm">add</span>
-                    <span>Add User</span>
-                </button>
             </div>
         </div>
         <div class="overflow-x-auto">
@@ -42,163 +37,82 @@
                     </tr>
                 </thead>
                 <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center space-x-3">
-                                <div
-                                    class="w-9 h-9 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-primary">IR</span>
+                    <% users.forEach(user=> { %>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td class="px-6 py-4">
+                                <div class="flex items-center space-x-3">
+                                    <div
+                                        class="w-9 h-9 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center">
+                                        <span class="text-xs font-bold text-primary">
+                                            <%= user.firstName.charAt(0) %>
+                                                <%= user.lastName ? user.lastName.charAt(0) : '' %>
+                                        </span>
+                                    </div>
+                                    <div class="font-medium text-slate-900 dark:text-white">
+                                        <%= user.firstName %>
+                                            <%= user.lastName %>
+                                    </div>
                                 </div>
-                                <div class="font-medium text-slate-900 dark:text-white">Isabella Rossi</div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm">@isabella_r</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
-                            isabella@bellabeauty.com</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">+1 234 567 890</td>
-                        <td class="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">BELLA001</td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-4">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span> Active
-                                </span>
-                                <button
-                                    class="px-3 py-1.5 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-xs font-semibold transition-colors">
-                                    Block User
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center space-x-3">
-                                <div
-                                    class="w-9 h-9 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-blue-600">MJ</span>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-500">@<%= user.userName %>
+                            </td>
+                            <td class="px-6 py-4 text-sm">
+                                <%= user.email %>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">
+                                <%= user.phone %>
+                            </td>
+                            <td class="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">
+                                <%= user.referralCode %>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end space-x-4">
+                                    <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium 
+                    <%= user.status === 'active' ? 'bg-green-50 text-green-700' : 'bg-red-50 text-red-700' %>">
+                                        <%= user.status==='active' ? 'Active' : 'Suspended' %>
+                                    </span>
+                                    <button onclick="updateStatus('<%= user._id %>')"
+                                        class="px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors 
+                        <%= user.status === 'active' ? 'border border-red-200 text-red-600 hover:bg-red-50' : 'bg-primary text-white hover:bg-pink-600' %>">
+                                        <%= user.status==='active' ? 'Block User' : 'Unblock User' %>
+                                    </button>
                                 </div>
-                                <div class="font-medium text-slate-900 dark:text-white">Michael Jordan</div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm">@mj_23</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">mj@example.com</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">+1 987 654 321</td>
-                        <td class="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">GOAT23</td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-4">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span> Active
-                                </span>
-                                <button
-                                    class="px-3 py-1.5 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-xs font-semibold transition-colors">
-                                    Block User
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center space-x-3">
-                                <div
-                                    class="w-9 h-9 rounded-full bg-yellow-100 dark:bg-yellow-900/30 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-yellow-600">SL</span>
-                                </div>
-                                <div class="font-medium text-slate-900 dark:text-white">Sarah Lee</div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm">@slee88</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">sarah.lee@demo.com</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">+1 555 010 222</td>
-                        <td class="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">SL2024</td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-4">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border border-slate-200 dark:border-slate-700">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span> Inactive
-                                </span>
-                                <button
-                                    class="px-3 py-1.5 bg-primary hover:bg-pink-600 text-white rounded-lg text-xs font-semibold transition-colors shadow-sm">
-                                    Unblock User
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center space-x-3">
-                                <div
-                                    class="w-9 h-9 rounded-full bg-teal-100 dark:bg-teal-900/30 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-teal-600">DK</span>
-                                </div>
-                                <div class="font-medium text-slate-900 dark:text-white">David Kim</div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm">@dkim_dev</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">david.k@startup.io</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">+1 415 555 0123</td>
-                        <td class="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">DK_99</td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-4">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span> Active
-                                </span>
-                                <button
-                                    class="px-3 py-1.5 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-xs font-semibold transition-colors">
-                                    Block User
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
-                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                        <td class="px-6 py-4">
-                            <div class="flex items-center space-x-3">
-                                <div
-                                    class="w-9 h-9 rounded-full bg-purple-100 dark:bg-purple-900/30 flex items-center justify-center">
-                                    <span class="text-xs font-bold text-purple-600">EP</span>
-                                </div>
-                                <div class="font-medium text-slate-900 dark:text-white">Emily Parker</div>
-                            </div>
-                        </td>
-                        <td class="px-6 py-4 text-sm">@emparker</td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">emily.parker@test.com
-                        </td>
-                        <td class="px-6 py-4 text-sm text-slate-500 dark:text-slate-400">+1 212 555 7890</td>
-                        <td class="px-6 py-4 text-sm font-mono text-slate-500 dark:text-slate-400">EMP005</td>
-                        <td class="px-6 py-4 text-right">
-                            <div class="flex items-center justify-end space-x-4">
-                                <span
-                                    class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 border border-green-100 dark:border-green-800">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span> Active
-                                </span>
-                                <button
-                                    class="px-3 py-1.5 border border-red-200 dark:border-red-900 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 rounded-lg text-xs font-semibold transition-colors">
-                                    Block User
-                                </button>
-                            </div>
-                        </td>
-                    </tr>
+                            </td>
+                        </tr>
+                        <% }) %>
                 </tbody>
             </table>
         </div>
         <div class="p-6 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between">
-            <p class="text-sm text-slate-500 dark:text-slate-400">Showing <span class="font-medium">1</span> to
-                <span class="font-medium">5</span> of <span class="font-medium">42</span> results
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+                Showing <span class="font-medium">
+                    <%= (currentPage - 1) * limit + 1 %>
+                </span> to
+                <span class="font-medium">
+                    <%= Math.min(currentPage * limit, totalUsers) %>
+                </span> of
+                <span class="font-medium">
+                    <%= totalUsers %>
+                </span> results
             </p>
+
             <div class="flex items-center space-x-1">
-                <button
-                    class="px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Previous</button>
-                <button
-                    class="px-3.5 py-1.5 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">1</button>
-                <button class="px-3.5 py-1.5 bg-primary text-white text-sm rounded-lg font-medium shadow-sm">2</button>
-                <button
-                    class="px-3.5 py-1.5 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">3</button>
-                <span class="text-slate-400 px-2">...</span>
-                <button
-                    class="px-3.5 py-1.5 text-sm rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors">8</button>
-                <button
-                    class="px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-sm hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors">Next</button>
+                <% if (currentPage> 1) { %>
+                    <a href="?page=<%= currentPage - 1 %>&status=<%= currentStatus %>&search=<%= searchQuery %>"
+                        class="px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-sm hover:bg-slate-50 transition-colors">Previous</a>
+                    <% } %>
+
+                        <% for(let i=1; i <=totalPages; i++) { %>
+                            <a href="?page=<%= i %>&status=<%= currentStatus %>&search=<%= searchQuery %>"
+                                class="px-3.5 py-1.5 text-sm rounded-lg transition-colors <%= i === currentPage ? 'bg-primary text-white font-medium shadow-sm' : 'hover:bg-slate-100' %>">
+                                <%= i %>
+                            </a>
+                            <% } %>
+
+                                <% if (currentPage < totalPages) { %>
+                                    <a href="?page=<%= currentPage + 1 %>&status=<%= currentStatus %>&search=<%= searchQuery %>"
+                                        class="px-3 py-1.5 border border-slate-200 dark:border-slate-800 rounded-lg text-sm hover:bg-slate-50 transition-colors">Next</a>
+                                    <% } %>
             </div>
         </div>
     </div>

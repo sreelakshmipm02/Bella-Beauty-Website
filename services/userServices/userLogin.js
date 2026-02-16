@@ -13,6 +13,11 @@ export const loginUser = async (identifier, password) => {
     throw new Error("User not found");
   }
 
+  // BLOCK CHECK
+  if (user.status === "suspended") {
+    throw new Error("Your account has been suspended by the admin.");
+  }
+
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {

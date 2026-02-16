@@ -4,6 +4,7 @@ import {
     adminLogin,
     dashboardPage,
     userManagementPage,
+    toggleUserStatus,
     adminLogout
 } from "../controllers/adminController.js";
 
@@ -23,7 +24,9 @@ router.post('/login', adminLogin);
 router.get('/dashboard', checkAdminSession, preventCache, dashboardPage);
 
 // User management
-router.get('/user', checkAdminSession, preventCache, userManagementPage)
+router.get('/user', checkAdminSession, preventCache, userManagementPage);
+// Toggle User Status - Async update
+router.patch('/user/toggle-status/:userId', checkAdminSession, toggleUserStatus);
 
 // Logout Route
 router.get('/logout', adminLogout);
