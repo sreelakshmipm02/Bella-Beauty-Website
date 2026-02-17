@@ -7,7 +7,15 @@ import {
 import { createUser } from "../services/userServices/createUser.js";
 import { loginUser } from "../services/userServices/userLogin.js";
 import { getUserData } from "../services/userServices/userAccount.js";
+import { 
+    getUserAddresses,
+    addNewAddress,
+    updateAddress,
+    deleteAddress,
+    setAddressAsDefault
+ } from "../services/userServices/userAddress.js";
 
+//----------------------------------------------------------------------
 //home page (index+home)
 export const homePage = (req, res) => {
     const isLoggedIn = !!req.session.userId;
@@ -15,6 +23,7 @@ export const homePage = (req, res) => {
     res.render("user/home", { title: "Bella Beauty", isLoggedIn });
 };
 
+//----------------------------------------------------------------------
 //get signup page
 export const signupPage = (req, res) => {
     res.render("user/signup", { error: null });
@@ -69,6 +78,7 @@ export const resendSignupOtp = async (req, res) => {
     }
 };
 
+//----------------------------------------------------------------------
 //get login page
 export const loginPage = (req, res) => {
     if (req.session.userId) {
@@ -92,14 +102,15 @@ export const loginSubmit = async (req, res) => {
     }
 };
 
+//----------------------------------------------------------------------
 //render user account page
 export const userAccount = async (req, res) => {
     try {
         const userId = req.session.userId;
         const user = await getUserData(userId);
-        res.render("user/account", { 
+        res.render("user/account", {
             title: "My Account",
-            user: user 
+            user: user
         });
     } catch (error) {
         console.error("Account Page Error:", error);
@@ -107,6 +118,68 @@ export const userAccount = async (req, res) => {
     }
 };
 
+//----------------------------------------------------------------------
+//user address page
+export const addressPage = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const user = await getUserData(userId);
+        const addresses = await getUserAddresses(userId);
+
+        res.render("user/address", {
+            title: "Manage Addresses",
+            addresses: addresses || [], // Ensures addresses is never undefined
+            user
+        });
+    } catch (error) {
+        console.error("Address Page Error:", error);
+        res.redirect("/account");
+    }
+}
+
+// Add Address
+export const addAddress = async (req, res) => {
+    try {
+        console.log("Received Data:", req.body); // Debugging line
+        await addNewAddress(req.session.userId, req.body);
+        res.json({ success: true, message: "Address added successfully" });
+    } catch (error) {
+        console.error("Add Address Error:", error); // See this in VS Code terminal
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+// Edit Address
+export const editAddress = async (req, res) => {
+    try {
+        await updateAddress(req.params.addressId, req.session.userId, req.body);
+        res.json({ success: true, message: "Address updated successfully" });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+// Delete Address
+export const adressDelete = async (req, res) => {
+    try {
+        await deleteAddress(req.params.addressId, req.session.userId);
+        res.json({ success: true, message: "Address deleted successfully" });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+// Set Default
+export const setAsDefault = async (req, res) => {
+    try {
+        await setAddressAsDefault(req.params.addressId, req.session.userId);
+        res.json({ success: true });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+//----------------------------------------------------------------------
 // Logout process 
 export const userLogout = (req, res) => {
     // 1. Destroy the session

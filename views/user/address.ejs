@@ -1,0 +1,76 @@
+<%- include('../partials/header', { title: 'Manage Addresses' }) %>
+<%- include('../partials/userSideNavbar') %>
+
+<div class="flex-1">
+    <div class="bg-white dark:bg-slate-900 rounded-3xl p-8 border border-slate-100 dark:border-slate-800 shadow-sm">
+        <div class="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
+            <div>
+                <h1 class="font-display text-3xl font-bold mb-1">Manage Addresses</h1>
+                <p class="text-slate-500 dark:text-slate-400 text-sm">View and manage your saved shipping and billing addresses.</p>
+            </div>
+            <button onclick="openAddressModal()"
+                class="inline-flex items-center gap-2 bg-primary hover:bg-pink-600 text-white px-6 py-3 rounded-xl font-semibold transition-all shadow-lg shadow-primary/25">
+                <span class="material-icons-outlined">add</span>
+                Add New Address
+            </button>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <% if (addresses && addresses.length > 0) { %>
+                <% addresses.forEach(address => { %>
+                    <div class="border border-slate-100 dark:border-slate-800 rounded-2xl p-6 hover:shadow-md transition-shadow relative group">
+                        <div class="flex justify-between items-start mb-4">
+                            <% if (address.isDefault) { %>
+                                <span class="inline-flex items-center gap-1 px-3 py-1 bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400 text-xs font-semibold rounded-full border border-green-100 dark:border-green-800">
+                                    <span class="material-icons-outlined text-xs">check_circle</span>
+                                    Default Address
+                                </span>
+                            <% } else { %>
+                                <span class="inline-flex items-center px-3 py-1 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 text-xs font-semibold rounded-full">
+                                    Saved Address
+                                </span>
+                            <% } %>
+                            
+                            <div class="flex items-center gap-1">
+                                <button onclick="editAddress('<%= address._id %>')" class="p-1.5 text-slate-400 hover:text-primary transition-colors">
+                                    <span class="material-icons-outlined text-[20px]">edit</span>
+                                </button>
+                                <button onclick="deleteAddress('<%= address._id %>')" class="p-1.5 text-slate-400 hover:text-red-500 transition-colors">
+                                    <span class="material-icons-outlined text-[20px]">delete</span>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div class="space-y-1 mb-6">
+                            <h3 class="font-bold text-lg"><%= address.fullName %></h3>
+                            <div class="text-slate-500 dark:text-slate-400 text-sm leading-relaxed">
+                                <p><%= address.addressLine1 %></p>
+                                <% if (address.addressLine2) { %> <p><%= address.addressLine2 %></p> <% } %>
+                                <p><%= address.city %>, <%= address.state %> <%= address.postalCode %></p>
+                                <p><%= address.country %></p>
+                            </div>
+                        </div>
+
+                        <div class="pt-4 border-t border-slate-50 dark:border-slate-800 flex items-center justify-between">
+                            <div class="flex items-center gap-2 text-slate-500 dark:text-slate-400 text-sm">
+                                <span class="material-icons-outlined text-base">phone</span>
+                                <%= address.phone %>
+                            </div>
+                            <% if (!address.isDefault) { %>
+                                <button onclick="setDefault('<%= address._id %>')" class="text-primary hover:underline text-xs font-semibold">Set as Default</button>
+                            <% } %>
+                        </div>
+                    </div>
+                <% }) %>
+            <% } else { %>
+                <div class="lg:col-span-2 text-center py-12">
+                    <p class="text-slate-400 italic">No addresses saved yet. Click "Add New Address" to get started.</p>
+                </div>
+            <% } %>
+        </div>
+    </div>
+</div>
+
+<%- include('../partials/addressModal') %>
+
+<script src="/js/addressManagement.js"></script>
