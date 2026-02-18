@@ -87,31 +87,6 @@ router.patch('/address/set-default/:addressId', checkUserSession, setAsDefault);
 router.get('/logout', userLogout);
 
 //----------------------------------------------------------
-//user account
-router.get('/account', checkUserSession, preventCache, userAccount);
-// 1. Update Profile (Text + Image)
-router.put('/user/update-profile', checkUserSession, upload.single('profileImage'), updateProfile);
-
-// 2. Send OTP for Email Change
-router.post('/user/update-email-otp', checkUserSession, sendUpdateEmailOtp);
-
-// 3. Verify OTP and Finalize Email Change
-router.post('/user/verify-email-update', checkUserSession, verifyEmailUpdate);
-//----------------------------------------------------------
-//user address
-router.get('/address',checkUserSession, preventCache,addressPage );
-//Add a new address
-router.post('/address/add', checkUserSession, addAddress);
-//Edit an existing address
-router.put('/address/edit/:addressId', checkUserSession, editAddress);
-//Delete an address
-router.delete('/address/delete/:addressId', checkUserSession, adressDelete);
-//Set address as default
-router.patch('/address/set-default/:addressId', checkUserSession, setAsDefault);
-
-//----------------------------------------------------------
-// Logout Route
-router.get('/logout', userLogout);
 
 // Forgot Password
 router.get("/forgot-password", preventCache, forgotPasswordPage);
