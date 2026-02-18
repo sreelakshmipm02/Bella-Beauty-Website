@@ -7,14 +7,18 @@ import {
 import { createUser } from "../services/userServices/createUser.js";
 import { loginUser } from "../services/userServices/userLogin.js";
 import { getUserData } from "../services/userServices/userAccount.js";
-import { 
+import {
     getUserAddresses,
     addNewAddress,
     updateAddress,
     deleteAddress,
     setAddressAsDefault
- } from "../services/userServices/userAddress.js";
-
+} from "../services/userServices/userAddress.js";
+import {
+    updateUserProfile,
+    requestEmailUpdateOtp,
+    completeEmailUpdate
+} from "../services/userServices/editProfile.js";
 //----------------------------------------------------------------------
 //home page (index+home)
 export const homePage = (req, res) => {
@@ -118,6 +122,58 @@ export const userAccount = async (req, res) => {
     }
 };
 
+// 1. UPDATE PROFILE
+export const updateProfile = async (req, res) => {
+    try {
+        console.log("File received:", req.file); // <--- Add this debug line
+        console.log("Body received:", req.body);
+
+        const userId = req.session.userId;
+
+        // --- THE FIX ---
+        // Cloudinary puts the link in 'secure_url', not always in 'path'
+        let filePath = undefined;
+        if (req.file) {
+            filePath = req.file.path || req.file.secure_url;
+        }
+        await updateUserProfile(userId, req.body, filePath);
+
+        res.json({ success: true, message: "Profile updated successfully!" });
+    } catch (error) {
+        console.error("Update Profile Error:", error);
+        res.status(500).json({ success: false, message: "Server Error" });
+    }
+};
+
+// 2. SEND OTP FOR EMAIL UPDATE
+export const sendUpdateEmailOtp = async (req, res) => {
+    try {
+        const { newEmail } = req.body;
+
+        await requestEmailUpdateOtp(newEmail);
+
+        res.json({ success: true, message: "OTP sent to new email." });
+    } catch (error) {
+        console.error("OTP Error:", error.message);
+        // Return success: false with the specific error message (e.g., "Email already in use")
+        res.json({ success: false, message: error.message || "Failed to send OTP." });
+    }
+};
+
+// 3. VERIFY OTP AND UPDATE EMAIL
+export const verifyEmailUpdate = async (req, res) => {
+    try {
+        const { newEmail, otp } = req.body;
+        const userId = req.session.userId;
+
+        await completeEmailUpdate(userId, newEmail, otp);
+
+        res.json({ success: true, message: "Email updated successfully!" });
+    } catch (error) {
+        // Return success: false with the specific error message (e.g., "Invalid OTP")
+        res.json({ success: false, message: error.message || "Verification failed." });
+    }
+};
 //----------------------------------------------------------------------
 //user address page
 export const addressPage = async (req, res) => {

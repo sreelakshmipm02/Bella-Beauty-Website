@@ -14,11 +14,16 @@ import {
     editAddress,
     adressDelete,
     setAsDefault,
+    updateProfile,
+    sendUpdateEmailOtp,
+    verifyEmailUpdate,
     userLogout
 } from "../controllers/userController.js";
 import { googleAuthCallback } from "../controllers/authController.js";
 
 import { preventCache, checkUserSession} from "../middlewares/authMiddleware.js";
+import { upload } from "../middlewares/upload.js";
+
 
 const router = express.Router();
 
@@ -53,7 +58,14 @@ router.get(
 //----------------------------------------------------------
 //user account
 router.get('/account', checkUserSession, preventCache, userAccount);
+// 1. Update Profile (Text + Image)
+router.put('/user/update-profile', checkUserSession, upload.single('profileImage'), updateProfile);
 
+// 2. Send OTP for Email Change
+router.post('/user/update-email-otp', checkUserSession, sendUpdateEmailOtp);
+
+// 3. Verify OTP and Finalize Email Change
+router.post('/user/verify-email-update', checkUserSession, verifyEmailUpdate);
 //----------------------------------------------------------
 //user address
 router.get('/address',checkUserSession, preventCache,addressPage );

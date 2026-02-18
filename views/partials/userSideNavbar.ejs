@@ -1,12 +1,14 @@
 <main class="max-w-7xl mx-auto px-6 py-12">
     <div class="flex flex-col lg:flex-row gap-12">
         <aside class="w-full lg:w-72 space-y-8">
-            <div class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-pink-50 dark:border-slate-700/50 overflow-hidden">
-                
-                <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 lg:hidden cursor-pointer bg-slate-50 dark:bg-slate-800/50 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800" 
-                     onclick="toggleUserSidebar()">
+            <div
+                class="bg-white dark:bg-slate-800 rounded-2xl shadow-sm border border-pink-50 dark:border-slate-700/50 overflow-hidden">
+
+                <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 lg:hidden cursor-pointer bg-slate-50 dark:bg-slate-800/50 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
+                    onclick="toggleUserSidebar()">
                     <div class="flex items-center gap-3">
-                        <div class="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-primary text-xs font-bold">
+                        <div
+                            class="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-primary text-xs font-bold">
                             <%= user.firstName?.charAt(0) || 'U' %>
                         </div>
                         <span class="font-semibold text-slate-700 dark:text-slate-200">Account Menu</span>
@@ -17,50 +19,61 @@
                 </div>
 
                 <div id="user-sidebar-content" class="hidden lg:block p-8">
-                    
+
                     <div class="flex items-center gap-4 mb-10">
-                        <div class="w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-primary text-xl font-semibold">
-                            <%= (user.firstName?.charAt(0) || '' ) + (user.lastName?.charAt(0) || user.firstName?.charAt(1)) %>
+                        <div
+                            class="w-16 h-16 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-primary text-xl font-semibold overflow-hidden border border-pink-100 dark:border-slate-700">
+                            <% if (user.profileImage) { %>
+                                <img src="<%= user.profileImage %>" alt="Profile" class="w-full h-full object-cover">
+                                <% } else { %>
+                                    <%= (user.firstName?.charAt(0) || '' ) + (user.lastName?.charAt(0) ||
+                                        user.firstName?.charAt(1)) %>
+                                        <% } %>
                         </div>
                         <div>
-                            <h3 class="font-semibold text-lg"><%= user.firstName %></h3>
-                            <p class="text-xs text-slate-500 dark:text-slate-400"><%= user.email %></p>
+                            <h3 class="font-semibold text-lg">
+                                <%= user.firstName %>
+                            </h3>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">
+                                <%= user.email %>
+                            </p>
                         </div>
                     </div>
 
                     <nav class="space-y-2">
-                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300" 
-                           href="/account">
+                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300"
+                            href="/account">
                             <span class="material-symbols-outlined">account_circle</span>
                             <span>Account Overview</span>
                         </a>
-                        
-                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300" 
-                           href="/orders"> 
-                           <span class="material-symbols-outlined">local_shipping</span>
+
+                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300"
+                            href="/orders">
+                            <span class="material-symbols-outlined">local_shipping</span>
                             <span>My Orders</span>
                         </a>
 
-                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300" 
-                           href="/address">
+                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300"
+                            href="/address">
                             <span class="material-symbols-outlined">location_on</span>
                             <span>Manage Address</span>
                         </a>
 
-                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300" 
-                           href="/wallet">
+                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300"
+                            href="/wallet">
                             <span class="material-symbols-outlined">account_balance_wallet</span>
                             <span>Wallet</span>
                         </a>
 
-                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300" 
-                           href="/password">
+                        <a class="nav-link flex items-center gap-3 px-4 py-3 rounded-xl transition-all duration-200 hover:bg-slate-50 dark:hover:bg-slate-700/50 text-slate-600 dark:text-slate-300"
+                            href="/password">
                             <span class="material-symbols-outlined">lock</span>
                             <span>Manage Password</span>
                         </a>
 
                         <div class="p-4 border-t border-slate-200 dark:border-slate-800 mt-4">
-                            <button onclick="confirmLogout('/logout')" class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition shadow-lg shadow-red-500/20">
+                            <button onclick="confirmLogout('/logout')"
+                                class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition shadow-lg shadow-red-500/20">
                                 <span class="material-icons-outlined">logout</span>
                                 Sign Out
                             </button>
@@ -75,7 +88,7 @@
             function toggleUserSidebar() {
                 const content = document.getElementById('user-sidebar-content');
                 const btnIcon = document.querySelector('#sidebar-toggle-btn span');
-                
+
                 // Toggle Hidden Class
                 content.classList.toggle('hidden');
 
@@ -94,7 +107,7 @@
 
                 navLinks.forEach(link => {
                     const href = link.getAttribute("href");
-                    
+
                     if (href !== '#' && (currentPath === href || (href !== '/account' && currentPath.startsWith(href)))) {
                         link.classList.add("bg-primary", "text-white", "shadow-lg", "shadow-primary/25");
                         link.classList.remove("text-slate-600", "hover:bg-slate-50", "dark:text-slate-300");
