@@ -20,15 +20,14 @@
     <link rel="stylesheet" href="/css/style.css">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-
     <script>
         tailwind.config = {
             darkMode: "class",
             theme: {
                 extend: {
                     colors: {
-                        primary: "#E91E63", // Pink from the screenshot
-                        secondary: "#FCE4EC", // Light pink for backgrounds
+                        primary: "#E91E63",
+                        secondary: "#FCE4EC",
                         "background-light": "#F9FAFB",
                         "background-dark": "#121212",
                         "card-light": "#FFFFFF",
@@ -60,18 +59,27 @@
         class="sticky top-0 z-50 bg-white/80 dark:bg-card-dark/80 backdrop-blur-md border-b border-gray-100 dark:border-gray-800">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-20">
-                <div class="flex items-center gap-8">
-                    <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer">
+                <div class="flex items-center gap-4">
+
+                    <button id="mobile-menu-btn"
+                        class="md:hidden p-2 text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-lg transition-colors">
+                        <span class="material-icons-outlined">menu</span>
+                    </button>
+
+                    <div class="flex-shrink-0 flex items-center gap-2 cursor-pointer"
+                        onclick="window.location.href='/'">
                         <span class="material-icons-outlined text-primary text-3xl">spa</span>
                         <span
                             class="font-display font-bold text-2xl tracking-wide text-gray-900 dark:text-white">Bella</span>
                     </div>
-                    <div class="hidden md:flex items-center gap-6">
+
+                    <div class="hidden md:flex items-center gap-6 ml-4">
                         <a class="text-primary font-bold hover:text-primary transition" href="/">Home</a>
                         <a class="text-gray-600 dark:text-gray-300 hover:text-primary font-medium transition"
                             href="/about_us">About Us</a>
                     </div>
                 </div>
+
                 <div class="hidden md:block flex-1 max-w-lg mx-8">
                     <div class="relative">
                         <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -82,15 +90,18 @@
                             placeholder="Search for products..." type="text" />
                     </div>
                 </div>
-                <div class="flex items-center gap-5">
+
+                <div class="flex items-center gap-3 sm:gap-5">
                     <button class="md:hidden p-2 text-gray-500 dark:text-gray-400">
                         <span class="material-icons-outlined">search</span>
                     </button>
+
                     <button
                         class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
                         title="Wishlist">
                         <span class="material-icons-outlined text-2xl">favorite_border</span>
                     </button>
+
                     <button
                         class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
                         title="Cart">
@@ -98,6 +109,7 @@
                         <span
                             class="absolute top-1 right-0.5 bg-primary text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-card-dark shadow-sm">2</span>
                     </button>
+
                     <a href="/account"
                         class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
                         title="Profile">
@@ -106,4 +118,37 @@
                 </div>
             </div>
         </div>
+
+        <div id="mobile-menu"
+            class="hidden md:hidden bg-white dark:bg-card-dark border-t border-gray-100 dark:border-gray-800 transition-all duration-300 ease-in-out">
+            <div class="px-4 pt-2 pb-6 space-y-1">
+                <div class="mb-4 mt-2">
+                    <div class="relative">
+                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <span class="material-icons-outlined text-gray-400">search</span>
+                        </div>
+                        <input
+                            class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary"
+                            placeholder="Search products..." type="text" />
+                    </div>
+                </div>
+
+                <a href="/"
+                    class="block px-3 py-3 rounded-xl text-base font-medium text-primary bg-pink-50 dark:bg-pink-900/20">Home</a>
+                <a href="/about_us"
+                    class="block px-3 py-3 rounded-xl text-base font-medium text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-800 hover:text-primary transition-colors">About
+                    Us</a>
+            </div>
+        </div>
     </nav>
+
+    <script>
+        const btn = document.getElementById('mobile-menu-btn');
+        const menu = document.getElementById('mobile-menu');
+
+        if (btn && menu) {
+            btn.addEventListener('click', () => {
+                menu.classList.toggle('hidden');
+            });
+        }
+    </script>
