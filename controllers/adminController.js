@@ -1,5 +1,6 @@
 import { authenticateAdmin } from "../services/adminServices/adminAuth.js";
-import { getAllUsers, toggleUserBlockStatus, fetchUsersWithFilter } from "../services/adminServices/userManagement.js";
+import { generateAdminResetToken, resetAdminPassword } from "../services/adminServices/adminPassword.js";
+import { toggleUserBlockStatus, fetchUsersWithFilter } from "../services/adminServices/userManagement.js";
 
 // Render Login Page
 export const adminLoginPage = (req, res) => {
@@ -32,6 +33,39 @@ export const dashboardPage = (req, res) => {
     res.render('admin/dashboard');
 };
 
+// 1. Render Forgot Password Page
+export const adminForgotPasswordPage = (req, res) => {
+    res.render("admin/forgot-password", { message: null, error: null });
+};
+
+// 2. Handle Email Submission
+export const adminForgotPasswordSubmit = async (req, res) => {
+    try {
+        await generateAdminResetToken(req.body.email);
+        res.render("admin/forgot-password", {
+            message: "Reset link sent to your email.",
+            error: null
+        });
+    } catch (error) {
+        res.render("admin/forgot-password", { message: null, error: error.message });
+    }
+};
+
+// 3. Render Reset Password Page
+export const adminResetPasswordPage = (req, res) => {
+    res.render("admin/reset-password", { token: req.params.token, error: null });
+};
+
+// 4. Handle New Password Submission
+export const adminResetPasswordSubmit = async (req, res) => {
+    try {
+        await resetAdminPassword(req.params.token, req.body.password);
+        res.render("admin/login", { error: null, message: "Password reset successful. Please login." });
+    } catch (error) {
+        res.render("admin/reset-password", { token: req.params.token, error: error.message });
+    }
+};
+
 // Render user management page
 export const userManagementPage = async (req, res) => {
     try {
@@ -39,7 +73,7 @@ export const userManagementPage = async (req, res) => {
         const limit = 5; // Users per page
         const { status, search } = req.query;
 
-        const {users, totalUsers} = await fetchUsersWithFilter(status, search, page, limit);
+        const { users, totalUsers } = await fetchUsersWithFilter(status, search, page, limit);
         const totalPages = Math.ceil(totalUsers / limit);
 
         res.render('admin/user', {

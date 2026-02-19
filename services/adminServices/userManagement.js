@@ -4,9 +4,9 @@ import User from "../../models/user.js";
 /**
  * Fetches all users from the database sorted by newest first.
  */
-export const getAllUsers = async () => {
-    return await User.find({}).sort({ createdAt: -1 });
-};
+// export const getAllUsers = async () => {
+//     return await User.find({}).sort({ createdAt: -1 });
+// };
 
 /**
  * Toggles a user's status between 'active' and 'suspended'.

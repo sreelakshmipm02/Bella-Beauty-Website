@@ -1,4 +1,3 @@
-// services/adminServices/adminPasswordService.js
 import Admin from "../../models/admin.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";

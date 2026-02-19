@@ -3,6 +3,10 @@ import {
     adminLoginPage,
     adminLogin,
     dashboardPage,
+    adminForgotPasswordPage,
+    adminForgotPasswordSubmit,
+    adminResetPasswordPage,
+    adminResetPasswordSubmit,
     userManagementPage,
     toggleUserStatus,
     adminLogout
@@ -27,6 +31,15 @@ router.get('/dashboard', checkAdminSession, preventCache, dashboardPage);
 router.get('/user', checkAdminSession, preventCache, userManagementPage);
 // Toggle User Status - Async update
 router.patch('/user/toggle-status/:userId', checkAdminSession, toggleUserStatus);
+
+// Forgot Password
+router.get("/forgot-password", adminForgotPasswordPage);
+router.post("/forgot-password", adminForgotPasswordSubmit);
+
+// Reset Password
+router.get("/reset-password/:token", adminResetPasswordPage);
+router.post("/reset-password/:token", adminResetPasswordSubmit);
+
 
 // Logout Route
 router.get('/logout', adminLogout);
