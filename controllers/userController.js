@@ -10,6 +10,7 @@ import { getUserData } from "../services/userServices/userAccount.js";
 import {
     getUserAddresses,
     addNewAddress,
+    getAddressById,
     updateAddress,
     deleteAddress,
     setAddressAsDefault
@@ -204,6 +205,15 @@ export const addAddress = async (req, res) => {
     } catch (error) {
         console.error("Add Address Error:", error); // See this in VS Code terminal
         res.status(400).json({ success: false, message: error.message });
+    }
+};
+// Fetch single address (API)
+export const getSingleAddress = async (req, res) => {
+    try {
+        const address = await getAddressById(req.params.addressId, req.session.userId);
+        res.json({ success: true, address });
+    } catch (error) {
+        res.status(404).json({ success: false, message: "Address not found" });
     }
 };
 

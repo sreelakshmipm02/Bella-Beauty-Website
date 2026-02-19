@@ -21,7 +21,8 @@ import {
     forgotPasswordPage, 
     forgotPasswordSubmit, 
     resetPasswordPage, 
-    resetPasswordSubmit
+    resetPasswordSubmit,
+    getSingleAddress
 } from "../controllers/userController.js";
 import { googleAuthCallback } from "../controllers/authController.js";
 
@@ -75,6 +76,8 @@ router.post('/user/verify-email-update', checkUserSession, verifyEmailUpdate);
 router.get('/address',checkUserSession, preventCache,addressPage );
 //Add a new address
 router.post('/address/add', checkUserSession, addAddress);
+//fetch single address
+router.get('/address/:addressId', checkUserSession, getSingleAddress);
 //Edit an existing address
 router.put('/address/edit/:addressId', checkUserSession, editAddress);
 //Delete an address

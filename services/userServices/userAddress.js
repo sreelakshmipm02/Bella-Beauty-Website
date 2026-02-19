@@ -23,6 +23,11 @@ export const addNewAddress = async (userId, data) => {
     return await newAddress.save();
 };
 
+export const getAddressById = async (addressId, userId) => {
+    return await Address.findOne({ _id: addressId, userId });
+};
+
+
 export const updateAddress = async (addressId, userId, data) => {
     if (data.isDefault) {
         await Address.updateMany({ userId }, { $set: { isDefault: false } });
