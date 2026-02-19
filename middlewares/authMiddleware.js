@@ -24,7 +24,7 @@ export const checkUserSession = async (req, res, next) => {
 
         // If user was blocked while logged in, destroy session
         if (!user || user.status === "suspended") {
-            return req.session.destroy(() => res.redirect("/login"));
+            return req.session.destroy(() => res.render("user/login",{error : "account is suspended."}));
         }
         next();
     } else {
