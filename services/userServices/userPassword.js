@@ -1,8 +1,7 @@
-// services/userServices/authService.js
 import User from "../../models/user.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import { sendResetEmail } from "../../utils/otpService.js"; // You'll need to add this to your otpService
+import { sendResetEmail } from "../../utils/otpService.js"; 
 
 export const generateResetToken = async (email) => {
     const user = await User.findOne({ email });

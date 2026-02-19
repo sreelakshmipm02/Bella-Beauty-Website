@@ -1,4 +1,3 @@
-// Add this to your user.ejs
 async function updateStatus(userId) {
     try {
         // Show a confirmation dialog before blocking
@@ -7,7 +6,7 @@ async function updateStatus(userId) {
             text: "You want to change this user's account status!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#E91E63', // Your primary pink
+            confirmButtonColor: '#E91E63', 
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, change it!'
         });

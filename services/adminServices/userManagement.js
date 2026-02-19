@@ -1,16 +1,12 @@
-// services/adminServices/userManagement.js
 import User from "../../models/user.js";
 
-/**
- * Fetches all users from the database sorted by newest first.
- */
+// Fetches all users from the database sorted by newest first.
 // export const getAllUsers = async () => {
 //     return await User.find({}).sort({ createdAt: -1 });
 // };
 
-/**
- * Toggles a user's status between 'active' and 'suspended'.
- */
+// Toggles a user's status between 'active' and 'suspended'.
+ 
 export const toggleUserBlockStatus = async (userId) => {
     const user = await User.findById(userId);
     if (!user) {
@@ -24,10 +20,9 @@ export const toggleUserBlockStatus = async (userId) => {
     return user.status;
 };
 
-/**
- * Fetches users with optional status filtering.
- * This can be reused by other controllers if needed.
- */
+ // Fetches users with optional status filtering.
+ // This can be reused by other controllers if needed.
+ 
 export const fetchUsersWithFilter = async (status, search, page = 1, limit = 5) => {
     let filter = {};
     // 1. Apply Status Filter

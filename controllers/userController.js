@@ -125,7 +125,7 @@ export const userAccount = async (req, res) => {
     }
 };
 
-// 1. UPDATE PROFILE
+// 1. Update profile
 export const updateProfile = async (req, res) => {
     try {
         console.log("File received:", req.file); // <--- Add this debug line
@@ -133,7 +133,6 @@ export const updateProfile = async (req, res) => {
 
         const userId = req.session.userId;
 
-        // --- THE FIX ---
         // Cloudinary puts the link in 'secure_url', not always in 'path'
         let filePath = undefined;
         if (req.file) {
@@ -148,7 +147,7 @@ export const updateProfile = async (req, res) => {
     }
 };
 
-// 2. SEND OTP FOR EMAIL UPDATE
+// 2. Send otp for email update
 export const sendUpdateEmailOtp = async (req, res) => {
     try {
         const { newEmail } = req.body;
@@ -158,12 +157,11 @@ export const sendUpdateEmailOtp = async (req, res) => {
         res.json({ success: true, message: "OTP sent to new email." });
     } catch (error) {
         console.error("OTP Error:", error.message);
-        // Return success: false with the specific error message (e.g., "Email already in use")
         res.json({ success: false, message: error.message || "Failed to send OTP." });
     }
 };
 
-// 3. VERIFY OTP AND UPDATE EMAIL
+// 3. Verify otp and update email
 export const verifyEmailUpdate = async (req, res) => {
     try {
         const { newEmail, otp } = req.body;
@@ -173,7 +171,6 @@ export const verifyEmailUpdate = async (req, res) => {
 
         res.json({ success: true, message: "Email updated successfully!" });
     } catch (error) {
-        // Return success: false with the specific error message (e.g., "Invalid OTP")
         res.json({ success: false, message: error.message || "Verification failed." });
     }
 };

@@ -25,7 +25,7 @@ export const updateUserProfile = async (userId, userData, filePath) => {
     // { new: true } returns the updated document so we can see it
     const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true });
 
-    console.log("Updated User in DB:", updatedUser); // <--- Check if profileImage is here
+    console.log("Updated User in DB:", updatedUser); 
 
     return updatedUser;
 };
