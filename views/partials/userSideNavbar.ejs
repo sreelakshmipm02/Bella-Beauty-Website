@@ -7,16 +7,12 @@
                 <div class="flex items-center justify-between p-5 border-b border-slate-100 dark:border-slate-800 lg:hidden cursor-pointer bg-slate-50 dark:bg-slate-800/50 transition-colors hover:bg-slate-100 dark:hover:bg-slate-800"
                     onclick="toggleUserSidebar()">
                     <div class="flex items-center gap-3">
-                        <div
-                            class="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 flex items-center justify-center text-primary text-xs font-bold">
-                            <%= user.firstName?.charAt(0) || 'U' %>
-                        </div>
                         <span class="font-semibold text-slate-700 dark:text-slate-200">Account Menu</span>
                     </div>
                     <button id="sidebar-toggle-btn" class="p-1 text-slate-500 transition-transform duration-300">
                         <span class="material-icons-outlined">menu</span>
                     </button>
-                </div>
+                </div>                                                                                                
 
                 <div id="user-sidebar-content" class="hidden lg:block p-8">
 

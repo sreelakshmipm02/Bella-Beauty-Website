@@ -26,7 +26,7 @@ import {
 } from "../controllers/userController.js";
 import { googleAuthCallback } from "../controllers/authController.js";
 
-import { preventCache, checkUserSession} from "../middlewares/authMiddleware.js";
+import { preventCache, checkUserSession, isGuest } from "../middlewares/authMiddleware.js";
 import { upload } from "../middlewares/upload.js";
 
 
@@ -38,14 +38,14 @@ router.get("/", preventCache, homePage);
 
 //----------------------------------------------------------
 // Signup page
-router.get("/signup", preventCache, signupPage);
+router.get("/signup", preventCache, isGuest, signupPage);
 router.post("/send-signup-otp", sendSignupOtpController);
 router.post("/verify-signup-otp", verifySignupOtp);
 router.post("/resend-signup-otp", resendSignupOtp);
 
 //----------------------------------------------------------
 // Login page
-router.get("/login", preventCache, loginPage);
+router.get("/login", preventCache, isGuest, loginPage);
 router.post("/login", loginSubmit);
 
 // Google login

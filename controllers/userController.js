@@ -88,9 +88,6 @@ export const resendSignupOtp = async (req, res) => {
 //----------------------------------------------------------------------
 //get login page
 export const loginPage = (req, res) => {
-    if (req.session.userId) {
-        return res.redirect("/");
-    }
     res.render("user/login", { error: null });
 };
 

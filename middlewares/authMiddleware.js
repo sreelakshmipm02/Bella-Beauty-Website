@@ -24,10 +24,20 @@ export const checkUserSession = async (req, res, next) => {
 
         // If user was blocked while logged in, destroy session
         if (!user || user.status === "suspended") {
-            return req.session.destroy(() => res.render("user/login",{error : "account is suspended."}));
+            return req.session.destroy(() => res.render("user/login", { error: "session expired or account is suspended." }));
         }
         next();
     } else {
         res.redirect("/login");
     }
+};
+
+// 4. Protect Guest Routes (Login, Signup, etc.)
+export const isGuest = (req, res, next) => {
+    // If the user is already logged in, redirect them to the home page
+    if (req.session.userId) {
+        return res.redirect("/");
+    }
+    // If they are not logged in (they are a guest), let them proceed
+    next();
 };

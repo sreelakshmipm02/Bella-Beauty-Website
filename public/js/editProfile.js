@@ -113,12 +113,17 @@ async function handleProfileUpdate(e) {
     // -------------------
 
     try {
+        // 1. Show the loading spinner
+        showLoading();
+
         const res = await fetch('/user/update-profile', {
             method: 'PUT',
             body: formData // No Content-Type header needed for FormData
         });
 
         const data = await res.json();
+        // 2. Hide the loading spinner as soon as we get data
+        hideLoading();
 
         if (data.success) {
             Swal.fire({
@@ -132,6 +137,8 @@ async function handleProfileUpdate(e) {
             Swal.fire('Error', data.message, 'error');
         }
     } catch (err) {
+        // 3. Hide loading spinner if the server crashes
+        hideLoading();
         console.error(err);
         Swal.fire('Error', 'Something went wrong', 'error');
     }
@@ -153,9 +160,66 @@ function startUpdateTimer() {
     }, 1000);
 }
 
-// Auto-focus logic for OTP inputs
+// --- Auto-focus, Backspace, and Paste logic for OTP inputs ---
 document.querySelectorAll('.update-otp-input').forEach((input, index, inputs) => {
+
+    // 1. Handle Typing (Move to next & numbers only)
     input.addEventListener('input', (e) => {
-        if (e.target.value && index < inputs.length - 1) inputs[index + 1].focus();
+        // Allow only numbers
+        if (isNaN(e.target.value)) {
+            e.target.value = "";
+            return;
+        }
+        // Move to the next input if a number is typed
+        if (e.target.value && index < inputs.length - 1) {
+            inputs[index + 1].focus();
+        }
+    });
+
+    // 2. Handle Backspace (Move to previous)
+    input.addEventListener('keydown', (e) => {
+        // If backspace is pressed on an empty box, go back
+        if (e.key === 'Backspace' && !e.target.value && index > 0) {
+            inputs[index - 1].focus();
+        }
+    });
+
+    // 3. Handle Copy-Paste
+    input.addEventListener('paste', (e) => {
+        e.preventDefault();
+        const pasteData = e.clipboardData.getData('text').trim();
+
+        // Check if pasted content is strictly numbers
+        if (!/^\d+$/.test(pasteData)) return;
+
+        // Distribute each digit into the separate input boxes
+        pasteData.split('').forEach((char, i) => {
+            if (inputs[i]) {
+                inputs[i].value = char;
+            }
+        });
+
+        // Focus the last filled input box
+        const nextEmptyIndex = Math.min(pasteData.length, inputs.length) - 1;
+        if (inputs[nextEmptyIndex]) {
+            inputs[nextEmptyIndex].focus();
+        }
     });
 });
+
+// Loading Spinner Utilities
+function showLoading() {
+    const popup = document.getElementById("loadingPopup");
+    if (popup) {
+        popup.classList.remove("hidden");
+        popup.classList.add("flex");
+    }
+}
+
+function hideLoading() {
+    const popup = document.getElementById("loadingPopup");
+    if (popup) {
+        popup.classList.add("hidden");
+        popup.classList.remove("flex");
+    }
+}
