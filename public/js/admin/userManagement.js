@@ -6,7 +6,7 @@ async function updateStatus(userId) {
             text: "You want to change this user's account status!",
             icon: 'warning',
             showCancelButton: true,
-            confirmButtonColor: '#E91E63', 
+            confirmButtonColor: '#E91E63',
             cancelButtonColor: '#d33',
             confirmButtonText: 'Yes, change it!'
         });
@@ -45,22 +45,23 @@ async function updateStatus(userId) {
     }
 }
 
-//status filter option
-document.getElementById('statusFilter').addEventListener('change', function () {
-    const selectedStatus = this.value;
-    // Redirect to the same page but with a ?status= query parameter
-    window.location.href = `/admin/user?status=${selectedStatus}`;
-});
-
-//searchbar option
+// Searchbar elements
 const searchInput = document.getElementById('userSearch');
 const statusFilter = document.getElementById('statusFilter');
+const clearSearchBtn = document.getElementById('clearSearchBtn'); // <-- Add this
+
+// --- NEW: Watch for typing to show/hide the X button ---
+searchInput.addEventListener('input', function() {
+    if (this.value.trim().length > 0) {
+        clearSearchBtn.classList.remove('hidden');
+    } else {
+        clearSearchBtn.classList.add('hidden');
+    }
+});
 
 function applyFilters() {
     const searchValue = searchInput.value.trim();
     const statusValue = statusFilter.value;
-
-    // Build URL with multiple parameters
     window.location.href = `/admin/user?status=${statusValue}&search=${searchValue}`;
 }
 
@@ -71,3 +72,15 @@ searchInput.addEventListener('keypress', (e) => {
 
 // Update results when status changes
 statusFilter.addEventListener('change', applyFilters);
+
+// --- Clear Search Logic ---
+function clearSearch() {
+    // 1. Empty the search input
+    searchInput.value = '';
+    
+    // 2. Hide the button again
+    clearSearchBtn.classList.add('hidden');
+
+    // 3. Trigger the existing applyFilters function to reload the page
+    applyFilters();
+}

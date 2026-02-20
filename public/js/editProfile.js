@@ -99,30 +99,62 @@ async function verifyEmailUpdate() {
 async function handleProfileUpdate(e) {
     e.preventDefault();
 
+    // 1. Clear any previous error messages
+    document.getElementById('editFirstNameError').innerText = "";
+    document.getElementById('editLastNameError').innerText = "";
+    document.getElementById('editPhoneError').innerText = "";
+    document.getElementById('editEmailError').innerText = "";
+
+    const form = document.getElementById('editProfileForm');
+    const formData = new FormData(form);
+
+    // 2. Extract values for validation
+    const firstName = formData.get('firstName').trim();
+    const lastName = formData.get('firstName').trim();
+    const phone = formData.get('phone').trim();
+    const email = formData.get('email').trim();
+
+    let isValid = true;
+
+    // 3. Validate First Name (Letters only, min 2 chars)
+    if (!/^[a-zA-Z\s]{2,50}$/.test(firstName)) {
+        document.getElementById('editFirstNameError').innerText = "Must contain only letters (min 2 chars)";
+        isValid = false;
+    }
+
+    // 4. Validate Last Name (Letters only, min 1 char)
+    if (!/^[a-zA-Z\s]{1,50}$/.test(lastName)) {
+        document.getElementById('editLastNameError').innerText = "Must contain only letters";
+        isValid = false;
+    }
+
+    // 5. Validate Phone (Indian 10-digit)
+    if (!/^[6-9]\d{9}$/.test(phone)) {
+        document.getElementById('editPhoneError').innerText = "Enter a valid 10-digit mobile number";
+        isValid = false;
+    }
+
+    // 6. Validate Email
+    if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
+        document.getElementById('editEmailError').innerText = "Please enter a valid email address";
+        isValid = false;
+    }
+    // Stop execution if validation fails
+    if (!isValid) return;
+
     if (isEmailChanged) {
         return Swal.fire('Verify Email', 'Please verify your new email address before saving.', 'warning');
     }
 
-    const form = document.getElementById('editProfileForm');
-    const formData = new FormData(form); // Uses FormData for Image Upload
-
-    // --- DEBUG CHECK ---
-    const file = formData.get('profileImage');
-    console.log("File selected:", file);
-    // If this prints "null" or file size is 0, the input is empty or outside the form.
-    // -------------------
-
     try {
-        // 1. Show the loading spinner
         showLoading();
 
         const res = await fetch('/user/update-profile', {
             method: 'PUT',
-            body: formData // No Content-Type header needed for FormData
+            body: formData
         });
 
         const data = await res.json();
-        // 2. Hide the loading spinner as soon as we get data
         hideLoading();
 
         if (data.success) {
@@ -137,12 +169,16 @@ async function handleProfileUpdate(e) {
             Swal.fire('Error', data.message, 'error');
         }
     } catch (err) {
-        // 3. Hide loading spinner if the server crashes
         hideLoading();
         console.error(err);
         Swal.fire('Error', 'Something went wrong', 'error');
     }
 }
+// Clear errors when the user starts typing again
+document.getElementById('editFirstName').addEventListener('input', () => document.getElementById('editFirstNameError').innerText = "");
+document.getElementById('editLastName').addEventListener('input', () => document.getElementById('editLastNameError').innerText = ""); // <-- ADD THIS LINE
+document.getElementById('editPhone').addEventListener('input', () => document.getElementById('editPhoneError').innerText = "");
+document.getElementById('editEmail').addEventListener('input', () => document.getElementById('editEmailError').innerText = "");
 
 // --- OTP Handling Utilities (Timer & Input Focus) ---
 function closeUpdateOtpModal() {

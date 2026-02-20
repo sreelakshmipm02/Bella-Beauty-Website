@@ -93,9 +93,25 @@ function closeAddressModal() {
 async function handleAddressSubmit(event) {
     event.preventDefault();
 
-    //1. Regex Validation Layer
-    const phone = document.getElementById('phone').value;
-    const postalCode = document.getElementById('postalCode').value;
+    // 1. Extract text values
+    const fullName = document.getElementById('fullName').value.trim();
+    const phone = document.getElementById('phone').value.trim();
+    const addressLine1 = document.getElementById('addressLine1').value.trim();
+    const city = document.getElementById('city').value.trim();
+    const state = document.getElementById('state').value.trim();
+    const postalCode = document.getElementById('postalCode').value.trim();
+
+    // 2. Comprehensive Validation Layer
+    
+    // Check for empty required fields
+    if (!fullName || !addressLine1 || !city || !state || !postalCode || !phone) {
+        return Swal.fire('Missing Fields', 'Please fill in all required fields.', 'warning');
+    }
+
+    // Validate Name (Letters only, min 2 chars)
+    if (!/^[a-zA-Z\s]{2,50}$/.test(fullName)) {
+        return Swal.fire('Invalid Name', 'Full Name must contain only letters and be at least 2 characters.', 'error');
+    }
 
     // Validate Phone (Indian 10-digit)
     const phoneRegex = /^[6-9]\d{9}$/;
@@ -104,34 +120,30 @@ async function handleAddressSubmit(event) {
     }
 
     // Validate Pincode (6-digit)
-    // Even if Google fills it, sometimes it might be empty for new areas
     const pinRegex = /^[1-9][0-9]{5}$/;
     if (!pinRegex.test(postalCode)) {
         return Swal.fire('Invalid Pincode', 'Please enter a valid 6-digit Pincode.', 'error');
     }
-    // 2. Collect Data
+
+    // 3. Collect Data
     const formData = {
         addressId: document.getElementById('addressId').value,
-        fullName: document.getElementById('fullName').value,
-        phone: document.getElementById('phone').value,
-        addressLine1: document.getElementById('addressLine1').value,
-        addressLine2: document.getElementById('addressLine2').value,
-        city: document.getElementById('city').value,
-        state: document.getElementById('state').value,
-        postalCode: document.getElementById('postalCode').value,
+        fullName: fullName,
+        phone: phone,
+        addressLine1: addressLine1,
+        addressLine2: document.getElementById('addressLine2').value.trim(),
+        city: city,
+        state: state,
+        postalCode: postalCode,
         country: document.getElementById('country').value,
         isDefault: document.getElementById('isDefault').checked
     };
 
-
-    // 3. Determine Endpoint (Add vs Edit)
-    const url = formData.addressId
-        ? `/address/edit/${formData.addressId}`
-        : '/address/add';
-
+    // 4. Determine Endpoint (Add vs Edit)
+    const url = formData.addressId ? `/address/edit/${formData.addressId}` : '/address/add';
     const method = formData.addressId ? 'PUT' : 'POST';
 
-    // 4. Send Request
+    // 5. Send Request
     try {
         const response = await fetch(url, {
             method: method,
@@ -148,7 +160,7 @@ async function handleAddressSubmit(event) {
                 text: 'Address saved successfully.',
                 timer: 1500,
                 showConfirmButton: false
-            }).then(() => location.reload()); // Reload to show new address
+            }).then(() => location.reload()); 
         } else {
             Swal.fire('Error', result.message || 'Failed to save address', 'error');
         }
@@ -157,7 +169,6 @@ async function handleAddressSubmit(event) {
         Swal.fire('Error', 'Something went wrong', 'error');
     }
 }
-
 // --- Edit Logic (Populate Modal) ---
 async function editAddress(addressId) {
     try {
