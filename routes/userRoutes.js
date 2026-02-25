@@ -22,7 +22,10 @@ import {
     forgotPasswordSubmit, 
     resetPasswordPage, 
     resetPasswordSubmit,
-    getSingleAddress
+    getSingleAddress,
+    passwordPage,
+    updatePassword,
+    forgotPasswordLoggedIn
 } from "../controllers/userController.js";
 import { googleAuthCallback } from "../controllers/authController.js";
 
@@ -71,6 +74,7 @@ router.post('/user/update-email-otp', checkUserSession, sendUpdateEmailOtp);
 
 // 3. Verify OTP and Finalize Email Change
 router.post('/user/verify-email-update', checkUserSession, verifyEmailUpdate);
+
 //----------------------------------------------------------
 //user address
 router.get('/address',checkUserSession, preventCache,addressPage );
@@ -86,11 +90,16 @@ router.delete('/address/delete/:addressId', checkUserSession, adressDelete);
 router.patch('/address/set-default/:addressId', checkUserSession, setAsDefault);
 
 //----------------------------------------------------------
+// user password management
+router.get('/password', checkUserSession, preventCache, passwordPage);
+router.put('/password/update', checkUserSession, updatePassword);
+router.post('/password/forgot-loggedin', checkUserSession, forgotPasswordLoggedIn); 
+
+//----------------------------------------------------------
 // Logout Route
 router.get('/logout', userLogout);
 
 //----------------------------------------------------------
-
 // Forgot Password
 router.get("/forgot-password", preventCache, forgotPasswordPage);
 router.post("/forgot-password", forgotPasswordSubmit);
@@ -98,4 +107,5 @@ router.post("/forgot-password", forgotPasswordSubmit);
 // Reset Password
 router.get("/reset-password/:token", preventCache, resetPasswordPage);
 router.post("/reset-password/:token", resetPasswordSubmit);
+
 export default router;

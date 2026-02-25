@@ -39,3 +39,25 @@ export const resetUserPassword = async (token, newPassword) => {
     await user.save();
     return true;
 };
+
+export const changeUserPassword = async (userId, currentPassword, newPassword) => {
+    const user = await User.findById(userId);
+
+    if(!user) throw new Error("User not found.");
+
+    // Check if user signed up with Google and has no local password yet
+    if (!user.password && user.authProviders?.google) {
+        throw new Error("You logged in with Google. You cannot change a password you haven't set.");
+    }
+
+    //verify current password
+    const isMatch = await bcrypt.compare(currentPassword, user.password);
+    if(!isMatch) throw new Error("Incorrect current password.");
+
+    //hash the new password and save
+    const salt = await bcrypt.genSalt(10);
+    user.password = await bcrypt.hash(newPassword, salt);
+    await user.save();
+
+    return true;
+}

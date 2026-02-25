@@ -21,7 +21,7 @@ import {
     completeEmailUpdate
 } from "../services/userServices/editProfile.js";
 //----------------------------------------------------------------------
-import { generateResetToken, resetUserPassword } from "../services/userServices/userPassword.js";
+import { generateResetToken, resetUserPassword, changeUserPassword } from "../services/userServices/userPassword.js";
 
 //home page (index+home)
 export const homePage = (req, res) => {
@@ -238,6 +238,60 @@ export const setAsDefault = async (req, res) => {
         res.json({ success: true });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+//----------------------------------------------------------------------
+//render password management page
+export const passwordPage = async (req,res) => {
+    try {
+        const userId = req.session.userId;
+        const user = await getUserData(userId);
+        res.render('user/password', {
+            title : "Manage Password", 
+            user : user
+        });
+    } catch (error) {
+        console.error("Password Page Error : ",error);
+        res.redirect("/account");
+    }
+};
+
+//handle password update submission
+export const updatePassword = async (req,res) => {
+    try {
+        const { currentPassword, newPassword } = req.body;
+        await changeUserPassword(req.session.userId, currentPassword, newPassword);
+
+        res.json({
+            success: true,
+            message: "Password updated successfully!"
+        });
+    } catch (error) {
+        res.status(400).json({ 
+            success : false,
+            message : error.message
+        });
+    }
+};
+
+// Handle Forgot Password for Logged-In Users
+export const forgotPasswordLoggedIn = async (req, res) => {
+    try {
+        // 1. Get the user's email using their session ID
+        const user = await getUserData(req.session.userId); 
+        
+        // 2. Re-use your existing service to send the email link
+        await generateResetToken(user.email); 
+
+        // 3. Destroy session for security 
+        req.session.destroy((err) => {
+            if (err) console.error("Session destroy error:", err);
+            res.clearCookie("connect.sid");
+            res.json({ success: true });
+        });
+    } catch (error) {
+        res.status(500).json({ success: false, message: error.message });
     }
 };
 
