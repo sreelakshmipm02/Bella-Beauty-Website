@@ -1,6 +1,6 @@
-import { authenticateAdmin } from "../services/adminServices/adminAuth.js";
-import { generateAdminResetToken, resetAdminPassword } from "../services/adminServices/adminPassword.js";
-import { toggleUserBlockStatus, fetchUsersWithFilter } from "../services/adminServices/userManagement.js";
+import { authenticateAdmin } from "../../services/adminServices/adminAuth.js";
+import { generateAdminResetToken, resetAdminPassword } from "../../services/adminServices/adminPassword.js";
+import { toggleUserBlockStatus, fetchUsersWithFilter } from "../../services/adminServices/userManagement.js";
 
 // Render Login Page
 export const adminLoginPage = (req, res) => {

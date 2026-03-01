@@ -10,7 +10,12 @@ import {
     userManagementPage,
     toggleUserStatus,
     adminLogout
-} from "../controllers/adminController.js";
+} from "../controllers/admin/adminController.js";
+
+import {
+    categoryManagementPage,
+    softDeleteCategory
+} from "../controllers/admin/categoryController.js";
 
 import { 
     checkAdminSession,
@@ -43,5 +48,13 @@ router.post("/reset-password/:token", adminResetPasswordSubmit);
 
 // Logout Route
 router.get('/logout', adminLogout);
+
+//-------------week1 completed-----------------------------------------------
+
+// Category Listing
+router.get('/category', checkAdminSession, preventCache, categoryManagementPage);
+
+// Toggle Category Status (Soft Delete)
+router.patch('/category/toggle-status/:categoryId', checkAdminSession, softDeleteCategory);
 
 export default router;

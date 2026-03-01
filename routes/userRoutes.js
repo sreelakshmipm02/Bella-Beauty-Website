@@ -26,8 +26,8 @@ import {
     passwordPage,
     updatePassword,
     forgotPasswordLoggedIn
-} from "../controllers/userController.js";
-import { googleAuthCallback } from "../controllers/authController.js";
+} from "../controllers/user/userController.js";
+import { googleAuthCallback } from "../controllers/user/authController.js";
 
 import { preventCache, checkUserSession, isGuest } from "../middlewares/authMiddleware.js";
 import { upload } from "../middlewares/upload.js";

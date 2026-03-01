@@ -3,10 +3,10 @@ import {
     verifySignupOtpService,
     resendOtpService
 
-} from "../services/userServices/userSignup.js";
-import { createUser } from "../services/userServices/createUser.js";
-import { loginUser } from "../services/userServices/userLogin.js";
-import { getUserData } from "../services/userServices/userAccount.js";
+} from "../../services/userServices/userSignup.js";
+import { createUser } from "../../services/userServices/createUser.js";
+import { loginUser } from "../../services/userServices/userLogin.js";
+import { getUserData } from "../../services/userServices/userAccount.js";
 import {
     getUserAddresses,
     addNewAddress,
@@ -14,14 +14,14 @@ import {
     updateAddress,
     deleteAddress,
     setAddressAsDefault
-} from "../services/userServices/userAddress.js";
+} from "../../services/userServices/userAddress.js";
 import {
     updateUserProfile,
     requestEmailUpdateOtp,
     completeEmailUpdate
-} from "../services/userServices/editProfile.js";
+} from "../../services/userServices/editProfile.js";
 //----------------------------------------------------------------------
-import { generateResetToken, resetUserPassword, changeUserPassword } from "../services/userServices/userPassword.js";
+import { generateResetToken, resetUserPassword, changeUserPassword } from "../../services/userServices/userPassword.js";
 
 //home page (index+home)
 export const homePage = (req, res) => {
