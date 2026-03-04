@@ -30,7 +30,7 @@ import {
 import { googleAuthCallback } from "../controllers/user/authController.js";
 
 import { preventCache, checkUserSession, isGuest } from "../middlewares/authMiddleware.js";
-import { upload } from "../middlewares/upload.js";
+import { uploadUser } from "../middlewares/upload.js";
 
 
 const router = express.Router();
@@ -67,7 +67,7 @@ router.get(
 //user account
 router.get('/account', checkUserSession, preventCache, userAccount);
 // 1. Update Profile (Text + Image)
-router.put('/user/update-profile', checkUserSession, upload.single('profileImage'), updateProfile);
+router.put('/user/update-profile', checkUserSession, uploadUser.single('profileImage'), updateProfile);
 
 // 2. Send OTP for Email Change
 router.post('/user/update-email-otp', checkUserSession, sendUpdateEmailOtp);

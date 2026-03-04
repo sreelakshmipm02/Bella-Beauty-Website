@@ -24,15 +24,14 @@ cloudinary.v2.config({
 });
 
 // 4. Create Storage
-const storage = new CloudinaryStorage({
-    // We pass the WHOLE cloudinary object here. 
-    // The library will internally call 'cloudinary.v2.uploader', which now exists.
+const createStorage = (folderName) => new CloudinaryStorage({
     cloudinary: cloudinary,
     params: {
-        folder: "bella-beauty-users",
+        folder: folderName,
         allowed_formats: ["jpg", "jpeg", "png", "webp"],
         transformation: [{ width: 500, height: 500, crop: "fill" }]
     }
 });
 
-export const upload = multer({ storage: storage });
+export const uploadUser = multer({ storage: createStorage("bella-beauty-users") });
+export const uploadCategory = multer({ storage: createStorage("bella-beauty-categories") });

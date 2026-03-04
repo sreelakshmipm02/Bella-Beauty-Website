@@ -14,13 +14,19 @@ import {
 
 import {
     categoryManagementPage,
-    softDeleteCategory
+    softDeleteCategory,
+    addCategorySubmit,
+    getCategoryById,
+    editCategorySubmit
 } from "../controllers/admin/categoryController.js";
+
+import { addAttributeSubmit,getAttributeForEdit,editAttributeSubmit } from "../controllers/admin/attributeController.js";
 
 import { 
     checkAdminSession,
     preventCache } from "../middlewares/authMiddleware.js";
 
+import { uploadCategory } from "../middlewares/upload.js";
 const router = express.Router();
 
 // Get Login Page
@@ -57,4 +63,21 @@ router.get('/category', checkAdminSession, preventCache, categoryManagementPage)
 // Toggle Category Status (Soft Delete)
 router.patch('/category/toggle-status/:categoryId', checkAdminSession, softDeleteCategory);
 
+//add new category
+router.post('/category/add', checkAdminSession, uploadCategory.single('categoryImage'), addCategorySubmit);
+
+// AJAX Route for creating attributes on the fly (No multer needed, handles JSON)
+router.post('/attributes/add', checkAdminSession, addAttributeSubmit);
+
+// Get single category data (AJAX)
+router.get('/category/:id', checkAdminSession, getCategoryById);
+
+// Update category (AJAX with Multer)
+router.put('/category/edit/:id', checkAdminSession, uploadCategory.single('categoryImage'), editCategorySubmit);
+
+//get single attribute data
+router.get('/attributes/:id', checkAdminSession, getAttributeForEdit);
+
+//update attribute
+router.put('/attributes/edit/:id', checkAdminSession, editAttributeSubmit);
 export default router;

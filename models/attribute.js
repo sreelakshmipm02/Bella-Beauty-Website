@@ -2,13 +2,13 @@ import mongoose from "mongoose";
 
 const attributeSchema = new mongoose.Schema(
     {
-        name: {
+        internalName: {
             type: String,
             required: true,
             unique: true,
             trim: true
         },
-        label: {
+        displayLabel: {
             type: String,
             required: true,
             trim: true

@@ -8,11 +8,11 @@
             <p class="text-slate-500 dark:text-slate-400 text-sm">Organize your product catalog hierarchically.</p>
         </div>
 
-        <a href="/admin/category/add"
+        <button onclick="openAddCategoryModal()"
             class="inline-flex items-center justify-center px-5 py-2.5 bg-[#e83e8c] text-white font-medium text-sm rounded-lg hover:bg-pink-600 transition-colors shadow-sm">
             <span class="material-symbols-outlined mr-2 text-[18px]">add</span>
             Add New Category
-        </a>
+        </button>
     </div>
 
     <div
@@ -53,6 +53,7 @@
                 <thead>
                     <tr
                         class="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                        <th class="px-6 py-4 w-16 text-center">Image</th>
                         <th class="px-6 py-4">Category Name</th>
                         <th class="px-6 py-4 text-center">Products</th>
                         <th class="px-6 py-4">Status</th>
@@ -63,6 +64,20 @@
                     <% if (typeof categories !=='undefined' && categories.length> 0) { %>
                         <% categories.forEach(category=> { %>
                             <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+
+                                <td class="px-6 py-3 text-center">
+                                    <% if (category.categoryImage) { %>
+                                        <img src="<%= category.categoryImage.startsWith('http') ? category.categoryImage : '/' + category.categoryImage.replace(/\\/g, '/').replace(/^public\//, '') %>"
+                                            alt="<%= category.name %>"
+                                            class="w-10 h-10 rounded-lg object-cover border border-slate-200 dark:border-slate-700 mx-auto shadow-sm">
+                                        <% } else { %>
+                                            <div
+                                                class="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 flex items-center justify-center text-slate-400 mx-auto">
+                                                <span class="material-symbols-outlined text-[20px]">image</span>
+                                            </div>
+                                            <% } %>
+                                </td>
+
                                 <td class="px-6 py-4">
                                     <span class="font-medium text-slate-900 dark:text-white">
                                         <%= category.name %>
@@ -89,18 +104,21 @@
                                 </td>
 
                                 <td class="px-6 py-4 text-right">
-                                    <div class="flex items-center justify-end space-x-4 text-slate-400">
-                                        <a href="/admin/category/edit/<%= category._id %>"
-                                            class="hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
+                                    <div class="flex items-center justify-end space-x-4">
+                                        <button onclick="openEditCategoryModal('<%= category._id %>')"
+                                            class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors"
                                             title="Edit">
                                             <span class="material-symbols-outlined text-[18px]">edit</span>
-                                        </a>
+                                        </button>
+
                                         <button onclick="softDeleteCategory('<%= category._id %>')"
-                                            class="hover:text-red-500 transition-colors"
-                                            title="<%= category.status === 'active' ? 'Delete' : 'Restore' %>">
-                                            <span class="material-symbols-outlined text-[18px]">
-                                                <%= category.status==='active' ? 'delete' : 'restore_from_trash' %>
+                                            class="transition-colors flex items-center justify-center <%= category.status === 'active' ? 'text-green-500 hover:text-green-600' : 'text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400' %>"
+                                            title="<%= category.status === 'active' ? 'Deactivate Category' : 'Activate Category' %>">
+
+                                            <span class="material-symbols-outlined text-[26px]">
+                                                <%= category.status==='active' ? 'toggle_on' : 'toggle_off' %>
                                             </span>
+
                                         </button>
                                     </div>
                                 </td>
@@ -170,74 +188,11 @@
             <% } %>
     </div>
 
-    <script>
-        // 1. Search Logic
-        const searchInput = document.getElementById('categorySearch');
+    <%- include("../partials/adminModals/addCategoryModal") %>
+        <%- include("../partials/adminModals/attributeCreationModal") %>
+            <%- include("../partials/adminModals/editCategoryModal") %>
+                <%- include("../partials/adminModals/editAttributeModal") %>
 
-        // Trigger search on 'Enter' key
-        searchInput.addEventListener('keypress', function (e) {
-            if (e.key === 'Enter') {
-                updateFilters();
-            }
-        });
+                    <script src="/js/admin/categoryManagement.js"></script>
 
-        // 2. Clear Search Logic (Backend reset)
-        function clearSearch() {
-            document.getElementById('categorySearch').value = '';
-            updateFilters(); // Triggers reload without the search term
-        }
-
-        // 3. Status Filter Logic
-        document.getElementById('statusFilter').addEventListener('change', updateFilters);
-
-        function updateFilters() {
-            const search = document.getElementById('categorySearch').value.trim();
-            const status = document.getElementById('statusFilter').value;
-            // Redirect to backend with parameters
-            window.location.href = `/admin/category?search=${encodeURIComponent(search)}&status=${status}`;
-        }
-
-        // 4. Soft Delete Logic via Fetch API
-        async function softDeleteCategory(categoryId) {
-            // SweetAlert2 Confirmation Dialog
-            const result = await Swal.fire({
-                title: 'Are you sure?',
-                text: "Do you want to change the status of this category? (Soft Delete)",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#e83e8c',
-                cancelButtonColor: '#64748b',
-                confirmButtonText: 'Yes, proceed!'
-            });
-
-            if (result.isConfirmed) {
-                try {
-                    // Call the backend PATCH route we set up in adminRoutes.js
-                    const response = await fetch(`/admin/category/toggle-status/${categoryId}`, {
-                        method: 'PATCH',
-                        headers: { 'Content-Type': 'application/json' }
-                    });
-
-                    const data = await response.json();
-
-                    if (data.success) {
-                        await Swal.fire({
-                            title: 'Updated!',
-                            text: `Category has been ${data.newStatus === 'active' ? 'restored' : 'soft deleted'}.`,
-                            icon: 'success',
-                            confirmButtonColor: '#e83e8c'
-                        });
-                        // Reload to reflect changes and maintain pagination
-                        window.location.reload();
-                    } else {
-                        Swal.fire('Error!', data.message || 'Failed to update category.', 'error');
-                    }
-                } catch (error) {
-                    console.error('Error:', error);
-                    Swal.fire('Error!', 'A network error occurred.', 'error');
-                }
-            }
-        }
-    </script>
-
-    <%- include("../partials/adminFooter") %>
+                    <%- include("../partials/adminFooter") %>

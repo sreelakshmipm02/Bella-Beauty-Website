@@ -1,9 +1,43 @@
 import Category from "../../models/category.js";
+import Attribute from "../../models/attribute.js";
 
-/**
- * Fetches categories based on search, status filter, and pagination.
- * Fulfills constraints: Search (backend), Pagination (backend), Sort descending.
- */
+
+// Fetch all available attributes for the checkbox list
+export const fetchAllAttributes = async () => {
+    return await Attribute.find({}).sort({ label: 1 }).lean();
+};
+
+//Creates a new category in the database. And Checks for duplicate names before saving.
+export const createNewCategory = async (categoryData) => {
+    const { name, description, status, categoryImage, adminId,categoryAttributes } = categoryData;
+
+    // 1. Check for duplicates (Case-insensitive)
+    // RegExp('^' + name + '$', 'i') ensures "Skincare" and "skincare" are treated as the same
+    const existingCategory = await Category.findOne({
+        name: { $regex: new RegExp('^' + name.trim() + '$', 'i') }
+    });
+
+    if (existingCategory) {
+        throw new Error(`A category named "${name}" already exists.`);
+    }
+
+    // 2. Create the new category
+    const newCategory = new Category({
+        name: name.trim(),
+        description: description.trim(),
+        status: status || 'active',
+        categoryImage: categoryImage, // Can be empty if no image was uploaded
+        createdBy: adminId, // Fulfills the required createdBy schema field
+        categoryAttributes: categoryAttributes || []
+    });
+
+    // 3. Save to database
+    await newCategory.save();
+    return newCategory;
+};
+
+
+//Fetches categories based on search, status filter, and pagination.
 export const fetchCategoriesWithFilter = async (status, search, page = 1, limit = 5) => {
     let filter = {};
 
@@ -19,7 +53,7 @@ export const fetchCategoriesWithFilter = async (status, search, page = 1, limit 
 
     // 3. Calculate Pagination parameters
     const skip = (page - 1) * limit;
-    
+
     // 4. Fetch data and total count in parallel
     // .sort({ createdAt: -1 }) ensures the descending order constraint
     const [categories, totalCategories] = await Promise.all([
@@ -33,13 +67,12 @@ export const fetchCategoriesWithFilter = async (status, search, page = 1, limit 
     return { categories, totalCategories };
 };
 
-/**
- * Toggles a category's status between 'active' and 'inactive'.
- * Fulfills constraint: Soft Delete.
- */
+
+//Toggles a category's status between 'active' and 'inactive'.
+
 export const toggleCategoryStatus = async (categoryId) => {
     const category = await Category.findById(categoryId);
-    
+
     if (!category) {
         throw new Error("Category not found");
     }
@@ -49,4 +82,48 @@ export const toggleCategoryStatus = async (categoryId) => {
     await category.save();
 
     return category.status;
+};
+
+// Fetch a single category by its ID
+export const fetchCategoryById = async (categoryId) => {
+    const category = await Category.findById(categoryId);
+    if (!category) {
+        throw new Error("Category not found");
+    }
+    return category;
+};
+
+// Update an existing category
+export const updateCategoryById = async (categoryId, bodyData, fileData) => {
+    const { name, description, status } = bodyData;
+    let categoryAttributes = bodyData.categoryAttributes || [];
+
+    // Ensure categoryAttributes is an array (even if only 1 box is checked)
+    if (!Array.isArray(categoryAttributes)) {
+        categoryAttributes = [categoryAttributes];
+    }
+
+    // Format the data for the database
+    const updateData = {
+        name: name.trim(),
+        description: description.trim(),
+        status: status || 'inactive',
+        categoryAttributes
+    };
+
+    // If an image was uploaded via Multer, append the path
+    // Cloudinary Bulletproof Check
+    if (fileData) {
+        // Grab secure_url if Cloudinary provides it, otherwise fallback to path
+        updateData.categoryImage = fileData.secure_url || fileData.path; 
+    }
+
+    // Execute the database update
+    const updatedCategory = await Category.findByIdAndUpdate(categoryId, updateData, { new: true });
+    
+    if (!updatedCategory) {
+        throw new Error("Failed to update category in the database.");
+    }
+    
+    return updatedCategory;
 };
