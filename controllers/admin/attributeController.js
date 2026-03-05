@@ -22,7 +22,6 @@ export const deleteAttributeSubmit = async (req, res) => {
     try {
         const { id } = req.params;
         
-        // Call the service you just wrote
         await deleteAttributeById(id);
         
         // Send the confirmation message back to the frontend

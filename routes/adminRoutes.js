@@ -20,7 +20,7 @@ import {
     editCategorySubmit
 } from "../controllers/admin/categoryController.js";
 
-import { addAttributeSubmit,getAttributeForEdit,editAttributeSubmit } from "../controllers/admin/attributeController.js";
+import { addAttributeSubmit,getAttributeForEdit,editAttributeSubmit,deleteAttributeSubmit } from "../controllers/admin/attributeController.js";
 
 import { 
     checkAdminSession,
@@ -66,13 +66,13 @@ router.patch('/category/toggle-status/:categoryId', checkAdminSession, softDelet
 //add new category
 router.post('/category/add', checkAdminSession, uploadCategory.single('categoryImage'), addCategorySubmit);
 
-// AJAX Route for creating attributes on the fly (No multer needed, handles JSON)
+// AJAX Route for creating attributes
 router.post('/attributes/add', checkAdminSession, addAttributeSubmit);
 
 // Get single category data (AJAX)
 router.get('/category/:id', checkAdminSession, getCategoryById);
 
-// Update category (AJAX with Multer)
+// Update category 
 router.put('/category/edit/:id', checkAdminSession, uploadCategory.single('categoryImage'), editCategorySubmit);
 
 //get single attribute data
@@ -80,4 +80,7 @@ router.get('/attributes/:id', checkAdminSession, getAttributeForEdit);
 
 //update attribute
 router.put('/attributes/edit/:id', checkAdminSession, editAttributeSubmit);
+
+//delete attribute
+router.delete('/attributes/:id', checkAdminSession, deleteAttributeSubmit);
 export default router;

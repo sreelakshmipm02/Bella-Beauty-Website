@@ -19,7 +19,7 @@ export const categoryManagementPage = async (req, res) => {
         // Run fetches in parallel for speed
         const [categoryData, allAttributes] = await Promise.all([
             fetchCategoriesWithFilter(status, search, page, limit),
-            fetchAllAttributes() // <-- Fetch attributes here
+            fetchAllAttributes() 
         ]);
 
         const { categories, totalCategories } = categoryData;
@@ -40,7 +40,6 @@ export const categoryManagementPage = async (req, res) => {
         });
     } catch (error) {
         console.error("Category Management Error:", error);
-        // You could also render an error page or redirect here
         res.status(500).send("Error fetching categories");
     }
 };
@@ -57,7 +56,7 @@ export const addCategorySubmit = async (req, res) => {
             return res.status(401).json({ success: false, message: "Unauthorized. Please log in." });
         }
 
-        // IMPORTANT: Ensure categoryAttributes is ALWAYS an array. 
+
         // If only one checkbox is selected, FormData sends it as a single string.
         if (!categoryAttributes) {
             categoryAttributes = [];

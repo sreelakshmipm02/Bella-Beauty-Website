@@ -1,7 +1,7 @@
 import Attribute from "../../models/attribute.js";
 
 export const createNewAttribute = async (data) => {
-    // 1. Destructure using the NEW names sent from the form
+    // 1. Destructure
     const { displayLabel, internalName, dataType, possibleValues } = data;
 
     // 2. Check for existing attribute using internalName
