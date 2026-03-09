@@ -140,7 +140,7 @@ async function handleAddressSubmit(event) {
     };
 
     // 4. Determine Endpoint (Add vs Edit)
-    const url = formData.addressId ? `/address/edit/${formData.addressId}` : '/address/add';
+    const url = formData.addressId ? `/address/${formData.addressId}` : '/address';
     const method = formData.addressId ? 'PUT' : 'POST';
 
     // 5. Send Request
@@ -215,7 +215,7 @@ async function deleteAddress(addressId) {
 
     if (result.isConfirmed) {
         try {
-            const response = await fetch(`/address/delete/${addressId}`, { method: 'DELETE' });
+            const response = await fetch(`/address/${addressId}`, { method: 'DELETE' });
             const data = await response.json();
 
             if (data.success) {
@@ -233,10 +233,10 @@ async function deleteAddress(addressId) {
 // --- Set Default Logic ---
 async function setDefault(addressId) {
     try {
-        const response = await fetch(`/address/set-default/${addressId}`, { method: 'PATCH' });
+        const response = await fetch(`/address/${addressId}/default`, { method: 'PATCH' });
         const data = await response.json();
 
-        if (data.success) {
+        if (data.success) { 
             Swal.fire({
                 toast: true,
                 position: 'top-end',

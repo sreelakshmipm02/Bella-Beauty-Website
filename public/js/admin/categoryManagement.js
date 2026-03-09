@@ -50,7 +50,7 @@ async function softDeleteCategory(categoryId) {
 
     if (result.isConfirmed) {
         try {
-            const response = await fetch(`/admin/category/toggle-status/${categoryId}`, {
+            const response = await fetch(`/admin/category/${categoryId}/status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' }
             });
@@ -260,7 +260,7 @@ async function submitNewAttribute(e) {
     const dataObj = Object.fromEntries(formData.entries());
 
     try {
-        const response = await fetch('/admin/attributes/add', {
+        const response = await fetch('/admin/attributes', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataObj)
@@ -424,7 +424,7 @@ async function submitEditAttributeForm(e) {
     const dataObj = Object.fromEntries(formData.entries());
 
     try {
-        const response = await fetch(`/admin/attributes/edit/${attributeId}`, {
+        const response = await fetch(`/admin/attributes/${attributeId}`, {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(dataObj)
@@ -698,7 +698,7 @@ async function submitEditCategoryForm(e) {
     }
 
     try {
-        const response = await fetch(`/admin/category/edit/${categoryId}`, {
+        const response = await fetch(`/admin/category/${categoryId}`, {
             method: 'PUT',
             body: formData
         });

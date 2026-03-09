@@ -32,80 +32,75 @@ import { googleAuthCallback } from "../controllers/user/authController.js";
 import { preventCache, checkUserSession, isGuest } from "../middlewares/authMiddleware.js";
 import { uploadUser } from "../middlewares/upload.js";
 
-
 const router = express.Router();
 
-//----------------------------------------------------------
-// Index/Home page
+// ==========================================
+// Public Web Routes
+// ==========================================
 router.get("/", preventCache, homePage);
 
-//----------------------------------------------------------
-// Signup page
+// Signup & OTP
 router.get("/signup", preventCache, isGuest, signupPage);
-router.post("/send-signup-otp", sendSignupOtpController);
-router.post("/verify-signup-otp", verifySignupOtp);
-router.post("/resend-signup-otp", resendSignupOtp);
+router.post("/signup/otp", sendSignupOtpController);         
+router.post("/signup/otp/verify", verifySignupOtp);          
+router.post("/signup/otp/resend", resendSignupOtp);          
 
-//----------------------------------------------------------
-// Login page
+// Login & Auth
 router.get("/login", preventCache, isGuest, loginPage);
 router.post("/login", loginSubmit);
+router.get("/logout", userLogout);
 
-// Google login
-router.get("/auth/google",
-    passport.authenticate("google", { scope: ["profile", "email"] })
-);
+// Google OAuth
+router.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
+router.get("/auth/google/callback", passport.authenticate("google", { failureRedirect: "/login" }), googleAuthCallback);
 
-// Google callback
-router.get(
-  "/auth/google/callback",
-  passport.authenticate("google", { failureRedirect: "/login" }),
-  googleAuthCallback
-);
-
-//----------------------------------------------------------
-//user account
-router.get('/account', checkUserSession, preventCache, userAccount);
-// 1. Update Profile (Text + Image)
-router.put('/user/update-profile', checkUserSession, uploadUser.single('profileImage'), updateProfile);
-
-// 2. Send OTP for Email Change
-router.post('/user/update-email-otp', checkUserSession, sendUpdateEmailOtp);
-
-// 3. Verify OTP and Finalize Email Change
-router.post('/user/verify-email-update', checkUserSession, verifyEmailUpdate);
-
-//----------------------------------------------------------
-//user address
-router.get('/address',checkUserSession, preventCache,addressPage );
-//Add a new address
-router.post('/address/add', checkUserSession, addAddress);
-//fetch single address
-router.get('/address/:addressId', checkUserSession, getSingleAddress);
-//Edit an existing address
-router.put('/address/edit/:addressId', checkUserSession, editAddress);
-//Delete an address
-router.delete('/address/delete/:addressId', checkUserSession, adressDelete);
-//Set address as default
-router.patch('/address/set-default/:addressId', checkUserSession, setAsDefault);
-
-//----------------------------------------------------------
-// user password management
-router.get('/password', checkUserSession, preventCache, passwordPage);
-router.put('/password/update', checkUserSession, updatePassword);
-router.post('/password/forgot-loggedin', checkUserSession, forgotPasswordLoggedIn); 
-
-//----------------------------------------------------------
-// Logout Route
-router.get('/logout', userLogout);
-
-//----------------------------------------------------------
-// Forgot Password
+// Public Password Reset
 router.get("/forgot-password", preventCache, forgotPasswordPage);
 router.post("/forgot-password", forgotPasswordSubmit);
-
-// Reset Password
 router.get("/reset-password/:token", preventCache, resetPasswordPage);
 router.post("/reset-password/:token", resetPasswordSubmit);
+
+// ==========================================
+// Protected Account & Profile Routes
+// ==========================================
+router.get('/account', checkUserSession, preventCache, userAccount);
+
+// RESTful: PUT /profile updates the user's profile resource
+router.put('/profile', checkUserSession, uploadUser.single('profileImage'), updateProfile);
+
+// Email update flow
+router.post('/email/otp', checkUserSession, sendUpdateEmailOtp);
+router.put('/email', checkUserSession, verifyEmailUpdate);
+
+// ==========================================
+// RESTful Address Management Routes
+// ==========================================
+router.get('/address', checkUserSession, preventCache, addressPage);
+
+// Create new address
+router.post('/address', checkUserSession, addAddress);
+
+// Get single address (AJAX)
+router.get('/address/:addressId', checkUserSession, getSingleAddress);
+
+// Update entire address
+router.put('/address/:addressId', checkUserSession, editAddress);
+
+// Delete address
+router.delete('/address/:addressId', checkUserSession, adressDelete);
+
+// Update specific address property (Set Default)
+router.patch('/address/:addressId/default', checkUserSession, setAsDefault);
+
+// ==========================================
+// Protected Password Management
+// ==========================================
+router.get('/password', checkUserSession, preventCache, passwordPage);
+
+// Update password
+router.put('/password', checkUserSession, updatePassword);
+
+// Trigger password reset while logged in
+router.post('/password/forgot', checkUserSession, forgotPasswordLoggedIn);
 
 export default router;

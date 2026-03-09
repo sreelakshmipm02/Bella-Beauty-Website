@@ -12,7 +12,7 @@ async function updateStatus(userId) {
         });
 
         if (result.isConfirmed) {
-            const response = await fetch(`/admin/user/toggle-status/${userId}`, {
+            const response = await fetch(`/admin/user/${userId}/status`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json'

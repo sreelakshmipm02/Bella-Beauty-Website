@@ -35,7 +35,7 @@ async function handlePasswordUpdate(e) {
         btn.innerText = "Updating...";
         btn.disabled = true;
 
-        const res = await fetch('/password/update', {
+        const res = await fetch('/password', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ currentPassword: currentPass, newPassword: newPass })
@@ -90,7 +90,7 @@ async function handleForgotCurrentPassword() {
                 didOpen: () => { Swal.showLoading(); }
             });
 
-            const res = await fetch('/password/forgot-loggedin', { method: 'POST' });
+            const res = await fetch('/password/forgot', { method: 'POST' });
             const data = await res.json();
 
             if (data.success) {

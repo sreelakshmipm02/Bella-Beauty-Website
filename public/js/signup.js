@@ -43,7 +43,7 @@ document.addEventListener("DOMContentLoaded", () => {
             try {
                 showLoading();
 
-                const res = await fetch("/send-signup-otp", {
+                const res = await fetch("/signup/otp", {
                     method: "POST",
                     headers: { "Content-Type": "application/json" },
                     body: JSON.stringify(data)
@@ -118,7 +118,7 @@ async function verifyOtp() {
         verifyBtn.innerText = "Verifying...";
         verifyBtn.disabled = true;
 
-        const res = await fetch("/verify-signup-otp", {
+        const res = await fetch("/signup/otp/verify", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email, otp })
@@ -275,7 +275,7 @@ async function resendOtp() {
     try {
         showLoading();
         // Change the URL to a specific resend endpoint
-        const res = await fetch("/resend-signup-otp", {
+        const res = await fetch("/signup/otp/resend", {
             method: "POST",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({ email }) // ONLY send the email

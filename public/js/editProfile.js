@@ -48,7 +48,7 @@ async function sendUpdateOtp() {
     btn.innerText = "Sending...";
 
     try {
-        const res = await fetch('/user/update-email-otp', {
+        const res = await fetch('/email/otp', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ newEmail })
@@ -77,7 +77,7 @@ async function verifyEmailUpdate() {
 
     const newEmail = document.getElementById('editEmail').value;
 
-    const res = await fetch('/user/verify-email-update', {
+    const res = await fetch('/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newEmail, otp })
@@ -149,7 +149,7 @@ async function handleProfileUpdate(e) {
     try {
         showLoading();
 
-        const res = await fetch('/user/update-profile', {
+        const res = await fetch('/user/profile', {
             method: 'PUT',
             body: formData
         });
