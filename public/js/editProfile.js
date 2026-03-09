@@ -78,7 +78,7 @@ async function verifyEmailUpdate() {
     const newEmail = document.getElementById('editEmail').value;
 
     const res = await fetch('/email', {
-        method: 'POST',
+        method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ newEmail, otp })
     });
@@ -149,7 +149,7 @@ async function handleProfileUpdate(e) {
     try {
         showLoading();
 
-        const res = await fetch('/user/profile', {
+        const res = await fetch('/profile', {
             method: 'PUT',
             body: formData
         });
