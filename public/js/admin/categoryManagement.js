@@ -80,6 +80,36 @@ async function softDeleteCategory(categoryId) {
 // Functions for Creating, Editing, Deleting, and Searching Attributes
 // ==========================================
 
+// --- Form Validation Helpers ---
+function validateCategoryInput(name, description, imageFile) {
+    if (!name || name.trim().length < 3) return "Category name must be at least 3 characters long.";
+    if (/[^a-zA-Z0-9\s\-_&]/.test(name)) return "Category name contains invalid special characters.";
+    // UPDATED: Only validate the description if the admin actually typed something in it
+    if (description && description.trim().length > 0 && description.trim().length < 10) {
+        return "If you provide a description, it must be at least 10 characters long.";
+    }
+    if (imageFile && imageFile.name) {
+        const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+        if (!validTypes.includes(imageFile.type)) return "Please upload a valid image file (JPEG, PNG, WEBP).";
+        if (imageFile.size > 5 * 1024 * 1024) return "Image size must be less than 5MB.";
+    }
+    return null;
+}
+
+function validateAttributeInput(label, internalName, dataType, possibleValues) {
+    if (!label || label.trim().length < 2) return "Display label must be at least 2 characters long.";
+
+    // NEW: Check if the internal name generated successfully
+    if (!internalName || internalName.trim().length === 0) {
+        return "Display label must contain at least one letter or number to generate a valid internal name.";
+    }
+
+    if ((dataType === 'enum' || dataType === 'array') && (!possibleValues || !possibleValues.trim())) {
+        return "Possible values are required for Dropdown and Multiple Select data types.";
+    }
+    return null;
+}
+
 // --- Search Attributes (Add Category Modal) ---
 function filterCategoryAttributes() {
     const input = document.getElementById('attributeSearchInput');
@@ -130,7 +160,6 @@ async function deleteGlobalAttribute(attributeId, buttonElement) {
             const data = await response.json();
 
             if (data.success) {
-                // Remove item from HTML list visually
                 const listItem = buttonElement.closest('.attribute-list-item');
                 if (listItem) listItem.remove();
 
@@ -139,9 +168,6 @@ async function deleteGlobalAttribute(attributeId, buttonElement) {
                     title: 'Attribute deleted successfully',
                     showConfirmButton: false, timer: 2000
                 });
-
-                // Optional: Reload page to ensure all lists are completely synced
-                // setTimeout(() => window.location.reload(), 2000); 
             } else {
                 Swal.fire('Error', data.message, 'error');
             }
@@ -211,6 +237,21 @@ async function submitNewAttribute(e) {
     const errorDiv = document.getElementById('createAttrError');
     const errorText = document.getElementById('createAttrErrorText');
 
+    // --- VALIDATION LOGIC ---
+    const label = form.displayLabel.value;
+    const internalName = form.internalName.value; // Grab the internal name
+    const dataType = form.dataType.value;
+    const possibleValues = form.possibleValues ? form.possibleValues.value : '';
+
+    // Pass internalName into the validator
+    const validationError = validateAttributeInput(label, internalName, dataType, possibleValues);
+    if (validationError) {
+        errorText.textContent = validationError;
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    // --- END VALIDATION LOGIC ---
+
     btn.disabled = true;
     btn.innerHTML = 'Saving...';
     errorDiv.classList.add('hidden');
@@ -229,7 +270,6 @@ async function submitNewAttribute(e) {
         if (data.success && data.attribute) {
             closeCreateAttributeModal();
 
-            // Create HTML template for the new list item
             const newCheckboxHTML = `
                 <div class="attribute-list-item flex items-center justify-between p-2 hover:bg-white dark:hover:bg-slate-800 rounded-md transition-colors border border-transparent hover:border-slate-200 dark:hover:border-slate-600 group">
                     <label class="flex items-center cursor-pointer flex-grow">
@@ -250,7 +290,6 @@ async function submitNewAttribute(e) {
                 </div>
             `;
 
-            // Inject into Add Category list
             const addContainer = document.getElementById('attributeCheckboxList');
             if (addContainer) {
                 const emptyMsg = document.getElementById('emptyAttributeMsg');
@@ -258,7 +297,6 @@ async function submitNewAttribute(e) {
                 addContainer.insertAdjacentHTML('afterbegin', newCheckboxHTML);
             }
 
-            // Inject into Edit Category list
             const editContainer = document.getElementById('editAttributeCheckboxList');
             if (editContainer) {
                 editContainer.insertAdjacentHTML('afterbegin', newCheckboxHTML);
@@ -360,9 +398,27 @@ async function submitEditAttributeForm(e) {
     const form = e.target;
     const attributeId = document.getElementById('editAttrId').value;
     const btn = document.getElementById('updateAttrBtn');
+    const errorDiv = document.getElementById('editAttrError');
+    const errorText = document.getElementById('editAttrErrorText');
+
+    // --- VALIDATION LOGIC ---
+    const label = form.displayLabel.value;
+    const internalName = form.internalName.value; // Grab the internal name
+    const dataType = form.dataType.value;
+    const possibleValues = form.possibleValues ? form.possibleValues.value : '';
+
+    // Pass internalName into the validator
+    const validationError = validateAttributeInput(label, internalName, dataType, possibleValues);
+    if (validationError) {
+        errorText.textContent = validationError;
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    // --- END VALIDATION LOGIC ---
 
     btn.disabled = true;
     btn.innerHTML = 'Updating...';
+    errorDiv.classList.add('hidden');
 
     const formData = new FormData(form);
     const dataObj = Object.fromEntries(formData.entries());
@@ -377,7 +433,6 @@ async function submitEditAttributeForm(e) {
 
         if (data.success) {
             closeEditAttributeModal();
-            // Reload page to ensure all labels refresh properly across the UI
             Swal.fire({
                 toast: true, position: 'top-end', icon: 'success',
                 title: 'Attribute Updated!',
@@ -395,7 +450,6 @@ async function submitEditAttributeForm(e) {
         btn.innerHTML = 'Update Attribute';
     }
 }
-
 
 // ==========================================
 // 4. Add Category Logic
@@ -426,7 +480,6 @@ function closeAddCategoryModal() {
         addModal.classList.add('hidden');
         document.getElementById('addCategoryForm').reset();
 
-        // Uncheck all attributes to reset state
         const checkboxes = document.querySelectorAll('#attributeCheckboxList input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
 
@@ -463,6 +516,19 @@ async function submitCategoryForm(e) {
     const submitBtn = document.getElementById('saveCategoryBtn');
     const errorDiv = document.getElementById('addCategoryError');
     const errorText = document.getElementById('addCategoryErrorText');
+
+    // --- VALIDATION LOGIC ---
+    const name = form.name.value;
+    const description = form.description.value;
+    const imageFile = form.categoryImage.files[0];
+
+    const validationError = validateCategoryInput(name, description, imageFile);
+    if (validationError) {
+        errorText.textContent = validationError;
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    // --- END VALIDATION LOGIC ---
 
     submitBtn.disabled = true;
     submitBtn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px] mr-2">progress_activity</span> Saving...';
@@ -512,26 +578,22 @@ async function openEditCategoryModal(categoryId) {
         if (data.success) {
             const cat = data.category;
 
-            // Populate text inputs
             document.getElementById('editCategoryId').value = cat._id;
             document.getElementById('editCategoryName').value = cat.name;
             document.getElementById('editCategoryDescription').value = cat.description;
 
-            // Populate Status Checkbox (ensuring element exists)
             const statusCb = document.getElementById('editStatusCheckbox');
-            if(statusCb) {
+            if (statusCb) {
                 statusCb.checked = (cat.status === 'active');
             }
 
-            // Populate Image preview
             const imgPreview = document.getElementById('editImagePreview');
             const placeholder = document.getElementById('editUploadPlaceholder');
 
             if (cat.categoryImage) {
-                // Ensure Cloudinary vs Local path logic is robust
                 let imgPath = '';
                 if (cat.categoryImage.startsWith('http')) {
-                    imgPath = cat.categoryImage; 
+                    imgPath = cat.categoryImage;
                 } else {
                     let cleanPath = cat.categoryImage.replace(/\\/g, '/');
                     if (cleanPath.startsWith('public/')) {
@@ -549,13 +611,11 @@ async function openEditCategoryModal(categoryId) {
                 placeholder.classList.remove('hidden');
             }
 
-            // Check applied attributes
             const checkboxes = document.querySelectorAll('#editAttributeCheckboxList input[type="checkbox"]');
             checkboxes.forEach(cb => {
                 cb.checked = cat.categoryAttributes.includes(cb.value);
             });
 
-            // Open Modal
             modal.classList.remove('hidden');
             setTimeout(() => {
                 backdrop.classList.remove('opacity-0');
@@ -607,14 +667,29 @@ async function submitEditCategoryForm(e) {
     e.preventDefault();
     const form = e.target;
     const btn = document.getElementById('updateCategoryBtn');
+    const errorDiv = document.getElementById('editCategoryError');
+    const errorText = document.getElementById('editCategoryErrorText');
     const categoryId = document.getElementById('editCategoryId').value;
+
+    // --- VALIDATION LOGIC ---
+    const name = form.name.value;
+    const description = form.description.value;
+    const imageFile = form.categoryImage.files[0];
+
+    const validationError = validateCategoryInput(name, description, imageFile);
+    if (validationError) {
+        errorText.textContent = validationError;
+        errorDiv.classList.remove('hidden');
+        return;
+    }
+    // --- END VALIDATION LOGIC ---
 
     btn.disabled = true;
     btn.innerHTML = '<span class="material-symbols-outlined animate-spin mr-2">progress_activity</span> Updating...';
+    errorDiv.classList.add('hidden');
 
     const formData = new FormData(form);
-    
-    // Safely verify toggle status
+
     const statusCb = document.getElementById('editStatusCheckbox');
     if (statusCb && !statusCb.checked) {
         formData.set('status', 'inactive');

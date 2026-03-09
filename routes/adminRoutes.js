@@ -20,13 +20,20 @@ import {
     editCategorySubmit
 } from "../controllers/admin/categoryController.js";
 
-import { addAttributeSubmit,getAttributeForEdit,editAttributeSubmit,deleteAttributeSubmit } from "../controllers/admin/attributeController.js";
+import {
+    addAttributeSubmit,
+    getAttributeForEdit,
+    editAttributeSubmit,
+    deleteAttributeSubmit
+} from "../controllers/admin/attributeController.js";
 
-import { 
+import {
     checkAdminSession,
-    preventCache } from "../middlewares/authMiddleware.js";
+    preventCache
+} from "../middlewares/authMiddleware.js";
 
 import { uploadCategory } from "../middlewares/upload.js";
+
 const router = express.Router();
 
 // Get Login Page

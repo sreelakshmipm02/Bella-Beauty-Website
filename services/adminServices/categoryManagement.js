@@ -103,7 +103,17 @@ export const updateCategoryById = async (categoryId, bodyData, fileData) => {
         categoryAttributes = [categoryAttributes];
     }
 
-    // Format the data for the database
+    // 1. Check for duplicates (Case-insensitive AND excluding the current category)
+    const existingCategory = await Category.findOne({ 
+        name: { $regex: new RegExp('^' + name.trim() + '$', 'i') },
+        _id: { $ne: categoryId } // $ne means "Not Equal" to the current ID
+    });
+
+    if (existingCategory) {
+        throw new Error(`A different category named "${name.trim()}" already exists.`);
+    }
+
+    // 2. Format the data for the database
     const updateData = {
         name: name.trim(),
         description: description.trim(),
@@ -111,14 +121,12 @@ export const updateCategoryById = async (categoryId, bodyData, fileData) => {
         categoryAttributes
     };
 
-    // If an image was uploaded via Multer, append the path
-    // Cloudinary Bulletproof Check
+    // 3. Cloudinary Bulletproof Check
     if (fileData) {
-        // Grab secure_url if Cloudinary provides it, otherwise fallback to path
         updateData.categoryImage = fileData.secure_url || fileData.path; 
     }
 
-    // Execute the database update
+    // 4. Execute the database update
     const updatedCategory = await Category.findByIdAndUpdate(categoryId, updateData, { new: true });
     
     if (!updatedCategory) {
