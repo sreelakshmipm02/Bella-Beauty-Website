@@ -7,7 +7,7 @@ import {
     updateCategoryById
 } from "../../services/adminServices/categoryManagement.js";
 
-
+import Category from "../../models/category.js";
 // Renders the Category Management listing page.
 export const categoryManagementPage = async (req, res) => {
     try {
@@ -149,6 +149,39 @@ export const editCategorySubmit = async (req, res) => {
         res.status(400).json({ 
             success: false, 
             message: error.message || "An error occurred while updating." 
+        });
+    }
+};
+
+
+
+// ==========================================
+// Fetch populated attributes for a specific category
+// ==========================================
+export const getCategoryAttributes = async (req, res) => {
+    try {
+        // Find the category by ID from the URL parameter
+        // .populate() replaces the ObjectIds in 'categoryAttributes' with the actual full Attribute documents
+        const category = await Category.findById(req.params.id).populate('categoryAttributes');
+        
+        if (!category) {
+            return res.status(404).json({ 
+                success: false, 
+                message: "Category not found" 
+            });
+        }
+        
+        // Send the populated attributes array back to the frontend
+        res.json({ 
+            success: true, 
+            attributes: category.categoryAttributes 
+        });
+        
+    } catch (error) {
+        console.error("Error fetching category attributes:", error);
+        res.status(500).json({ 
+            success: false, 
+            message: "Server error while fetching attributes." 
         });
     }
 };

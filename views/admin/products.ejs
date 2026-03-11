@@ -1,0 +1,197 @@
+<%- include('../partials/adminHeader') %>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-3xl font-display font-bold text-slate-900 dark:text-white mb-1">Product Management</h2>
+        <p class="text-slate-500 dark:text-slate-400 text-sm">Manage your product inventory, pricing, and availability.</p>
+    </div>
+
+    <a href="/admin/products/new"
+        class="inline-flex items-center justify-center px-5 py-2.5 bg-[#e83e8c] text-white font-medium text-sm rounded-lg hover:bg-pink-600 transition-colors shadow-sm">
+        <span class="material-symbols-outlined mr-2 text-[18px]">add</span>
+        Add New Product
+    </a>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+
+    <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col lg:flex-row lg:items-center justify-between gap-4">
+
+        <div class="relative flex-1 max-w-md">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+            
+            <input id="productSearch" type="text" value="<%= locals.searchQuery || '' %>"
+                class="w-full pl-10 pr-10 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#e83e8c]/20 focus:border-[#e83e8c] rounded-lg text-sm transition-all outline-none"
+                placeholder="Search products by name or brand..." />
+
+            <button id="clearSearchBtn" onclick="clearProductSearch()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#e83e8c] flex items-center justify-center <%= locals.searchQuery ? '' : 'hidden' %>"
+                title="Clear Search">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+
+        <div class="flex flex-col sm:flex-row gap-3">
+            <div class="relative min-w-[160px]">
+                <select id="categoryFilter" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm rounded-lg py-2 pl-4 pr-10 focus:ring-2 focus:ring-[#e83e8c]/20 focus:border-[#e83e8c] outline-none appearance-none cursor-pointer">
+                    <option value="all">All Categories</option>
+                    <% categories.forEach(cat => { %>
+                        <option value="<%= cat._id %>" <%= locals.currentCategory === cat._id.toString() ? 'selected' : '' %>>
+                            <%= cat.name %>
+                        </option>
+                    <% }) %>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+            </div>
+
+            <div class="relative min-w-[140px]">
+                <select id="statusFilter" class="w-full bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-sm rounded-lg py-2 pl-4 pr-10 focus:ring-2 focus:ring-[#e83e8c]/20 focus:border-[#e83e8c] outline-none appearance-none cursor-pointer">
+                    <option value="all">All Status</option>
+                    <option value="active" <%= locals.currentStatus === 'active' ? 'selected' : '' %>>Active</option>
+                    <option value="inactive" <%= locals.currentStatus === 'inactive' ? 'selected' : '' %>>Inactive</option>
+                </select>
+                <span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none text-[18px]">expand_more</span>
+            </div>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                    <th class="px-6 py-4">Product Name</th>
+                    <th class="px-6 py-4">Category</th>
+                    <th class="px-6 py-4">Brand</th>
+                    <th class="px-6 py-4">Stock</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4 text-right">Actions</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                
+                <% if (typeof products !== 'undefined' && products.length > 0) { %>
+                    <% products.forEach(product => { %>
+                        
+                        <% 
+                            let stockClass = "text-green-500";
+                            let stockText = "In Stock";
+                            if (product.totalStock === 0) {
+                                stockClass = "text-red-500";
+                                stockText = "Out of Stock";
+                            } else if (product.totalStock < 10) {
+                                stockClass = "text-yellow-500 text-yellow-600";
+                                stockText = "Low Stock";
+                            }
+                        %>
+
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors group">
+                            
+                            <td class="px-6 py-4">
+                                <span class="font-medium text-slate-900 dark:text-white">
+                                    <%= product.name %>
+                                </span>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                                <%= product.categoryDetails ? product.categoryDetails.name : 'N/A' %>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                                <%= product.brand %>
+                            </td>
+                            
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col">
+                                    <span class="font-medium text-slate-900 dark:text-white text-sm"><%= product.totalStock %></span>
+                                    <span class="text-[11px] font-medium <%= stockClass %>"><%= stockText %></span>
+                                </div>
+                            </td>
+                            
+                            <td class="px-6 py-4">
+                                <% if (product.status === 'active') { %>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-medium bg-green-50 text-green-600">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-green-500 mr-1.5"></span> Active
+                                    </span>
+                                <% } else { %>
+                                    <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-medium bg-slate-100 text-slate-500">
+                                        <span class="w-1.5 h-1.5 rounded-full bg-slate-400 mr-1.5"></span> Inactive
+                                    </span>
+                                <% } %>
+                            </td>
+                            
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end space-x-4">
+                                    <a href="/admin/products/<%= product._id %>/edit" 
+                                        class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors" title="Edit">
+                                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    </a>
+
+                                    <button onclick="toggleProductStatus('<%= product._id %>', '<%= product.status %>')"
+                                        class="transition-colors flex items-center justify-center <%= product.status === 'active' ? 'text-green-500 hover:text-green-600' : 'text-slate-400 hover:text-slate-500 dark:text-slate-500 dark:hover:text-slate-400' %>"
+                                        title="<%= product.status === 'active' ? 'Deactivate Product' : 'Activate Product' %>">
+                                        <span class="material-symbols-outlined text-[26px]">
+                                            <%= product.status === 'active' ? 'toggle_on' : 'toggle_off' %>
+                                        </span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                            No products found matching your criteria.
+                        </td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <% if (typeof totalPages !== 'undefined' && totalPages > 0) { %>
+        <div class="p-4 md:p-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+                Showing
+                <span class="font-medium"><%= (currentPage - 1) * limit + 1 %></span> to
+                <span class="font-medium"><%= Math.min(currentPage * limit, totalProducts) %></span> of
+                <span class="font-medium"><%= totalProducts %></span> products
+            </p>
+
+            <div class="flex items-center space-x-1">
+                <% if (currentPage > 1) { %>
+                    <a href="?page=<%= currentPage - 1 %>&status=<%= currentStatus %>&category=<%= currentCategory %>&search=<%= searchQuery %>"
+                        class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                    </a>
+                <% } else { %>
+                    <button disabled class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-300 cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                    </button>
+                <% } %>
+
+                <% for(let i=1; i <= totalPages; i++) { %>
+                    <a href="?page=<%= i %>&status=<%= currentStatus %>&category=<%= currentCategory %>&search=<%= searchQuery %>"
+                        class="flex items-center justify-center w-8 h-8 rounded text-sm transition-colors <%= i === currentPage ? 'bg-[#e83e8c] text-white font-medium border border-[#e83e8c]' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>">
+                        <%= i %>
+                    </a>
+                <% } %>
+
+                <% if (currentPage < totalPages) { %>
+                    <a href="?page=<%= currentPage + 1 %>&status=<%= currentStatus %>&category=<%= currentCategory %>&search=<%= searchQuery %>"
+                        class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </a>
+                <% } else { %>
+                    <button disabled class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-300 cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </button>
+                <% } %>
+            </div>
+        </div>
+    <% } %>
+</div>
+
+<script src="/js/admin/productListing.js"></script>
+<%- include("../partials/adminFooter") %>

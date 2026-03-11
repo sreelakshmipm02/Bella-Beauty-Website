@@ -17,7 +17,8 @@ import {
     softDeleteCategory,
     addCategorySubmit,
     getCategoryById,
-    editCategorySubmit
+    editCategorySubmit,
+    getCategoryAttributes
 } from "../controllers/admin/categoryController.js";
 
 import { 
@@ -27,12 +28,14 @@ import {
     deleteAttributeSubmit 
 } from "../controllers/admin/attributeController.js";
 
+import { getProductsPage, getAddProductPage, createProduct, toggleProductStatus } from "../controllers/admin/productController.js";
+
 import { 
     checkAdminSession,
     preventCache 
 } from "../middlewares/authMiddleware.js";
 
-import { uploadCategory } from "../middlewares/upload.js";
+import { uploadCategory,uploadProduct } from "../middlewares/upload.js";
 
 const router = express.Router();
 
@@ -91,5 +94,22 @@ router.put('/attributes/:id', checkAdminSession, editAttributeSubmit);
 
 // Delete attribute
 router.delete('/attributes/:id', checkAdminSession, deleteAttributeSubmit);
+
+// ==========================================
+// Product Management Routes (RESTful)
+// ==========================================
+
+// Product Management Listing
+router.get('/products', checkAdminSession, preventCache, getProductsPage);
+// Add Product Page
+router.get('/products/new', checkAdminSession, preventCache, getAddProductPage);
+// RESTful: Fetch dynamic attributes when category is selected
+router.get('/category/:id/attributes', checkAdminSession, getCategoryAttributes);
+
+// NEW: Catch the POST request. 
+// We use `.any()` because the field names are dynamic (variant_images_0, variant_images_1, etc.)
+router.post('/products', checkAdminSession, uploadProduct.any(), createProduct);
+
+router.patch('/products/:id/status', checkAdminSession, toggleProductStatus);
 
 export default router;

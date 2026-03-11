@@ -33,5 +33,20 @@ const createStorage = (folderName) => new CloudinaryStorage({
     }
 });
 
+// NEW: Create a specific storage for Products without aggressive pre-cropping
+// (Because we will crop them perfectly on the frontend using Cropper.js before uploading)
+const createProductStorage = () => new CloudinaryStorage({
+    cloudinary: cloudinary,
+    params: {
+        folder: "bella-beauty-products",
+        allowed_formats: ["jpg", "jpeg", "png", "webp"],
+        // Keep the quality high, but prevent massive file sizes
+        transformation: [{ width: 1200, crop: "limit" }] 
+    }
+});
+
 export const uploadUser = multer({ storage: createStorage("bella-beauty-users") });
 export const uploadCategory = multer({ storage: createStorage("bella-beauty-categories") });
+
+// NEW: Export the product uploader
+export const uploadProduct = multer({ storage: createProductStorage() });

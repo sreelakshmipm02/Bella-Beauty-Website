@@ -1,0 +1,206 @@
+<%- include('../partials/adminHeader') %>
+
+    <main class="max-w-7xl mx-auto pb-12 w-full p-4">
+
+        <div class="mb-8 flex items-center justify-between gap-4 flex-wrap">
+            <div>
+                <div class="flex items-center gap-2 text-sm text-slate-500 mb-1">
+                    <a href="/admin/products" class="hover:text-primary transition-colors">Products</a>
+                    <span class="material-icons-outlined text-xs">chevron_right</span>
+                    <span class="text-slate-900 dark:text-white font-medium">Add New Product</span>
+                </div>
+                <h2 class="text-3xl font-display font-bold text-slate-900 dark:text-white">Add New Product</h2>
+            </div>
+            <div class="flex gap-3">
+                <a href="/admin/products"
+                    class="px-5 py-2.5 bg-slate-100 text-slate-700 rounded-lg hover:bg-slate-200 font-medium transition-colors text-sm">
+                    Cancel
+                </a>
+                <button type="submit" form="addProductMainForm" id="saveFinalProductBtn"
+                    class="bg-primary hover:bg-pink-700 text-white px-5 py-2.5 rounded-lg font-medium flex items-center gap-2 transition-colors shadow-lg shadow-primary/20 whitespace-nowrap">
+                    <span class="material-icons-outlined text-[20px]">save</span> Save Product
+                </button>
+            </div>
+        </div>
+
+        <form id="addProductMainForm" class="grid grid-cols-1 lg:grid-cols-3 gap-6" novalidate>
+
+            <div class="lg:col-span-2 space-y-6">
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6">
+                    <h3 class="text-lg font-semibold text-slate-900 dark:text-white mb-6">Product Details</h3>
+
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Product
+                                Name *</label>
+                            <input type="text" id="productName" name="name" required placeholder="Enter product name"
+                                class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Brand
+                                *</label>
+                            <input type="text" id="productBrand" name="brand" required placeholder="Enter brand"
+                                value="Aura"
+                                class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors">
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category
+                                *</label>
+                            <select id="productCategory" name="categoryId" required
+                                class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors">
+                                <option value="" disabled selected>Select category</option>
+                                <% categories.forEach(cat=> { %>
+                                    <option value="<%= cat._id %>">
+                                        <%= cat.name %>
+                                    </option>
+                                    <% }) %>
+                            </select>
+                        </div>
+
+                        <div class="md:col-span-2">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Description
+                            </label>
+                            <textarea id="productDescription" name="description" rows="4" required
+                                placeholder="Enter detailed description..."
+                                class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors"></textarea>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="space-y-6">
+                <div
+                    class="bg-white dark:bg-slate-900 rounded-xl shadow-sm border border-slate-200 dark:border-slate-800 p-6 flex flex-col h-full">
+                    <div class="flex items-center justify-between mb-6">
+                        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Product Variants</h3>
+                        <button type="button" id="openVariantModalBtn"
+                            class="bg-primary hover:bg-pink-700 text-white px-4 py-2 rounded-lg font-medium flex items-center gap-1 transition-colors text-xs whitespace-nowrap shadow-md shadow-primary/20">
+                            <span class="material-icons-outlined text-sm">add</span> Add New Variant
+                        </button>
+                    </div>
+
+                    <div id="queuedVariantsList" class="flex-grow space-y-3">
+                        <div id="emptyVariantsMsg"
+                            class="h-64 border-2 border-dashed border-slate-200 dark:border-slate-700 rounded-xl flex flex-col items-center justify-center text-center p-6 text-slate-500 bg-slate-50 dark:bg-slate-800/50">
+                            <span class="material-icons-outlined text-4xl mb-3 text-slate-300">layers</span>
+                            <p class="font-medium">No Variants Added</p>
+                            <p class="text-xs mt-1">Click "Add New Variant" above to set up sizes, stock, and images.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </main>
+
+    <div id="addVariantModal" class="fixed inset-0 z-[100] hidden">
+        <div class="absolute inset-0 bg-slate-900/90 backdrop-blur-sm transition-opacity opacity-0"
+            id="variantModalBackdrop"></div>
+
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden flex flex-col max-h-[90vh] transition-all transform scale-95 opacity-0"
+                id="variantModalPanel">
+
+                <div
+                    class="px-6 py-4 border-b border-slate-200 dark:border-slate-800 flex justify-between items-center bg-slate-50 dark:bg-slate-800/50">
+                    <h3 class="text-lg font-bold text-slate-900 dark:text-white">Add New Variant</h3>
+                    <button type="button"
+                        class="closeVariantModal text-slate-400 hover:text-slate-600 dark:hover:text-slate-300">
+                        <span class="material-icons-outlined">close</span>
+                    </button>
+                </div>
+
+                <form id="tempVariantForm" class="p-6 overflow-y-auto space-y-6" novalidate>
+
+                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">SKU
+                                (Auto-Generated) *</label>
+                            <input type="text" name="sku" readonly placeholder="Will generate automatically..."
+                                class="w-full bg-slate-100 border border-slate-300 text-slate-500 rounded-lg p-2.5 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-400 cursor-not-allowed font-mono text-sm uppercase">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Price (₹)
+                                *</label>
+                            <input type="number" name="price" required min="0" step="0.01" placeholder="0.00"
+                                class="w-full bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-primary p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Stock
+                                Quantity *</label>
+                            <input type="number" name="stock" required min="0" value="0"
+                                class="w-full bg-white border border-slate-300 text-slate-900 rounded-lg focus:ring-primary p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors">
+                        </div>
+                    </div>
+
+                    <div
+                        class="bg-slate-50 dark:bg-slate-800 rounded-xl p-5 border border-slate-200 dark:border-slate-700">
+                        <div class="flex justify-between items-center mb-4">
+                            <label class="block text-sm font-medium text-slate-700 dark:text-slate-300">Variant Images
+                                *</label>
+                            <span
+                                class="text-xs bg-pink-100 dark:bg-pink-900/30 text-primary px-2.5 py-1 rounded-md font-medium">Minimum
+                                3 Required</span>
+                        </div>
+
+                        <input type="file" id="multiImageInput" accept="image/jpeg, image/png, image/webp"
+                            class="hidden">
+
+                        <div id="croppedPreviews" class="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-4">
+                            <div id="addImageBtn"
+                                class="aspect-square border-2 border-dashed border-slate-300 dark:border-slate-600 rounded-lg flex flex-col items-center justify-center text-slate-400 hover:border-primary hover:text-primary cursor-pointer transition-colors bg-white dark:bg-slate-900 group">
+                                <span
+                                    class="material-icons-outlined text-3xl group-hover:transform group-hover:scale-110 transition-transform">add_a_photo</span>
+                                <span class="text-xs mt-2 font-medium">Add Photo</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="border-t border-slate-200 dark:border-slate-800 pt-6">
+                        <h4
+                            class="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-4 tracking-wide uppercase">
+                            Dynamic Attributes</h4>
+                        <div id="dynamicAttributesGrid" class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        </div>
+                    </div>
+                </form>
+
+                <div
+                    class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3 bg-slate-50 dark:bg-slate-800/50">
+                    <button type="button"
+                        class="closeVariantModal px-4 py-2 text-slate-700 bg-white border border-slate-300 rounded-lg hover:bg-slate-100 font-medium transition-colors text-sm">
+                        Cancel
+                    </button>
+                    <button type="button" id="saveVariantToQueueBtn"
+                        class="px-4 py-2 bg-primary text-white font-medium rounded-lg hover:bg-pink-700 transition-colors shadow-md shadow-primary/20 text-sm">
+                        Save Variant
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="cropperModal" class="fixed inset-0 z-[110] hidden">
+        <div class="absolute inset-0 bg-slate-900/95 backdrop-blur-sm"></div>
+        <div class="absolute inset-0 flex items-center justify-center p-4">
+            <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+                <div class="p-6 flex items-center justify-center bg-slate-100 dark:bg-slate-950 min-h-[400px]">
+                    <img id="imageToCrop" src="" alt="Cropping canvas" class="max-w-full block">
+                </div>
+                <div class="px-6 py-4 border-t border-slate-200 dark:border-slate-800 flex justify-end gap-3">
+                    <button type="button" id="cancelCropBtn"
+                        class="px-4 py-2 text-slate-700 bg-slate-100 rounded-lg text-sm font-medium">Cancel</button>
+                    <button type="button" id="confirmCropBtn"
+                        class="px-4 py-2 bg-primary text-white font-medium rounded-lg text-sm">Crop & Save</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/js/admin/productManagement.js"></script>
+    </body>
+
+    </html>
