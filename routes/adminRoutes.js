@@ -28,7 +28,14 @@ import {
     deleteAttributeSubmit 
 } from "../controllers/admin/attributeController.js";
 
-import { getProductsPage, getAddProductPage, createProduct, toggleProductStatus } from "../controllers/admin/productController.js";
+import { 
+    getProductsPage, 
+    getAddProductPage, 
+    createProduct, 
+    toggleProductStatus,
+    getEditProductPage,
+    updateProduct
+ } from "../controllers/admin/productController.js";
 
 import { 
     checkAdminSession,
@@ -112,4 +119,7 @@ router.post('/products', checkAdminSession, uploadProduct.any(), createProduct);
 
 router.patch('/products/:id/status', checkAdminSession, toggleProductStatus);
 
+router.get('/products/:id/edit', checkAdminSession, preventCache, getEditProductPage);
+
+router.put('/products/:id', checkAdminSession, uploadProduct.any(), updateProduct);
 export default router;

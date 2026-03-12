@@ -396,10 +396,10 @@ function toggleEditAttrValuesInput() {
 async function submitEditAttributeForm(e) {
     e.preventDefault();
     const form = e.target;
-    const attributeId = document.getElementById('editAttrId').value;
     const btn = document.getElementById('updateAttrBtn');
     const errorDiv = document.getElementById('editAttrError');
     const errorText = document.getElementById('editAttrErrorText');
+    const attributeId = document.getElementById('editAttrId').value;
 
     // --- VALIDATION LOGIC ---
     const label = form.displayLabel.value;
@@ -433,11 +433,27 @@ async function submitEditAttributeForm(e) {
 
         if (data.success) {
             closeEditAttributeModal();
+            
+            // NEW: Dynamically update the attribute name in the checkbox lists 
+            // without reloading the page so the Edit Category modal stays open.
+            const checkboxes = document.querySelectorAll(`input[value="${attributeId}"]`);
+            checkboxes.forEach(cb => {
+                const labelContainer = cb.closest('label');
+                if (labelContainer) {
+                    const nameSpan = labelContainer.querySelector('.attr-display-name');
+                    if (nameSpan) {
+                        nameSpan.textContent = label; // Updates with the newly typed label
+                    }
+                }
+            });
+
             Swal.fire({
                 toast: true, position: 'top-end', icon: 'success',
                 title: 'Attribute Updated!',
                 showConfirmButton: false, timer: 1500
-            }).then(() => window.location.reload());
+            }); 
+            // REMOVED: .then(() => window.location.reload());
+
         } else {
             document.getElementById('editAttrErrorText').textContent = data.message;
             document.getElementById('editAttrError').classList.remove('hidden');
@@ -538,7 +554,7 @@ async function submitCategoryForm(e) {
     if (!document.getElementById('statusCheckbox').checked) formData.set('status', 'inactive');
 
     try {
-        const response = await fetch('/admin/category/add', {
+        const response = await fetch('/admin/category', {
             method: 'POST',
             body: formData
         });

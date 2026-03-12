@@ -44,43 +44,46 @@ async function updateStatus(userId) {
         Swal.fire('Error!', 'Something went wrong with the server.', 'error');
     }
 }
-
 // Searchbar elements
 const searchInput = document.getElementById('userSearch');
 const statusFilter = document.getElementById('statusFilter');
-const clearSearchBtn = document.getElementById('clearSearchBtn'); // <-- Add this
-
-// --- NEW: Watch for typing to show/hide the X button ---
-searchInput.addEventListener('input', function() {
-    if (this.value.trim().length > 0) {
-        clearSearchBtn.classList.remove('hidden');
-    } else {
-        clearSearchBtn.classList.add('hidden');
-    }
-});
+const clearSearchBtn = document.getElementById('clearSearchBtn');
 
 function applyFilters() {
-    const searchValue = searchInput.value.trim();
-    const statusValue = statusFilter.value;
+    // Safety check in case they are missing
+    const searchValue = searchInput ? searchInput.value.trim() : '';
+    const statusValue = statusFilter ? statusFilter.value : '';
     window.location.href = `/admin/user?status=${statusValue}&search=${searchValue}`;
 }
 
-// Trigger search on Enter key
-searchInput.addEventListener('keypress', (e) => {
-    if (e.key === 'Enter') applyFilters();
-});
+// --- SAFE LISTENERS ---
+// Only attach these if the searchInput actually exists on the screen!
+if (searchInput) {
+    // Watch for typing to show/hide the X button
+    searchInput.addEventListener('input', function() {
+        if (clearSearchBtn) { // Double check the button exists too
+            if (this.value.trim().length > 0) {
+                clearSearchBtn.classList.remove('hidden');
+            } else {
+                clearSearchBtn.classList.add('hidden');
+            }
+        }
+    });
 
-// Update results when status changes
-statusFilter.addEventListener('change', applyFilters);
+    // Trigger search on Enter key
+    searchInput.addEventListener('keypress', (e) => {
+        if (e.key === 'Enter') applyFilters();
+    });
+}
+
+// Only attach if the status filter dropdown exists!
+if (statusFilter) {
+    statusFilter.addEventListener('change', applyFilters);
+}
 
 // --- Clear Search Logic ---
 function clearSearch() {
-    // 1. Empty the search input
-    searchInput.value = '';
-    
-    // 2. Hide the button again
-    clearSearchBtn.classList.add('hidden');
-
-    // 3. Trigger the existing applyFilters function to reload the page
+    if (searchInput) searchInput.value = '';
+    if (clearSearchBtn) clearSearchBtn.classList.add('hidden');
     applyFilters();
 }

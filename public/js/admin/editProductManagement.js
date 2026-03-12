@@ -1,84 +1,135 @@
 // ==============================================================================
-// PRODUCT MANAGEMENT JS (RESTful API)
-// Integrates Complex Multi-Upload, Cropping, and Dynamic Attributes
+// EDIT PRODUCT MANAGEMENT JS (RESTful API) - WITH FULL SYNCED UI & CHECKBOXES
 // ==============================================================================
 
-// --- GLOBAL STATE QUEUES ---
-let queuedVariantsArray = [];
-let croppedImagesArray = [];
-let variantCounter = 0;
-let editingVariantIndex = -1; // -1 means we are creating a NEW variant
+// --- 1. GRAB SERVER DATA FROM HIDDEN HTML ELEMENTS ---
+const serverProductIdEl = document.getElementById('serverProductId');
+const serverCategoryIdEl = document.getElementById('serverCategoryId');
+const serverVariantsDataEl = document.getElementById('serverVariantsData');
 
+const PRODUCT_ID = serverProductIdEl ? serverProductIdEl.value : '';
+const CATEGORY_ID = serverCategoryIdEl ? serverCategoryIdEl.value : '';
+
+let queuedVariantsArray = [];
+
+// --- GLOBAL STATE QUEUES ---
+let croppedImagesArray = [];
+let tempOldImages = []; // Old Cloudinary URLs
+let editingVariantIndex = -1; // -1 means NEW variant
 let cropperInstance = null;
+let categoryAttributeCache = {};
+
+// --- INITIALIZE DATA SAFELY ---
+document.addEventListener('DOMContentLoaded', () => {
+    if (serverVariantsDataEl && serverVariantsDataEl.value) {
+        try {
+            queuedVariantsArray = JSON.parse(serverVariantsDataEl.value);
+        } catch (error) {
+            console.error("Failed to parse variants JSON:", error);
+        }
+    }
+    renderVariantQueueUI();
+});
 
 // --- DOM ELEMENTS ---
-const mainForm = document.getElementById('addProductMainForm');
-const categorySelect = document.getElementById('productCategory');
+const mainForm = document.getElementById('editProductMainForm');
 const queuedVariantsList = document.getElementById('queuedVariantsList');
 const emptyVariantsMsg = document.getElementById('emptyVariantsMsg');
-
 const modal = document.getElementById('addVariantModal');
 const backdrop = document.getElementById('variantModalBackdrop');
 const panel = document.getElementById('variantModalPanel');
 const tempVariantForm = document.getElementById('tempVariantForm');
 const dynamicAttributesGrid = document.getElementById('dynamicAttributesGrid');
-
 const multiImageInput = document.getElementById('multiImageInput');
 const addImageBtn = document.getElementById('addImageBtn');
 const croppedPreviews = document.getElementById('croppedPreviews');
-
 const cropperModal = document.getElementById('cropperModal');
 const imageToCrop = document.getElementById('imageToCrop');
 
-let categoryAttributeCache = {};
-
-
 // ==========================================
-// 1. MODAL ANIMATION & OPEN FLOW (RESTFUL AJAX)
+// 1. MODAL OPEN/CLOSE & ATTRIBUTE LOGIC
 // ==========================================
+
+// Click "Add New Variant"
 document.getElementById('openVariantModalBtn').addEventListener('click', async function () {
-    const categoryId = categorySelect.value;
     const nameVal = document.getElementById('productName').value.trim();
     const brandVal = document.getElementById('productBrand').value.trim();
 
-    if (!nameVal || !brandVal || !categoryId) {
-        Swal.fire({
-            icon: 'warning',
-            title: 'Hold on!',
-            text: 'Please enter the Product Name, Brand, and select a Category before adding variants.',
-            confirmButtonColor: '#e83e8c'
-        });
-        return;
+    if (!nameVal || !brandVal) {
+        return Swal.fire({ icon: 'warning', title: 'Hold on!', text: 'Please enter the Product Name and Brand before adding variants.', confirmButtonColor: '#e83e8c' });
     }
 
-    let attributes = [];
-    if (categoryAttributeCache[categoryId]) {
-        attributes = categoryAttributeCache[categoryId];
-    } else {
-        this.innerHTML = '<span class="material-icons-outlined animate-spin mr-1">progress_activity</span> Loading...';
-        this.disabled = true;
+    // CRITICAL FIX: Reset everything for a brand new variant!
+    editingVariantIndex = -1;
+    tempOldImages = [];
+    croppedImagesArray = [];
+    tempVariantForm.reset();
 
+    await loadAndRenderAttributes();
+    generateSmartSKU();
+
+    renderImagePreviews();
+    openVariantModal();
+});
+
+// Click "Edit" on an existing variant
+window.editVariantInQueue = async function (index) {
+    editingVariantIndex = index;
+    const variant = queuedVariantsArray[index];
+
+    await loadAndRenderAttributes();
+
+    tempVariantForm.querySelector('[name="sku"]').value = variant.sku;
+    tempVariantForm.querySelector('[name="price"]').value = variant.price;
+    tempVariantForm.querySelector('[name="stock"]').value = variant.stock;
+
+    // Pre-fill Dynamic Attributes (Smart enough to handle Checkboxes!)
+    if (variant.attributes) {
+        variant.attributes.forEach(attr => {
+            const inputs = tempVariantForm.querySelectorAll(`[name="attr_${attr.attributeId}"]`);
+            if (inputs.length > 0) {
+                if (inputs[0].type === 'checkbox') {
+                    // It's a checkbox array! Split the saved string (e.g. "Red, Blue") and check them
+                    const savedValues = attr.value.split(',').map(v => v.trim());
+                    inputs.forEach(chk => {
+                        if (savedValues.includes(chk.value)) {
+                            chk.checked = true;
+                        }
+                    });
+                } else {
+                    // It's a standard dropdown or text input
+                    inputs[0].value = attr.value;
+                }
+            }
+        });
+    }
+
+    // Load old images and new blobs
+    tempOldImages = [...(variant.images || [])];
+    croppedImagesArray = [...(variant.imageFiles || [])];
+
+    renderImagePreviews();
+    openVariantModal();
+};
+
+async function loadAndRenderAttributes() {
+    let attributes = categoryAttributeCache[CATEGORY_ID];
+    if (!attributes) {
         try {
-            const response = await fetch(`/admin/category/${categoryId}/attributes`);
+            const response = await fetch(`/admin/category/${CATEGORY_ID}/attributes`);
             const data = await response.json();
             if (data.success) {
                 attributes = data.attributes;
-                categoryAttributeCache[categoryId] = attributes;
+                categoryAttributeCache[CATEGORY_ID] = attributes;
             }
         } catch (error) {
             Swal.fire('Error', 'Failed to fetch category attributes.', 'error');
             return;
-        } finally {
-            this.innerHTML = '<span class="material-icons-outlined text-sm">add</span> Add New Variant';
-            this.disabled = false;
         }
     }
-
     renderDynamicAttributes(attributes);
-    openVariantModal();
-});
+}
 
-// Build HTML inputs based on Eraser.io Attribute datatypes
 function renderDynamicAttributes(attributes) {
     dynamicAttributesGrid.innerHTML = '';
 
@@ -91,7 +142,7 @@ function renderDynamicAttributes(attributes) {
         let inputHtml = '';
 
         if (attr.dataType === 'array') {
-            // RENDERS CHECKBOXES FOR MULTIPLE SELECTIONS
+            // Render Checkboxes for MULTIPLE selections
             let checkboxes = attr.possibleValues.map(val => `
                 <label class="inline-flex items-center mr-4 mb-2 cursor-pointer group">
                     <input type="checkbox" name="attr_${attr._id}" value="${val}" class="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 transition-colors">
@@ -99,7 +150,7 @@ function renderDynamicAttributes(attributes) {
                 </label>
             `).join('');
 
-            // Appends explicit "N/A" checkbox at the end
+            // Append explicit "N/A" checkbox at the end
             checkboxes += `
                 <label class="inline-flex items-center mr-4 mb-2 cursor-pointer group">
                     <input type="checkbox" name="attr_${attr._id}" value="N/A" class="w-4 h-4 text-slate-400 bg-white border-slate-300 rounded focus:ring-slate-500 transition-colors">
@@ -113,7 +164,7 @@ function renderDynamicAttributes(attributes) {
                 </div>`;
 
         } else if (attr.dataType === 'enum') {
-            // RENDERS DROPDOWN FOR SINGLE SELECTION
+            // Dropdown for SINGLE selection
             const options = attr.possibleValues.map(val => `<option value="${val}">${val}</option>`).join('');
             const naOption = `<option value="N/A" class="italic text-slate-500">N/A (Not Applicable)</option>`;
             inputHtml = `
@@ -123,7 +174,7 @@ function renderDynamicAttributes(attributes) {
                 </select>
             `;
         } else {
-            // RENDERS STANDARD TEXT/NUMBER INPUTS
+            // Standard Text/Number inputs
             const isNumber = attr.dataType === 'number';
             const placeholderText = isNumber ? `Enter ${attr.displayLabel || attr.name} (Type 0 if N/A)` : `Enter ${attr.displayLabel || attr.name} (Type N/A)`;
             inputHtml = `
@@ -142,13 +193,19 @@ function renderDynamicAttributes(attributes) {
     });
 }
 
-function openVariantModal() {
-    editingVariantIndex = -1; // Reset to 'Add' mode
-    modal.classList.remove('hidden');
-    croppedImagesArray = [];
-    renderImagePreviews();
-    generateSmartSKU();
+function generateSmartSKU() {
+    const skuInput = document.querySelector('#tempVariantForm [name="sku"]');
+    if (!skuInput) return;
+    const brandVal = document.getElementById('productBrand').value.trim();
+    const nameVal = document.getElementById('productName').value.trim();
+    const brandCode = brandVal.length >= 3 ? brandVal.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') : 'XXX';
+    const nameCode = nameVal.length >= 4 ? nameVal.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '') : 'XXXX';
+    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
+    skuInput.value = `${brandCode}-${nameCode}-${randomChars}`;
+}
 
+function openVariantModal() {
+    modal.classList.remove('hidden');
     setTimeout(() => {
         backdrop.classList.replace('opacity-0', 'opacity-100');
         panel.classList.replace('scale-95', 'scale-100');
@@ -156,7 +213,7 @@ function openVariantModal() {
     }, 10);
 }
 
-function closeVariantModal() {
+document.querySelectorAll('.closeVariantModal').forEach(el => el.addEventListener('click', () => {
     backdrop.classList.replace('opacity-100', 'opacity-0');
     panel.classList.replace('scale-100', 'scale-95');
     panel.classList.replace('opacity-100', 'opacity-0');
@@ -165,71 +222,44 @@ function closeVariantModal() {
         tempVariantForm.reset();
         dynamicAttributesGrid.innerHTML = '';
         multiImageInput.value = '';
-        editingVariantIndex = -1; // Clear tracker
+        editingVariantIndex = -1; // CRITICAL: Reset state on close
     }, 300);
-}
-
-document.querySelectorAll('.closeVariantModal').forEach(el => {
-    el.addEventListener('click', closeVariantModal);
-});
-
+}));
 
 // ==========================================
-// 2. MULTI-IMAGE CROPPER FLOW
+// 2. IMAGE CROPPER LOGIC
 // ==========================================
 addImageBtn.addEventListener('click', () => multiImageInput.click());
 
 multiImageInput.addEventListener('change', function (e) {
     const file = e.target.files[0];
     if (!file) return;
-
-    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
-    if (!validTypes.includes(file.type)) {
-        Swal.fire('Error', 'Please upload a valid image file (JPG, PNG, WEBP).', 'error');
-        this.value = '';
-        return;
+    if (!['image/jpeg', 'image/png', 'image/webp'].includes(file.type)) {
+        Swal.fire('Error', 'Please upload a valid image (JPG, PNG, WEBP).', 'error');
+        this.value = ''; return;
     }
-    openCropper(file);
-});
-
-function openCropper(file) {
     const reader = new FileReader();
     reader.onload = (event) => {
         imageToCrop.src = event.target.result;
         cropperModal.classList.remove('hidden');
-
-        cropperInstance = new Cropper(imageToCrop, {
-            aspectRatio: 1,
-            viewMode: 1,
-            autoCropArea: 1,
-            background: false
-        });
+        cropperInstance = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false });
     };
     reader.readAsDataURL(file);
-}
+});
 
-document.getElementById('cancelCropBtn').addEventListener('click', closeCropper);
-
-function closeCropper() {
+document.getElementById('cancelCropBtn').addEventListener('click', () => {
     cropperModal.classList.add('hidden');
-    if (cropperInstance) {
-        cropperInstance.destroy();
-        cropperInstance = null;
-    }
+    if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
     multiImageInput.value = '';
-}
+});
 
 document.getElementById('confirmCropBtn').addEventListener('click', function () {
     if (!cropperInstance) return;
-
-    cropperInstance.getCroppedCanvas({
-        width: 1000, height: 1000
-    }).toBlob((blob) => {
-        const fileName = `variant_${Date.now()}.jpg`;
-        const file = new File([blob], fileName, { type: 'image/jpeg' });
+    cropperInstance.getCroppedCanvas({ width: 1000, height: 1000 }).toBlob((blob) => {
+        const file = new File([blob], `variant_${Date.now()}.jpg`, { type: 'image/jpeg' });
         croppedImagesArray.push(file);
         renderImagePreviews();
-        closeCropper();
+        document.getElementById('cancelCropBtn').click();
     }, 'image/jpeg', 0.9);
 });
 
@@ -237,64 +267,41 @@ function renderImagePreviews() {
     croppedPreviews.innerHTML = '';
     croppedPreviews.appendChild(addImageBtn);
 
+    // 1. Old DB Images
+    tempOldImages.forEach((url, index) => {
+        const previewHtml = `<div class="relative group rounded-lg overflow-hidden border border-blue-300 aspect-square"><img src="${url}" class="w-full h-full object-cover"><button type="button" onclick="removeOldTempImage(${index})" class="absolute inset-0 bg-red-900/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span class="material-icons-outlined text-2xl">delete</span></button><span class="absolute top-1 left-1 bg-blue-500 text-white text-[10px] px-1.5 rounded">Saved</span></div>`;
+        addImageBtn.insertAdjacentHTML('beforebegin', previewHtml);
+    });
+
+    // 2. New Blobs
     croppedImagesArray.forEach((file, index) => {
-        const imageUrl = URL.createObjectURL(file);
-        const previewHtml = `
-            <div class="relative group rounded-lg overflow-hidden border border-slate-200 dark:border-slate-700 aspect-square transition-all hover:border-red-400">
-                <img src="${imageUrl}" class="w-full h-full object-cover">
-                <button type="button" onclick="removeTempImage(${index})" class="absolute inset-0 bg-red-900/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity rounded-lg">
-                    <span class="material-icons-outlined text-2xl">delete</span>
-                </button>
-            </div>
-        `;
+        const previewHtml = `<div class="relative group rounded-lg overflow-hidden border border-green-300 aspect-square"><img src="${URL.createObjectURL(file)}" class="w-full h-full object-cover"><button type="button" onclick="removeTempImage(${index})" class="absolute inset-0 bg-red-900/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span class="material-icons-outlined text-2xl">delete</span></button><span class="absolute top-1 left-1 bg-green-500 text-white text-[10px] px-1.5 rounded">New</span></div>`;
         addImageBtn.insertAdjacentHTML('beforebegin', previewHtml);
     });
 }
 
-window.removeTempImage = function (index) {
-    croppedImagesArray.splice(index, 1);
-    renderImagePreviews();
-}
-
+window.removeTempImage = function (index) { croppedImagesArray.splice(index, 1); renderImagePreviews(); }
+window.removeOldTempImage = function (index) { tempOldImages.splice(index, 1); renderImagePreviews(); }
 
 // ==========================================
-// 3. QUEUE VARIANT (Save to JS Array) - WITH VALIDATION
+// 3. SAVE VARIANT TO QUEUE
 // ==========================================
 document.getElementById('saveVariantToQueueBtn').addEventListener('click', function () {
     document.querySelectorAll('.error-border').forEach(el => el.classList.remove('border-red-500', 'error-border'));
-    let isValid = true;
-    let errorMessage = '';
+    let isValid = true; let errorMessage = '';
 
     const skuInput = tempVariantForm.querySelector('[name="sku"]');
     const priceInput = tempVariantForm.querySelector('[name="price"]');
     const stockInput = tempVariantForm.querySelector('[name="stock"]');
 
-    const skuVal = skuInput.value.trim();
-    if (!skuVal || !/^[A-Za-z0-9-_]+$/.test(skuVal)) {
-        skuInput.classList.add('border-red-500', 'error-border');
-        errorMessage += '• SKU must be alphanumeric without spaces (dashes/underscores allowed).<br>';
-        isValid = false;
-    }
-
-    const priceVal = parseFloat(priceInput.value);
-    if (isNaN(priceVal) || priceVal <= 0) {
-        priceInput.classList.add('border-red-500', 'error-border');
-        errorMessage += '• Price must be a valid number greater than ₹0.<br>';
-        isValid = false;
-    }
-
-    const stockVal = parseInt(stockInput.value);
-    if (isNaN(stockVal) || stockVal < 0) {
-        stockInput.classList.add('border-red-500', 'error-border');
-        errorMessage += '• Stock quantity cannot be negative.<br>';
-        isValid = false;
-    }
+    if (!/^[A-Za-z0-9-_]+$/.test(skuInput.value.trim())) { skuInput.classList.add('border-red-500', 'error-border'); errorMessage += '• Invalid SKU.<br>'; isValid = false; }
+    if (isNaN(parseFloat(priceInput.value)) || parseFloat(priceInput.value) <= 0) { priceInput.classList.add('border-red-500', 'error-border'); errorMessage += '• Invalid Price.<br>'; isValid = false; }
+    if (isNaN(parseInt(stockInput.value)) || parseInt(stockInput.value) < 0) { stockInput.classList.add('border-red-500', 'error-border'); errorMessage += '• Invalid Stock.<br>'; isValid = false; }
 
     // --- VALIDATE & CAPTURE DYNAMIC ATTRIBUTES ---
     const attributesMap = [];
     let hasAttrError = false;
 
-    // Grab all unique attribute names on the screen
     const dynamicInputs = tempVariantForm.querySelectorAll('[name^="attr_"]');
     const uniqueAttrNames = [...new Set(Array.from(dynamicInputs).map(i => i.name))];
 
@@ -303,25 +310,18 @@ document.getElementById('saveVariantToQueueBtn').addEventListener('click', funct
         const inputs = tempVariantForm.querySelectorAll(`[name="${name}"]`);
 
         if (inputs[0].type === 'checkbox') {
-            // ARRAY LOGIC: Handle multiple checkboxes
             const checkedValues = Array.from(inputs).filter(i => i.checked).map(i => i.value);
-
             if (checkedValues.length === 0) {
-                // If nothing is checked, highlight the box red
                 inputs[0].closest('.checkbox-group').classList.add('border-red-500', 'bg-red-50');
                 isValid = false;
                 hasAttrError = true;
             } else {
-                // Remove error styling if fixed, and join the values (e.g. "Red, Blue")
                 inputs[0].closest('.checkbox-group').classList.remove('border-red-500', 'bg-red-50');
                 attributesMap.push({ attributeId, value: checkedValues.join(', ') });
             }
-
         } else {
-            // ENUM/STRING/NUMBER LOGIC: Handle standard inputs
             const val = inputs[0].value.trim();
             const alnumCount = val.replace(/[^a-zA-Z0-9]/g, '').length;
-
             if (!val || (inputs[0].type === 'text' && alnumCount === 0 && val.toUpperCase() !== 'N/A')) {
                 inputs[0].classList.add('border-red-500', 'error-border');
                 isValid = false;
@@ -332,37 +332,27 @@ document.getElementById('saveVariantToQueueBtn').addEventListener('click', funct
         }
     });
 
-    // Prevents duplicate error messages on the screen
     if (hasAttrError) {
         errorMessage += '• All attributes must contain valid text, be marked as N/A, or have at least one checkbox selected.<br>';
     }
 
-    if (croppedImagesArray.length < 3) {
-        errorMessage += `• Minimum 3 images required. You currently have ${croppedImagesArray.length}.<br>`;
-        isValid = false;
-    }
+    const totalImages = tempOldImages.length + croppedImagesArray.length;
+    if (totalImages < 3) { errorMessage += `• Minimum 3 images required. You have ${totalImages}.<br>`; isValid = false; }
 
-    if (!isValid) {
-        return Swal.fire({
-            icon: 'error',
-            title: 'Please fix the following errors:',
-            html: `<div class="text-left text-sm text-slate-600 mt-2">${errorMessage}</div>`,
-            confirmButtonColor: '#e83e8c'
-        });
-    }
+    if (!isValid) return Swal.fire({ icon: 'error', title: 'Fix errors:', html: `<div class="text-left text-sm mt-2">${errorMessage}</div>` });
 
-    // --- 4. BUILD FINAL DATA & SAVE ---
     const formData = new FormData(tempVariantForm);
-    const variantData = { attributes: attributesMap, imageFiles: [...croppedImagesArray] };
+    const variantData = { attributes: attributesMap };
 
     // Grab the base text fields (sku, price, stock)
     for (let [key, value] of formData.entries()) {
-        if (!key.startsWith('attr_')) {
-            variantData[key] = value;
-        }
+        if (!key.startsWith('attr_')) variantData[key] = value;
     }
 
-    // Update existing or add new
+    variantData.images = [...tempOldImages];
+    variantData.imageFiles = [...croppedImagesArray];
+
+    // Preserve MongoDB _id when updating
     if (editingVariantIndex >= 0) {
         if (queuedVariantsArray[editingVariantIndex]._id) {
             variantData._id = queuedVariantsArray[editingVariantIndex]._id;
@@ -452,68 +442,8 @@ window.removeVariantFromQueue = function (index) {
     renderVariantQueueUI();
 }
 
-window.editVariantInQueue = async function (index) {
-    editingVariantIndex = index;
-    const variant = queuedVariantsArray[index];
-    const categoryId = categorySelect.value;
-
-    let attributes = categoryAttributeCache[categoryId];
-    if (!attributes) {
-        try {
-            const response = await fetch(`/admin/category/${categoryId}/attributes`);
-            const data = await response.json();
-            if (data.success) {
-                attributes = data.attributes;
-                categoryAttributeCache[categoryId] = attributes;
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Failed to fetch category attributes.', 'error');
-            return;
-        }
-    }
-
-    renderDynamicAttributes(attributes);
-
-    tempVariantForm.querySelector('[name="sku"]').value = variant.sku;
-    tempVariantForm.querySelector('[name="price"]').value = variant.price;
-    tempVariantForm.querySelector('[name="stock"]').value = variant.stock;
-
-    // CRITICAL FIX: Pre-fill Dynamic Attributes (Smart enough to handle Checkboxes!)
-    if (variant.attributes) {
-        variant.attributes.forEach(attr => {
-            const inputs = tempVariantForm.querySelectorAll(`[name="attr_${attr.attributeId}"]`);
-            if (inputs.length > 0) {
-                if (inputs[0].type === 'checkbox') {
-                    // It's a checkbox array! Split the saved string (e.g. "Red, Blue") and check them
-                    const savedValues = attr.value.split(',').map(v => v.trim());
-                    inputs.forEach(chk => {
-                        if (savedValues.includes(chk.value)) {
-                            chk.checked = true;
-                        }
-                    });
-                } else {
-                    // It's a standard dropdown or text input
-                    inputs[0].value = attr.value;
-                }
-            }
-        });
-    }
-
-    croppedImagesArray = [...(variant.imageFiles || [])];
-
-    renderImagePreviews();
-
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-        backdrop.classList.replace('opacity-0', 'opacity-100');
-        panel.classList.replace('scale-95', 'scale-100');
-        panel.classList.replace('opacity-0', 'opacity-100');
-    }, 10);
-};
-
-
 // ==========================================
-// 4. FINAL SUBMIT (Standard POST Multipart)
+// 5. FINAL UPDATE SUBMIT (PUT REQUEST)
 // ==========================================
 mainForm.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -523,55 +453,40 @@ mainForm.addEventListener('submit', async function (e) {
 
     const nameInput = document.getElementById('productName');
     const brandInput = document.getElementById('productBrand');
-    const categoryInput = document.getElementById('productCategory');
     const descInput = document.getElementById('productDescription');
 
     const nameVal = nameInput.value.trim();
     const brandVal = brandInput.value.trim();
-    const descVal = descInput.value.trim();
+    const descVal = descInput ? descInput.value.trim() : '';
 
     if (nameVal.replace(/[^a-zA-Z0-9]/g, '').length < 3) {
         nameInput.classList.add('border-red-500', 'error-border');
-        errorMessage += '• Product Name must contain at least 3 valid letters or numbers.<br>';
+        errorMessage += '• Name needs at least 3 valid chars.<br>';
         isValid = false;
     }
 
     if (brandVal.replace(/[^a-zA-Z0-9]/g, '').length < 2) {
         brandInput.classList.add('border-red-500', 'error-border');
-        errorMessage += '• Brand Name must contain at least 2 valid letters or numbers.<br>';
-        isValid = false;
-    }
-
-    if (!categoryInput.value) {
-        categoryInput.classList.add('border-red-500', 'error-border');
-        errorMessage += '• Please select a Category.<br>';
+        errorMessage += '• Brand needs at least 2 valid chars.<br>';
         isValid = false;
     }
 
     if (descVal.length > 0 && descVal.replace(/[^a-zA-Z0-9]/g, '').length < 10) {
-        descInput.classList.add('border-red-500', 'error-border');
-        errorMessage += '• If provided, the Description must contain at least 10 valid letters or numbers.<br>';
+        if (descInput) descInput.classList.add('border-red-500', 'error-border');
+        errorMessage += '• If provided, the Description must contain at least 10 valid characters.<br>';
         isValid = false;
     }
 
     if (queuedVariantsArray.length === 0) {
-        errorMessage += '• You must add at least one Variant (Size/Color) before saving.<br>';
+        errorMessage += '• Need at least one variant.<br>';
         isValid = false;
     }
 
-    if (!isValid) {
-        Swal.fire({
-            icon: 'error',
-            title: 'Unable to Save Product',
-            html: `<div class="text-left text-sm text-slate-600 mt-2">${errorMessage}</div>`,
-            confirmButtonColor: '#e83e8c'
-        });
-        return;
-    }
+    if (!isValid) return Swal.fire({ icon: 'error', title: 'Cannot Update', html: `<div class="text-left text-sm mt-2">${errorMessage}</div>` });
 
-    const saveBtn = document.getElementById('saveFinalProductBtn');
+    const saveBtn = document.getElementById('updateFinalProductBtn');
     saveBtn.disabled = true;
-    saveBtn.innerHTML = '<span class="material-icons-outlined animate-spin mr-2">progress_activity</span> Saving Product...';
+    saveBtn.innerHTML = '<span class="material-icons-outlined animate-spin mr-2">progress_activity</span> Updating...';
 
     const finalFormData = new FormData(this);
 
@@ -582,50 +497,28 @@ mainForm.addEventListener('submit', async function (e) {
     finalFormData.append('variantsJSON', variantsDataJSON);
 
     queuedVariantsArray.forEach((variant, variantIndex) => {
-        variant.imageFiles.forEach((file) => {
-            finalFormData.append(`variant_images_${variantIndex}`, file);
-        });
+        if (variant.imageFiles) {
+            variant.imageFiles.forEach((file) => finalFormData.append(`variant_images_${variantIndex}`, file));
+        }
     });
 
     try {
-        const response = await fetch('/admin/products', {
-            method: 'POST',
+        const response = await fetch(`/admin/products/${PRODUCT_ID}`, {
+            method: 'PUT',
             body: finalFormData
         });
 
         const data = await response.json();
 
         if (data.success) {
-            Swal.fire({
-                icon: 'success', title: 'Product Created Successfully!',
-                text: 'Base product and associated variants have been saved to your database.',
-                confirmButtonColor: '#e83e8c'
-            }).then(() => window.location.href = '/admin/products');
+            Swal.fire({ icon: 'success', title: 'Updated!', text: 'Product successfully updated.' }).then(() => window.location.href = '/admin/products');
         } else {
-            Swal.fire('Server Error', data.message || 'Failed to save consolidated product.', 'error');
+            Swal.fire('Server Error', data.message || 'Failed to update.', 'error');
         }
     } catch (error) {
-        console.error("Consolidated Save Error:", error);
-        Swal.fire('Network Error', 'A network error occurred while uploading product data.', 'error');
+        Swal.fire('Network Error', 'Failed to reach server.', 'error');
     } finally {
         saveBtn.disabled = false;
-        saveBtn.innerHTML = '<span class="material-icons-outlined text-[20px]">save</span> Save Product';
+        saveBtn.innerHTML = '<span class="material-icons-outlined text-[20px] mr-2">save</span> Update Product';
     }
 });
-
-// ==========================================
-// AUTO-GENERATE SMART SKU
-// ==========================================
-function generateSmartSKU() {
-    const skuInput = document.querySelector('#tempVariantForm [name="sku"]');
-    if (!skuInput) return;
-
-    const brandVal = document.getElementById('productBrand').value.trim();
-    const nameVal = document.getElementById('productName').value.trim();
-
-    const brandCode = brandVal.length >= 3 ? brandVal.substring(0, 3).toUpperCase().replace(/[^A-Z0-9]/g, '') : 'XXX';
-    const nameCode = nameVal.length >= 4 ? nameVal.substring(0, 4).toUpperCase().replace(/[^A-Z0-9]/g, '') : 'XXXX';
-    const randomChars = Math.random().toString(36).substring(2, 5).toUpperCase();
-
-    skuInput.value = `${brandCode}-${nameCode}-${randomChars}`;
-}
