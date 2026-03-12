@@ -1,7 +1,6 @@
 import express from "express";
 import passport from "passport";
 import {
-    homePage,
     signupPage,
     sendSignupOtpController,
     verifySignupOtp,
@@ -28,6 +27,8 @@ import {
     forgotPasswordLoggedIn
 } from "../controllers/user/userController.js";
 import { googleAuthCallback } from "../controllers/user/authController.js";
+import { getHomePage } from "../controllers/user/homeController.js";
+import { getShopPage } from "../controllers/user/userProductController.js";
 
 import { preventCache, checkUserSession, isGuest } from "../middlewares/authMiddleware.js";
 import { uploadUser } from "../middlewares/upload.js";
@@ -37,7 +38,8 @@ const router = express.Router();
 // ==========================================
 // Public Web Routes
 // ==========================================
-router.get("/", preventCache, homePage);
+router.get("/", preventCache, getHomePage);
+router.get("/shop", preventCache, getShopPage);
 
 // Signup & OTP
 router.get("/signup", preventCache, isGuest, signupPage);

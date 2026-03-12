@@ -1,0 +1,229 @@
+<% if (isLoggedIn) { %>
+    <%- include("../partials/header") %>
+        <% } else { %>
+            <%- include("../partials/indexHeader") %>
+                <% } %>
+
+                    <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+
+                        <div
+                            class="flex flex-col md:flex-row justify-between items-center mb-8 border-b border-gray-200 pb-4">
+                            <h1 class="font-display text-3xl font-bold text-gray-900">Shop Products</h1>
+
+                            <div class="mt-4 md:mt-0 flex items-center gap-4">
+                                <span class="text-sm text-gray-500">
+                                    <%= totalProducts %> Products Found
+                                </span>
+                                <select id="sortSelect"
+                                    class="bg-white border border-gray-300 text-gray-900 text-sm rounded-lg focus:ring-primary p-2">
+                                    <option value="newest" <%=query.sort==='newest' ? 'selected' : '' %>>Newest Arrivals
+                                    </option>
+                                    <option value="price_asc" <%=query.sort==='price_asc' ? 'selected' : '' %>>Price:
+                                        Low to High</option>
+                                    <option value="price_desc" <%=query.sort==='price_desc' ? 'selected' : '' %>>Price:
+                                        High to Low</option>
+                                    <option value="name_asc" <%=query.sort==='name_asc' ? 'selected' : '' %>>Name: A to
+                                        Z</option>
+                                    <option value="name_desc" <%=query.sort==='name_desc' ? 'selected' : '' %>>Name: Z
+                                        to A</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="flex flex-col lg:flex-row gap-8">
+                            <aside class="w-full lg:w-1/4">
+                                <div class="bg-gray-50 p-6 rounded-2xl border border-gray-100 sticky top-24">
+
+                                    <div class="mb-6 relative">
+                                        <label class="block text-sm font-medium text-gray-900 mb-2">Search</label>
+                                        <input type="text" id="searchInput" value="<%= query.search || '' %>"
+                                            placeholder="Search products..."
+                                            class="w-full bg-white border border-gray-300 rounded-lg p-2.5 pr-10 text-sm focus:ring-primary">
+                                        <button type="button" id="clearSearchBtn"
+                                            class="absolute right-3 top-9 text-gray-400 hover:text-red-500 <%= query.search ? '' : 'hidden' %>">
+                                            <span class="material-icons-outlined text-[18px]">close</span>
+                                        </button>
+                                    </div>
+
+                                    <div class="mb-6">
+                                        <label class="block text-sm font-medium text-gray-900 mb-2">Category</label>
+                                        <select id="categorySelect"
+                                            class="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-primary">
+                                            <option value="">All Categories</option>
+                                            <% categories.forEach(cat=> { %>
+                                                <option value="<%= cat._id %>" <%=query.category==cat._id ? 'selected'
+                                                    : '' %>><%= cat.name %>
+                                                </option>
+                                                <% }) %>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-6">
+                                        <label class="block text-sm font-medium text-gray-900 mb-2">Brand</label>
+                                        <select id="brandSelect"
+                                            class="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-primary">
+                                            <option value="">All Brands</option>
+                                            <% brands.forEach(brand=> { %>
+                                                <option value="<%= brand %>" <%=query.brand===brand ? 'selected' : '' %>
+                                                    ><%= brand %>
+                                                </option>
+                                                <% }) %>
+                                        </select>
+                                    </div>
+
+                                    <div class="mb-6">
+                                        <label class="block text-sm font-medium text-gray-900 mb-2">Price Range</label>
+                                        <div class="flex items-center gap-2">
+                                            <input type="number" id="minPrice" value="<%= query.minPrice || '' %>"
+                                                placeholder="Min ₹"
+                                                class="w-1/2 bg-white border border-gray-300 rounded-lg p-2 text-sm">
+                                            <span class="text-gray-400">-</span>
+                                            <input type="number" id="maxPrice" value="<%= query.maxPrice || '' %>"
+                                                placeholder="Max ₹"
+                                                class="w-1/2 bg-white border border-gray-300 rounded-lg p-2 text-sm">
+                                        </div>
+                                    </div>
+
+                                    <div class="flex flex-col gap-2">
+                                        <button id="applyFiltersBtn"
+                                            class="w-full bg-primary hover:bg-pink-700 text-white font-bold py-2 rounded-lg transition">Apply
+                                            Filters</button>
+                                        <button id="clearFiltersBtn"
+                                            class="w-full bg-white border border-gray-300 hover:bg-gray-100 text-gray-700 font-bold py-2 rounded-lg transition">Clear
+                                            All</button>
+                                    </div>
+                                </div>
+                            </aside>
+
+                            <div class="w-full lg:w-3/4">
+                                <% if (products.length===0) { %>
+                                    <div
+                                        class="text-center py-20 bg-gray-50 rounded-2xl border border-dashed border-gray-300">
+                                        <span
+                                            class="material-icons-outlined text-6xl text-gray-300 mb-4">search_off</span>
+                                        <h3 class="text-xl font-bold text-gray-900">No products found</h3>
+                                        <p class="text-gray-500 mt-2">Try adjusting your filters or search terms.</p>
+                                        <button id="resetEmptyBtn"
+                                            class="mt-4 text-primary font-medium hover:underline">Clear all
+                                            filters</button>
+                                    </div>
+                                    <% } else { %>
+                                        <div class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-6">
+                                            <% products.forEach(product=> { %>
+                                                <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group cursor-pointer"
+                                                    onclick="window.location.href='/product/<%= product.slug %>'">
+
+                                                    <div class="relative h-64 bg-gray-50 overflow-hidden">
+                                                        <% if (product.totalStock===0) { %>
+                                                            <span
+                                                                class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase px-2 py-1 rounded z-10">Out
+                                                                of Stock</span>
+                                                            <% } %>
+                                                                <img src="<%= product.defaultImage || '/images/placeholder.jpg' %>"
+                                                                    alt="<%= product.name %>"
+                                                                    class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 <%= product.totalStock === 0 ? 'opacity-50 grayscale' : '' %>" />
+                                                    </div>
+
+                                                    <div class="p-4 flex-1 flex flex-col">
+                                                        <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">
+                                                            <%= product.brand %>
+                                                        </p>
+                                                        <h3
+                                                            class="font-medium text-gray-900 mb-2 line-clamp-2 min-h-[3rem]">
+                                                            <%= product.name %>
+                                                        </h3>
+
+                                                        <div class="mt-auto flex items-center justify-between">
+                                                            <div class="flex flex-col">
+                                                                <span
+                                                                    class="text-[10px] text-gray-500 uppercase tracking-wider leading-none">Starting
+                                                                    at</span>
+                                                                <span class="font-bold text-lg text-gray-900">₹<%=
+                                                                        product.startingPrice.toFixed(2) %></span>
+                                                            </div>
+                                                            <button
+                                                                class="bg-gray-900 hover:bg-primary text-white text-xs font-bold px-4 py-2 rounded-full transition uppercase tracking-wider">
+                                                                View
+                                                            </button>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                                <% }) %>
+                                        </div>
+
+                                        <% if (totalPages> 1) { %>
+                                            <div class="flex justify-center mt-12 gap-2">
+                                                <% for(let i=1; i <=totalPages; i++) { %>
+                                                    <button onclick="changePage(<%= i %>)"
+                                                        class="w-10 h-10 rounded-lg flex items-center justify-center font-medium transition-colors
+                                <%= currentPage === i ? 'bg-primary text-white shadow-md' : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50' %>">
+                                                        <%= i %>
+                                                    </button>
+                                                    <% } %>
+                                            </div>
+                                            <% } %>
+                                                <% } %>
+                            </div>
+                        </div>
+                    </main>
+
+                    <%- include('../partials/footer') %>
+
+                        <script>
+                            // --- Combined Filter, Sort, & Search Logic ---
+                            function updateFilters(page = 1) {
+                                const search = document.getElementById('searchInput').value.trim();
+                                const category = document.getElementById('categorySelect').value;
+                                const brand = document.getElementById('brandSelect').value;
+                                const sort = document.getElementById('sortSelect').value;
+                                const minPrice = document.getElementById('minPrice').value;
+                                const maxPrice = document.getElementById('maxPrice').value;
+
+                                // Build URL dynamically with ALL active filters
+                                const params = new URLSearchParams();
+                                if (search) params.set('search', search);
+                                if (category) params.set('category', category);
+                                if (brand) params.set('brand', brand);
+                                if (sort && sort !== 'newest') params.set('sort', sort);
+                                if (minPrice) params.set('minPrice', minPrice);
+                                if (maxPrice) params.set('maxPrice', maxPrice);
+                                if (page > 1) params.set('page', page);
+
+                                window.location.href = `/shop?${params.toString()}`;
+                            }
+
+                            // --- Event Listeners ---
+                            document.getElementById('applyFiltersBtn').addEventListener('click', () => updateFilters(1));
+                            document.getElementById('sortSelect').addEventListener('change', () => updateFilters(1));
+
+                            // Trigger on Search Input Enter Key
+                            document.getElementById('searchInput').addEventListener('keypress', (e) => {
+                                if (e.key === 'Enter') updateFilters(1);
+                            });
+
+                            // Handle the "X" Clear Search button
+                            const searchInput = document.getElementById('searchInput');
+                            const clearSearchBtn = document.getElementById('clearSearchBtn');
+
+                            searchInput.addEventListener('input', function () {
+                                if (this.value.trim().length > 0) clearSearchBtn.classList.remove('hidden');
+                                else clearSearchBtn.classList.add('hidden');
+                            });
+
+                            clearSearchBtn.addEventListener('click', function () {
+                                searchInput.value = '';
+                                this.classList.add('hidden');
+                                updateFilters(1);
+                            });
+
+                            // Handle Clear All Filters
+                            const clearAll = () => window.location.href = '/shop';
+                            document.getElementById('clearFiltersBtn').addEventListener('click', clearAll);
+                            const resetEmptyBtn = document.getElementById('resetEmptyBtn');
+                            if (resetEmptyBtn) resetEmptyBtn.addEventListener('click', clearAll);
+
+                            // Handle Pagination
+                            function changePage(page) {
+                                updateFilters(page);
+                            }
+                        </script>
