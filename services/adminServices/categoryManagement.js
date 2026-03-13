@@ -1,18 +1,21 @@
 import Category from "../../models/category.js";
 import Attribute from "../../models/attribute.js";
 
-
-// Fetch all available attributes for the checkbox list
+// Pulls every single attribute (like Size, Color, Scent) from the database.
+// The frontend uses this to generate the list of checkboxes so admins can choose 
+// which specific traits apply to the category they are creating.
 export const fetchAllAttributes = async () => {
     return await Attribute.find({}).sort({ label: 1 }).lean();
 };
 
-//Creates a new category in the database. And Checks for duplicate names before saving.
+// Handles the heavy lifting of saving a brand new category.
+// We have strict rules here to prevent the database from getting messy with duplicate data.
 export const createNewCategory = async (categoryData) => {
-    const { name, description, status, categoryImage, adminId,categoryAttributes } = categoryData;
+    const { name, description, status, categoryImage, adminId, categoryAttributes } = categoryData;
 
-    // 1. Check for duplicates (Case-insensitive)
-    // RegExp('^' + name + '$', 'i') ensures "Skincare" and "skincare" are treated as the same
+    // Safety Check: Prevent case-sensitive duplicates. 
+    // We don't want an admin creating "skincare" if "Skincare" already exists, 
+    // as it would completely break the frontend filtering logic!
     const existingCategory = await Category.findOne({
         name: { $regex: new RegExp('^' + name.trim() + '$', 'i') }
     });
@@ -21,44 +24,41 @@ export const createNewCategory = async (categoryData) => {
         throw new Error(`A category named "${name}" already exists.`);
     }
 
-    // 2. Create the new category
+    // Assemble the new category object
     const newCategory = new Category({
         name: name.trim(),
         description: description.trim(),
         status: status || 'active',
-        categoryImage: categoryImage, // Can be empty if no image was uploaded
-        createdBy: adminId, // Fulfills the required createdBy schema field
+        categoryImage: categoryImage, 
+        createdBy: adminId, 
         categoryAttributes: categoryAttributes || []
     });
 
-    // 3. Save to database
     await newCategory.save();
     return newCategory;
 };
 
-
-//Fetches categories based on search, status filter, and pagination.
+// Acts as the engine for the admin's Category dashboard table.
+// It simultaneously handles searching, filtering by active/inactive, and pagination.
 export const fetchCategoriesWithFilter = async (status, search, page = 1, limit = 5) => {
     let filter = {};
 
-    // 1. Apply Status Filter
     if (status && status !== 'all') {
         filter.status = status;
     }
 
-    // 2. Apply Search Filter (Case-insensitive regex on the category name)
+    // If the admin typed something in the search bar, look for partial matches in the name
     if (search) {
         filter.name = { $regex: search, $options: "i" };
     }
 
-    // 3. Calculate Pagination parameters
     const skip = (page - 1) * limit;
 
-    // 4. Fetch data and total count in parallel
-    // .sort({ createdAt: -1 }) ensures the descending order constraint
+    // We run the data fetch and the total count query at the exact same time (in parallel)
+    // to cut the database wait time in half, making the admin panel feel much faster.
     const [categories, totalCategories] = await Promise.all([
         Category.find(filter)
-            .sort({ createdAt: -1 }) // Descending order (newest first)
+            .sort({ createdAt: -1 }) // Always show the newest categories at the top
             .skip(skip)
             .limit(limit),
         Category.countDocuments(filter)
@@ -67,9 +67,9 @@ export const fetchCategoriesWithFilter = async (status, search, page = 1, limit 
     return { categories, totalCategories };
 };
 
-
-//Toggles a category's status between 'active' and 'inactive'.
-
+// Executes our "soft delete" strategy.
+// We never permanently delete a category because any products or old orders tied to it would break.
+// Instead, we just flip its status back and forth.
 export const toggleCategoryStatus = async (categoryId) => {
     const category = await Category.findById(categoryId);
 
@@ -77,14 +77,14 @@ export const toggleCategoryStatus = async (categoryId) => {
         throw new Error("Category not found");
     }
 
-    // Toggle between active and inactive for soft deletion
     category.status = category.status === "active" ? "inactive" : "active";
     await category.save();
 
     return category.status;
 };
 
-// Fetch a single category by its ID
+// Reaches into the database to grab the exact details of a single category.
+// The controller calls this so the frontend can pre-fill the "Edit Category" modal.
 export const fetchCategoryById = async (categoryId) => {
     const category = await Category.findById(categoryId);
     if (!category) {
@@ -93,27 +93,29 @@ export const fetchCategoryById = async (categoryId) => {
     return category;
 };
 
-// Update an existing category
+// Processes updates when an admin edits an existing category.
+// It handles collision checks, formats HTML form data, and safely processes new image uploads.
 export const updateCategoryById = async (categoryId, bodyData, fileData) => {
     const { name, description, status } = bodyData;
     let categoryAttributes = bodyData.categoryAttributes || [];
 
-    // Ensure categoryAttributes is an array (even if only 1 box is checked)
+    // HTML forms are tricky: checking one box sends a string, checking multiple sends an array.
+    // We force it into an array here so Mongoose doesn't throw a schema error.
     if (!Array.isArray(categoryAttributes)) {
         categoryAttributes = [categoryAttributes];
     }
 
-    // 1. Check for duplicates (Case-insensitive AND excluding the current category)
+    // Safety Check: Ensure the admin didn't rename this category to match a DIFFERENT, existing category.
+    // The `$ne` operator ensures we don't accidentally throw an error if they kept the name the same.
     const existingCategory = await Category.findOne({ 
         name: { $regex: new RegExp('^' + name.trim() + '$', 'i') },
-        _id: { $ne: categoryId } // $ne means "Not Equal" to the current ID
+        _id: { $ne: categoryId } 
     });
 
     if (existingCategory) {
         throw new Error(`A different category named "${name.trim()}" already exists.`);
     }
 
-    // 2. Format the data for the database
     const updateData = {
         name: name.trim(),
         description: description.trim(),
@@ -121,12 +123,13 @@ export const updateCategoryById = async (categoryId, bodyData, fileData) => {
         categoryAttributes
     };
 
-    // 3. Cloudinary Bulletproof Check
+    // If the admin uploaded a new image, replace the old URL. 
+    // If they didn't, we just leave the image property alone so the old image stays intact.
     if (fileData) {
         updateData.categoryImage = fileData.secure_url || fileData.path; 
     }
 
-    // 4. Execute the database update
+    // Apply the updates and return the newly modified document ({ new: true })
     const updatedCategory = await Category.findByIdAndUpdate(categoryId, updateData, { new: true });
     
     if (!updatedCategory) {

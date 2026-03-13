@@ -1,0 +1,249 @@
+<% if (isLoggedIn) { %>
+    <%- include("../partials/header") %>
+<% } else { %>
+    <%- include("../partials/indexHeader") %>
+<% } %>
+
+<main class="bg-white">
+    <nav class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 text-sm text-gray-500 border-b border-gray-100">
+        <a href="/" class="hover:text-primary transition">Home</a>
+        <span class="mx-2">/</span>
+        <a href="/shop" class="hover:text-primary transition">Shop</a>
+        <span class="mx-2">/</span>
+        <a href="/shop?category=<%= category._id %>" class="hover:text-primary transition"><%= category.name %></a>
+        <span class="mx-2">/</span>
+        <span class="text-gray-900 font-medium"><%= product.name %></span>
+    </nav>
+
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div class="flex flex-col lg:flex-row gap-12">
+            
+            <div class="w-full lg:w-1/2 flex flex-col gap-4">
+                <div class="relative bg-gray-50 rounded-2xl overflow-hidden cursor-crosshair border border-gray-100 aspect-square group"
+                     onmousemove="zoomImage(event)" onmouseleave="resetZoom(event)">
+                     
+                    <span id="stockBadge" class="absolute top-4 left-4 bg-red-600 text-white text-xs font-bold uppercase px-3 py-1.5 rounded z-10 hidden shadow-md">
+                        Out of Stock
+                    </span>
+
+                    <img id="mainImage" src="<%= variants[0].images[0] %>" alt="<%= product.name %>"
+                         class="w-full h-full object-cover transition-transform duration-200 origin-center" />
+                </div>
+
+                <div class="flex gap-4 overflow-x-auto pb-2" id="thumbnailContainer">
+                    </div>
+            </div>
+
+            <div class="w-full lg:w-1/2 flex flex-col">
+                <p class="text-sm text-gray-500 uppercase tracking-widest font-semibold mb-2"><%= product.brand %></p>
+                <h1 class="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-4"><%= product.name %></h1>
+                
+                <div class="flex items-center gap-4 mb-6">
+                    <div class="flex text-yellow-400 text-lg">
+                        <span class="material-icons-outlined">star</span>
+                        <span class="material-icons-outlined">star</span>
+                        <span class="material-icons-outlined">star</span>
+                        <span class="material-icons-outlined">star</span>
+                        <span class="material-icons-outlined">star_half</span>
+                    </div>
+                    <a href="#reviews" class="text-sm text-gray-500 hover:text-primary underline">124 Reviews</a>
+                </div>
+
+                <div class="flex items-end gap-4 mb-6 pb-6 border-b border-gray-100">
+                    <h2 id="productPrice" class="text-4xl font-bold text-gray-900">₹<%= variants[0].price.toFixed(2) %></h2>
+                    <span class="text-lg text-gray-400 line-through mb-1">₹<%= (variants[0].price * 1.2).toFixed(2) %></span>
+                    <span class="text-sm font-bold text-green-600 bg-green-50 px-2 py-1 rounded mb-1.5">20% OFF</span>
+                </div>
+
+                <div class="mb-8">
+                    <h3 class="text-sm font-bold text-gray-900 mb-3 uppercase tracking-wider">Select Option:</h3>
+                    <div class="flex flex-wrap gap-3" id="variantButtonsContainer">
+                        <% variants.forEach((variant, index) => { %>
+                            <% 
+                                // 1. Filter out any attribute that has a value of "N/A"
+                                let validAttributes = variant.attributes.filter(a => a.value && a.value.toUpperCase() !== 'N/A');
+                                
+                                // 2. Join the remaining valid attributes (e.g., "Red - Large")
+                                let label = validAttributes.map(a => a.value).join(' - ');
+                                
+                                // 3. If ALL attributes were N/A, fallback to showing the SKU so the button isn't blank
+                                if (!label || label.trim() === '') {
+                                    label = variant.sku; 
+                                }
+                            %>
+                            <button onclick="selectVariant(<%= index %>)" id="variantBtn_<%= index %>"
+                                class="variant-btn border-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 
+                                <%= index === 0 ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-700 hover:border-gray-400' %>">
+                                <%= label %>
+                            </button>
+                        <% }) %>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4 mb-8">
+                    <button id="addToCartBtn" class="flex-1 bg-gray-900 hover:bg-primary text-white text-lg font-bold py-4 rounded-xl transition flex justify-center items-center gap-2">
+                        <span class="material-icons-outlined">shopping_bag</span> Add to Cart
+                    </button>
+                    <button class="w-14 h-14 bg-gray-50 hover:bg-red-50 text-gray-600 hover:text-red-500 rounded-xl border border-gray-200 transition flex justify-center items-center shrink-0">
+                        <span class="material-icons-outlined">favorite_border</span>
+                    </button>
+                </div>
+
+                <div class="bg-pink-50 border border-pink-100 rounded-xl p-4 mb-8 flex items-start gap-3">
+                    <span class="material-icons-outlined text-primary mt-0.5">local_offer</span>
+                    <div>
+                        <h4 class="font-bold text-gray-900 text-sm">Available Offers</h4>
+                        <p class="text-xs text-gray-600 mt-1">Use code <strong class="text-primary">BELLA10</strong> for 10% off your first order.</p>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-lg font-bold text-gray-900 mb-3 font-display">Product Description</h3>
+                    <div class="prose prose-sm text-gray-600 max-w-none">
+                        <%= product.description || "No description provided." %>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+
+    <% if (relatedProducts.length > 0) { %>
+    <section class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-16 border-t border-gray-100">
+        <div class="text-center mb-12">
+            <h2 class="font-display text-3xl font-bold text-gray-900 mb-3">You May Also Like</h2>
+            <div class="h-1 w-16 bg-primary mx-auto rounded-full"></div>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <% relatedProducts.forEach(rel => { %>
+                <div class="bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group cursor-pointer" onclick="window.location.href='/product/<%= rel.slug %>'">
+                    <div class="relative h-64 bg-gray-50 overflow-hidden">
+                        <img src="<%= rel.defaultImage || '/images/placeholder.jpg' %>" alt="<%= rel.name %>"
+                            class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500" />
+                    </div>
+                    <div class="p-4 flex-1 flex flex-col">
+                        <h3 class="font-medium text-gray-900 mb-2 line-clamp-1"><%= rel.name %></h3>
+                        <div class="mt-auto flex items-center justify-between">
+                            <span class="font-bold text-lg text-gray-900">₹<%= rel.startingPrice.toFixed(2) %></span>
+                            <button class="bg-gray-100 group-hover:bg-primary group-hover:text-white text-gray-900 text-xs font-bold px-4 py-2 rounded-full transition uppercase tracking-wider">
+                                View
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            <% }) %>
+        </div>
+    </section>
+    <% } %>
+
+</main>
+
+<%- include('../partials/footer') %>
+
+<script>
+    const variantsData = <%- variantsJSON %>;
+</script>
+
+<script>
+    // ==========================================
+    // DYNAMIC VARIANT SWITCHER LOGIC
+    // ==========================================
+    const mainImage = document.getElementById('mainImage');
+    const thumbnailContainer = document.getElementById('thumbnailContainer');
+    const productPrice = document.getElementById('productPrice');
+    const addToCartBtn = document.getElementById('addToCartBtn');
+    const stockBadge = document.getElementById('stockBadge');
+    
+    let currentVariantIndex = 0;
+
+    function selectVariant(index) {
+        currentVariantIndex = index;
+        const variant = variantsData[index];
+
+        // 1. Update Buttons Styling
+        document.querySelectorAll('.variant-btn').forEach((btn, i) => {
+            if (i === index) {
+                btn.classList.replace('border-gray-200', 'border-primary');
+                btn.classList.replace('text-gray-700', 'text-primary');
+                btn.classList.add('bg-primary/5');
+            } else {
+                btn.classList.replace('border-primary', 'border-gray-200');
+                btn.classList.replace('text-primary', 'text-gray-700');
+                btn.classList.remove('bg-primary/5');
+            }
+        });
+
+        // 2. Update Price
+        productPrice.innerText = `₹${variant.price.toFixed(2)}`;
+
+        // 3. Update Stock Status (Error Handling Constraint)
+        if (variant.stock <= 0) {
+            addToCartBtn.disabled = true;
+            addToCartBtn.innerHTML = '<span class="material-icons-outlined">remove_shopping_cart</span> Out of Stock';
+            addToCartBtn.classList.replace('bg-gray-900', 'bg-gray-300');
+            addToCartBtn.classList.replace('hover:bg-primary', 'hover:bg-gray-300');
+            addToCartBtn.classList.remove('text-white');
+            addToCartBtn.classList.add('text-gray-500', 'cursor-not-allowed');
+            stockBadge.classList.remove('hidden');
+            mainImage.classList.add('opacity-70', 'grayscale');
+        } else {
+            addToCartBtn.disabled = false;
+            addToCartBtn.innerHTML = '<span class="material-icons-outlined">shopping_bag</span> Add to Cart';
+            addToCartBtn.classList.replace('bg-gray-300', 'bg-gray-900');
+            addToCartBtn.classList.replace('hover:bg-gray-300', 'hover:bg-primary');
+            addToCartBtn.classList.remove('text-gray-500', 'cursor-not-allowed');
+            addToCartBtn.classList.add('text-white');
+            stockBadge.classList.add('hidden');
+            mainImage.classList.remove('opacity-70', 'grayscale');
+        }
+
+        // 4. Update Images & Thumbnails
+        mainImage.src = variant.images[0];
+        
+        thumbnailContainer.innerHTML = '';
+        variant.images.forEach((imgUrl, imgIndex) => {
+            const thumb = document.createElement('button');
+            thumb.className = `w-20 h-20 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${imgIndex === 0 ? 'border-gray-900' : 'border-transparent hover:border-gray-300'}`;
+            thumb.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover">`;
+            
+            // Swap main image on thumbnail click
+            thumb.onclick = () => {
+                mainImage.src = imgUrl;
+                // Update active border
+                Array.from(thumbnailContainer.children).forEach(c => c.classList.replace('border-gray-900', 'border-transparent'));
+                thumb.classList.replace('border-transparent', 'border-gray-900');
+            };
+            thumbnailContainer.appendChild(thumb);
+        });
+    }
+
+    // Initialize first variant on page load
+    selectVariant(0);
+
+    // ==========================================
+    // ZOOMABLE IMAGE SCRIPT (Constraint i)
+    // ==========================================
+    function zoomImage(e) {
+        const container = e.currentTarget;
+        const img = container.querySelector('img');
+        
+        // Don't zoom if out of stock
+        if(variantsData[currentVariantIndex].stock <= 0) return; 
+
+        const { left, top, width, height } = container.getBoundingClientRect();
+        
+        // Calculate mouse position relative to image
+        const x = ((e.clientX - left) / width) * 100;
+        const y = ((e.clientY - top) / height) * 100;
+        
+        // Set origin and scale
+        img.style.transformOrigin = `${x}% ${y}%`;
+        img.style.transform = 'scale(2)'; // Zoom level
+    }
+
+    function resetZoom(e) {
+        const img = e.currentTarget.querySelector('img');
+        img.style.transformOrigin = 'center center';
+        img.style.transform = 'scale(1)';
+    }
+</script>

@@ -1,64 +1,18 @@
-import Category from "../../models/category.js";
-import Product from "../../models/product.js";
+import { getActiveCategories, getFeaturedProducts } from "../../services/userServices/homeService.js";
 
+// Serves as the main entry point for the storefront.
+// Notice how clean this is! By moving the complex database aggregations into the service layer, 
+// this controller only has to worry about checking the user's session and handing data off to the view.
 export const getHomePage = async (req, res) => {
     try {
+        // A quick boolean check to see if we should render the "Logout" or "Login" buttons in the navbar
         const isLoggedIn = !!req.session.userId;
 
-        // 1. Fetch exactly 3 Active Categories for the circular grid
-        const categories = await Category.find({ status: 'active' })
-            .sort({ createdAt: -1 });
+        // Fetch the active categories and exactly 4 featured products simultaneously
+        const categories = await getActiveCategories();
+        const featuredProducts = await getFeaturedProducts(4);
 
-        // 2. Fetch 4 "Featured" Products using the same robust aggregation logic
-        const featuredProducts = await Product.aggregate([
-            { $match: { status: 'active' } },
-            // Ensure the category is also active
-            {
-                $lookup: {
-                    from: 'categories',
-                    localField: 'categoryId',
-                    foreignField: '_id',
-                    as: 'categoryDetails'
-                }
-            },
-            { $unwind: '$categoryDetails' },
-            { $match: { 'categoryDetails.status': 'active' } },
-            // Get Variants
-            {
-                $lookup: {
-                    from: 'productvariants',
-                    localField: '_id',
-                    foreignField: 'productId',
-                    as: 'variants'
-                }
-            },
-            // Keep only active variants
-            {
-                $addFields: {
-                    activeVariants: {
-                        $filter: {
-                            input: '$variants',
-                            as: 'v',
-                            cond: { $eq: ['$$v.status', 'active'] }
-                        }
-                    }
-                }
-            },
-            // Must have at least 1 active variant
-            { $match: { 'activeVariants.0': { $exists: true } } },
-            // Calculate starting price and grab the first image
-            {
-                $addFields: {
-                    startingPrice: { $min: '$activeVariants.price' },
-                    defaultImage: { $arrayElemAt: [{ $arrayElemAt: ['$activeVariants.images', 0] }, 0] }
-                }
-            },
-            // Sort by newest and limit to 4
-            { $sort: { createdAt: -1 } },
-            { $limit: 4 }
-        ]);
-
-        // 3. Render the home page with dynamic data
+        // Inject the fetched data directly into the EJS template so it can loop through the arrays and build the grid
         res.render("user/home", {
             title: "Bella Beauty",
             isLoggedIn,
@@ -68,7 +22,15 @@ export const getHomePage = async (req, res) => {
 
     } catch (error) {
         console.error("Home Page Error:", error);
-        // Fallback render in case database fails
-        res.render("user/home", { title: "Bella Beauty", isLoggedIn: false, categories: [], featuredProducts: [] });
+        
+        // This is a crucial safety net. If the database crashes or a query fails, 
+        // we don't want the customer to see an ugly raw error page. 
+        // Instead, we render the normal homepage but pass empty arrays so the UI gracefully shows "No products found."
+        res.render("user/home", { 
+            title: "Bella Beauty", 
+            isLoggedIn: false, 
+            categories: [], 
+            featuredProducts: [] 
+        });
     }
 };

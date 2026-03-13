@@ -28,7 +28,7 @@ import {
 } from "../controllers/user/userController.js";
 import { googleAuthCallback } from "../controllers/user/authController.js";
 import { getHomePage } from "../controllers/user/homeController.js";
-import { getShopPage } from "../controllers/user/userProductController.js";
+import { getShopPage, getProductDetails } from "../controllers/user/userProductController.js";
 
 import { preventCache, checkUserSession, isGuest } from "../middlewares/authMiddleware.js";
 import { uploadUser } from "../middlewares/upload.js";
@@ -40,6 +40,7 @@ const router = express.Router();
 // ==========================================
 router.get("/", preventCache, getHomePage);
 router.get("/shop", preventCache, getShopPage);
+router.get("/product/:slug", preventCache, getProductDetails); 
 
 // Signup & OTP
 router.get("/signup", preventCache, isGuest, signupPage);

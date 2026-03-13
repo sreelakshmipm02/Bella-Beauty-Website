@@ -1,126 +1,31 @@
-import Product from "../../models/product.js";
-import Category from "../../models/category.js";
-import mongoose from "mongoose";
+import { 
+    getShopData, 
+    getActiveCategories, 
+    getActiveBrands,
+    getProductBySlug,
+    getCategoryById,
+    getActiveVariants,
+    getAttributesByIds,
+    getRelatedProducts
+} from "../../services/userServices/productService.js";
 
+// Serves as the brain for the main "Shop All" page.
+// This controller gathers the user's search terms, filters, and page numbers, 
+// then asks the service layer to crunch the numbers. It hands all that data back 
+// to the EJS template so the frontend can build the product grid and populate the filter sidebar.
 export const getShopPage = async (req, res) => {
     try {
-        // 1. Capture Query Parameters
         const page = parseInt(req.query.page) || 1;
-        const limit = 9; // Show 9 products per page
+        const limit = 9; 
         const skip = (page - 1) * limit;
 
-        const { search, category, brand, sort, minPrice, maxPrice } = req.query;
+        // Fetch the filtered products, plus the lists of categories and brands needed for the sidebar dropdowns
+        const { products, totalProducts } = await getShopData(req.query, skip, limit);
+        const categories = await getActiveCategories();
+        const brands = await getActiveBrands();
 
-        // 2. Build the Aggregation Pipeline
-        let pipeline = [];
-
-        // CONSTRAINT: Hide blocked/unlisted products
-        pipeline.push({ $match: { status: 'active' } });
-
-        // Ensure Category is also active
-        pipeline.push({
-            $lookup: {
-                from: 'categories',
-                localField: 'categoryId',
-                foreignField: '_id',
-                as: 'categoryDetails'
-            }
-        });
-        pipeline.push({ $unwind: '$categoryDetails' });
-        pipeline.push({ $match: { 'categoryDetails.status': 'active' } });
-
-        // FILTER: By Category
-        if (category) {
-            pipeline.push({ $match: { 'categoryDetails._id': new mongoose.Types.ObjectId(category) } });
-        }
-
-        // FILTER: By Brand
-        if (brand) {
-            pipeline.push({ $match: { brand: brand } });
-        }
-
-        // FILTER: By Search (Checks both Name and Brand)
-        if (search) {
-            pipeline.push({
-                $match: {
-                    $or: [
-                        { name: { $regex: search, $options: 'i' } },
-                        { brand: { $regex: search, $options: 'i' } }
-                    ]
-                }
-            });
-        }
-
-        // LOOKUP: Fetch Variants to calculate price and stock
-        pipeline.push({
-            $lookup: {
-                from: 'productvariants',
-                localField: '_id',
-                foreignField: 'productId',
-                as: 'variants'
-            }
-        });
-
-        // Keep only active variants
-        pipeline.push({
-            $addFields: {
-                activeVariants: {
-                    $filter: {
-                        input: '$variants',
-                        as: 'v',
-                        cond: { $eq: ['$$v.status', 'active'] }
-                    }
-                }
-            }
-        });
-
-        // Must have at least 1 active variant to be shown
-        pipeline.push({ $match: { 'activeVariants.0': { $exists: true } } });
-
-        // CALCULATE: Starting Price and Default Image from variants
-        pipeline.push({
-            $addFields: {
-                startingPrice: { $min: '$activeVariants.price' },
-                totalStock: { $sum: '$activeVariants.stock' },
-                defaultImage: { $arrayElemAt: [{ $arrayElemAt: ['$activeVariants.images', 0] }, 0] }
-            }
-        });
-
-        // FILTER: By Price Range (Calculated off the startingPrice)
-        if (minPrice || maxPrice) {
-            let priceMatch = {};
-            if (minPrice) priceMatch.$gte = parseInt(minPrice);
-            if (maxPrice) priceMatch.$lte = parseInt(maxPrice);
-            pipeline.push({ $match: { startingPrice: priceMatch } });
-        }
-
-        // SORTING Options
-        let sortStage = { createdAt: -1 }; // Default: Newest First
-        if (sort === 'price_asc') sortStage = { startingPrice: 1 };
-        else if (sort === 'price_desc') sortStage = { startingPrice: -1 };
-        else if (sort === 'name_asc') sortStage = { name: 1 };
-        else if (sort === 'name_desc') sortStage = { name: -1 };
-        
-        pipeline.push({ $sort: sortStage });
-
-        // PAGINATION & EXECUTION 
-        pipeline.push({
-            $facet: {
-                metadata: [{ $count: "total" }],
-                data: [{ $skip: skip }, { $limit: limit }]
-            }
-        });
-
-        const result = await Product.aggregate(pipeline);
-        const products = result[0].data;
-        const totalProducts = result[0].metadata[0] ? result[0].metadata[0].total : 0;
         const totalPages = Math.ceil(totalProducts / limit);
 
-        // Fetch Data for Sidebar Dropdowns
-        const categories = await Category.find({ status: 'active' }).sort({ name: 1 });
-        const brands = await Product.distinct('brand', { status: 'active' });
-
-        // Render Page
         res.render("user/shop", {
             title: "Shop - Bella Beauty",
             isLoggedIn: !!req.session.userId,
@@ -130,11 +35,77 @@ export const getShopPage = async (req, res) => {
             currentPage: page,
             totalPages,
             totalProducts,
-            query: req.query // Pass query back so inputs stay filled!
+            // We pass the raw query object back to the frontend so the UI can "remember" 
+            // what the user searched for and keep those checkboxes/inputs filled in.
+            query: req.query 
         });
 
     } catch (error) {
         console.error("Shop Page Error:", error);
         res.redirect("/");
+    }
+};
+
+// Constructs the Product Detail Page (PDP) when a customer clicks on a specific item.
+// This function includes several strict safety checks to ensure a user can never 
+// view or buy a product that has been disabled, deleted, or stripped of its variants by an admin.
+export const getProductDetails = async (req, res) => {
+    try {
+        const slug = req.params.slug;
+        console.log("--- DETECTIVE LOGS ---");
+        console.log("1. URL Slug Requested:", slug);
+
+        const product = await getProductBySlug(slug);
+        console.log("2. Did database find product?:", product ? "YES - " + product.name : "NO");
+
+        // Safety Check 1: Does the product exist and is it active?
+        if (!product || product.status !== 'active') {
+            console.log("❌ Redirecting: Product is missing or not active.");
+            return res.redirect('/shop');
+        }
+
+        const category = await getCategoryById(product.categoryId);
+        
+        // Safety Check 2: Even if the product is active, is its parent category active?
+        // (If an admin disables the "Skincare" category, all skincare products should instantly hide)
+        if (!category || category.status !== 'active') {
+            console.log("❌ Redirecting: Category is missing or not active.");
+            return res.redirect('/shop'); 
+        }
+
+        const variants = await getActiveVariants(product._id);
+        console.log("3. Active Variants Found:", variants.length);
+
+        // Safety Check 3: Does the product actually have things to sell?
+        if (!variants || variants.length === 0) {
+            console.log("❌ Redirecting: Product has 0 active variants.");
+            return res.redirect('/shop'); 
+        }
+
+        // We extract all the unique attribute IDs from the variants (like Size, Color)
+        // so we can fetch their display names from the database for the frontend buttons.
+        const attributeIds = [...new Set(variants.flatMap(v => v.attributes.map(a => a.attributeId)))];
+        const attributesInfo = await getAttributesByIds(attributeIds);
+
+        // Grab a few other active products from the same category to show in the "You May Also Like" section.
+        const relatedProducts = await getRelatedProducts(category._id, product._id, 4);
+
+        console.log("✅ Success! Loading Product Page...");
+        res.render("user/productDetail", {
+            title: `${product.name} - Bella Beauty`,
+            isLoggedIn: !!req.session.userId,
+            product,
+            category,
+            variants,
+            attributesInfo,
+            // We stringify the variants array so the frontend JavaScript can safely read it 
+            // to dynamically swap images, prices, and stock statuses when the user clicks different options.
+            variantsJSON: JSON.stringify(variants),
+            relatedProducts
+        });
+
+    } catch (error) {
+        console.error("❌ Catch Block Error:", error);
+        res.redirect("/shop");
     }
 };

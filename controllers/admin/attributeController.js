@@ -1,11 +1,12 @@
-import { createNewAttribute,deleteAttributeById,fetchAttributeById,updateAttributeById } from "../../services/adminServices/attributeManagement.js";
-// Handle POST request from the Create Attribute Modal (AJAX)
+import { createNewAttribute, deleteAttributeById, fetchAttributeById, updateAttributeById } from "../../services/adminServices/attributeManagement.js";
+
+// Catches AJAX submissions from the Create Attribute modal.
+// We pass the raw request body down to the service layer for validation and creation.
+// Returning the newly created attribute object allows the frontend to instantly inject it into the UI without needing a page reload.
 export const addAttributeSubmit = async (req, res) => {
     try {
-        // Call the service and capture the newly created document
         const newAttribute = await createNewAttribute(req.body);
         
-        // Return success along with the new attribute data for the frontend to render
         res.status(200).json({ 
             success: true, 
             message: "Attribute created successfully",
@@ -17,14 +18,15 @@ export const addAttributeSubmit = async (req, res) => {
     }
 };
 
-//delete attributes at category creation
+// Handles permanent deletion of an attribute.
+// This is typically triggered by an admin cleaning up unused attributes, often during the category setup process.
+// We rely on the service layer to handle the actual database removal before confirming success to the client.
 export const deleteAttributeSubmit = async (req, res) => {
     try {
         const { id } = req.params;
         
         await deleteAttributeById(id);
         
-        // Send the confirmation message back to the frontend
         res.status(200).json({ 
             success: true, 
             message: "Attribute was permanently deleted." 
@@ -38,6 +40,8 @@ export const deleteAttributeSubmit = async (req, res) => {
     }
 };
 
+// Acts as an API endpoint to fetch a single attribute's data.
+// The frontend calls this when opening the Edit Modal so it can pre-fill the form fields with the most up-to-date database values.
 export const getAttributeForEdit = async (req, res) => {
     try {
         const attribute = await fetchAttributeById(req.params.id);
@@ -47,6 +51,8 @@ export const getAttributeForEdit = async (req, res) => {
     }
 };
 
+// Receives the modified attribute payload from the frontend.
+// Passes the target ID and the new data to the service layer to overwrite the existing record in the database.
 export const editAttributeSubmit = async (req, res) => {
     try {
         await updateAttributeById(req.params.id, req.body);

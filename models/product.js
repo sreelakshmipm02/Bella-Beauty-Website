@@ -6,6 +6,10 @@ const productSchema = new mongoose.Schema({
         required: true,
         trim: true
     },
+    slug: {  
+        type: String,
+        unique: true
+    },
     brand: {
         type: String,
         default: "Aura",
@@ -28,8 +32,8 @@ const productSchema = new mongoose.Schema({
     },
     createdBy: {
         type: mongoose.Schema.Types.ObjectId,
-        ref: "Admin" // Assuming you have an Admin model
+        ref: "Admin" 
     }
-}, { timestamps: true }); // Automatically handles createdAt and updatedAt
+}, { timestamps: true }); 
 
 export default mongoose.model("Product", productSchema);

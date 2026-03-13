@@ -110,10 +110,9 @@ router.delete('/attributes/:id', checkAdminSession, deleteAttributeSubmit);
 router.get('/products', checkAdminSession, preventCache, getProductsPage);
 // Add Product Page
 router.get('/products/new', checkAdminSession, preventCache, getAddProductPage);
-// RESTful: Fetch dynamic attributes when category is selected
+// Fetch dynamic attributes when category is selected
 router.get('/category/:id/attributes', checkAdminSession, getCategoryAttributes);
 
-// NEW: Catch the POST request. 
 // We use `.any()` because the field names are dynamic (variant_images_0, variant_images_1, etc.)
 router.post('/products', checkAdminSession, uploadProduct.any(), createProduct);
 
