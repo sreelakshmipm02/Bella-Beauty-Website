@@ -66,7 +66,8 @@ router.post("/reset-password/:token", resetPasswordSubmit);
 // ==========================================
 // Protected Account & Profile Routes
 // ==========================================
-router.get('/account', checkUserSession, preventCache, userAccount);
+// preventCache now correctly fires before checkUserSession
+router.get('/account', preventCache, checkUserSession, userAccount);
 
 // RESTful: PUT /profile updates the user's profile resource
 router.put('/profile', checkUserSession, uploadUser.single('profileImage'), updateProfile);
@@ -78,7 +79,8 @@ router.put('/email', checkUserSession, verifyEmailUpdate);
 // ==========================================
 // RESTful Address Management Routes
 // ==========================================
-router.get('/address', checkUserSession, preventCache, addressPage);
+// preventCache now correctly fires before checkUserSession
+router.get('/address', preventCache, checkUserSession, addressPage);
 
 // Create new address
 router.post('/address', checkUserSession, addAddress);
@@ -98,7 +100,8 @@ router.patch('/address/:addressId/default', checkUserSession, setAsDefault);
 // ==========================================
 // Protected Password Management
 // ==========================================
-router.get('/password', checkUserSession, preventCache, passwordPage);
+// preventCache now correctly fires before checkUserSession
+router.get('/password', preventCache, checkUserSession, passwordPage);
 
 // Update password
 router.put('/password', checkUserSession, updatePassword);

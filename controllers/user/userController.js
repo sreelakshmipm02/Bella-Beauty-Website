@@ -2,11 +2,14 @@ import {
     sendSignupOtp,
     verifySignupOtpService,
     resendOtpService
-
 } from "../../services/userServices/userSignup.js";
+
 import { createUser } from "../../services/userServices/createUser.js";
+
 import { loginUser } from "../../services/userServices/userLogin.js";
+
 import { getUserData } from "../../services/userServices/userAccount.js";
+
 import {
     getUserAddresses,
     addNewAddress,
@@ -15,20 +18,18 @@ import {
     deleteAddress,
     setAddressAsDefault
 } from "../../services/userServices/userAddress.js";
+
 import {
     updateUserProfile,
     requestEmailUpdateOtp,
     completeEmailUpdate
 } from "../../services/userServices/editProfile.js";
-//----------------------------------------------------------------------
-import { generateResetToken, resetUserPassword, changeUserPassword } from "../../services/userServices/userPassword.js";
 
-//home page (index+home)
-export const homePage = (req, res) => {
-    const isLoggedIn = !!req.session.userId;
-
-    res.render("user/home", { title: "Bella Beauty", isLoggedIn });
-};
+import {
+    generateResetToken,
+    resetUserPassword,
+    changeUserPassword
+} from "../../services/userServices/userPassword.js";
 
 //----------------------------------------------------------------------
 //get signup page
@@ -243,22 +244,22 @@ export const setAsDefault = async (req, res) => {
 
 //----------------------------------------------------------------------
 //render password management page
-export const passwordPage = async (req,res) => {
+export const passwordPage = async (req, res) => {
     try {
         const userId = req.session.userId;
         const user = await getUserData(userId);
         res.render('user/password', {
-            title : "Manage Password", 
-            user : user
+            title: "Manage Password",
+            user: user
         });
     } catch (error) {
-        console.error("Password Page Error : ",error);
+        console.error("Password Page Error : ", error);
         res.redirect("/account");
     }
 };
 
 //handle password update submission
-export const updatePassword = async (req,res) => {
+export const updatePassword = async (req, res) => {
     try {
         const { currentPassword, newPassword } = req.body;
         await changeUserPassword(req.session.userId, currentPassword, newPassword);
@@ -268,9 +269,9 @@ export const updatePassword = async (req,res) => {
             message: "Password updated successfully!"
         });
     } catch (error) {
-        res.status(400).json({ 
-            success : false,
-            message : error.message
+        res.status(400).json({
+            success: false,
+            message: error.message
         });
     }
 };
@@ -279,10 +280,10 @@ export const updatePassword = async (req,res) => {
 export const forgotPasswordLoggedIn = async (req, res) => {
     try {
         // 1. Get the user's email using their session ID
-        const user = await getUserData(req.session.userId); 
-        
+        const user = await getUserData(req.session.userId);
+
         // 2. Re-use your existing service to send the email link
-        await generateResetToken(user.email); 
+        await generateResetToken(user.email);
 
         // 3. Destroy session for security 
         req.session.destroy((err) => {
