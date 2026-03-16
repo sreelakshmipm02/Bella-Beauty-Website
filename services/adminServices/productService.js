@@ -75,7 +75,7 @@ export const toggleProductStatusById = async (productId) => {
 
 // Handles the complex process of creating a parent Product and tying multiple child Variants to it.
 export const createNewProduct = async (productData, variantsData, files) => {
-    const { name, brand, categoryId, description } = productData;
+    const { name, brand, categoryId, description, productType } = productData;
     
     // Automatically generate a clean, URL-friendly slug (e.g., "radiant-glow-serum")
     const slug = name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, '');
@@ -83,7 +83,7 @@ export const createNewProduct = async (productData, variantsData, files) => {
 
     // 1. Save the foundational Base Product first so we get an _id to link the variants to
     const newProduct = new Product({
-        name, brand, description: finalDescription, categoryId, slug, status: "active"
+        name, brand, productType, description: finalDescription, categoryId, slug, status: "active"
     });
     const savedProduct = await newProduct.save();
 
@@ -122,7 +122,7 @@ export const getProductDataForEdit = async (productId) => {
 // This is the heaviest function in the file. It reconciles the differences between 
 // what is currently in the database and what the admin just submitted in the Edit form.
 export const updateExistingProduct = async (productId, productData, variantsData, files) => {
-    const { name, brand, description } = productData;
+    const { name, brand, description, productType } = productData;
     
     const finalDescription = description.trim() === '' ? undefined : description;
     
@@ -131,7 +131,7 @@ export const updateExistingProduct = async (productId, productData, variantsData
 
     // 1. Apply the text updates to the Base Product
     await Product.findByIdAndUpdate(productId, {
-        name, slug, brand, description: finalDescription
+        name, slug, brand, productType, description: finalDescription
     });
 
     // We keep a running list of the variants the admin kept or added. 

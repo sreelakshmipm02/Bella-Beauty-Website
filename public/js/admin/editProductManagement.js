@@ -1,5 +1,6 @@
 // ==============================================================================
 // EDIT PRODUCT MANAGEMENT JS (RESTful API) - WITH FULL SYNCED UI & CHECKBOXES
+// Integrates "Warn & Wipe" logic to protect database integrity!
 // ==============================================================================
 
 // --- 1. GRAB SERVER DATA FROM HIDDEN HTML ELEMENTS ---
@@ -8,7 +9,9 @@ const serverCategoryIdEl = document.getElementById('serverCategoryId');
 const serverVariantsDataEl = document.getElementById('serverVariantsData');
 
 const PRODUCT_ID = serverProductIdEl ? serverProductIdEl.value : '';
-const CATEGORY_ID = serverCategoryIdEl ? serverCategoryIdEl.value : '';
+
+// ✅ CRITICAL FIX: Track the original category ID to detect changes!
+const originalCategoryIdTracker = serverCategoryIdEl ? serverCategoryIdEl.value : ''; 
 
 let queuedVariantsArray = [];
 
@@ -17,19 +20,6 @@ let croppedImagesArray = [];
 let tempOldImages = []; // Old Cloudinary URLs
 let editingVariantIndex = -1; // -1 means NEW variant
 let cropperInstance = null;
-let categoryAttributeCache = {};
-
-// --- INITIALIZE DATA SAFELY ---
-document.addEventListener('DOMContentLoaded', () => {
-    if (serverVariantsDataEl && serverVariantsDataEl.value) {
-        try {
-            queuedVariantsArray = JSON.parse(serverVariantsDataEl.value);
-        } catch (error) {
-            console.error("Failed to parse variants JSON:", error);
-        }
-    }
-    renderVariantQueueUI();
-});
 
 // --- DOM ELEMENTS ---
 const mainForm = document.getElementById('editProductMainForm');
@@ -46,8 +36,129 @@ const croppedPreviews = document.getElementById('croppedPreviews');
 const cropperModal = document.getElementById('cropperModal');
 const imageToCrop = document.getElementById('imageToCrop');
 
+const categorySelect = document.getElementById('productCategory');
+const productTypeContainer = document.getElementById('dynamicProductTypeContainer');
+
+// Pre-fill the product type based on server data (injected via EJS)
+const existingProductType = typeof serverProductType !== "undefined" ? serverProductType : "";
+
+// --- INITIALIZE DATA SAFELY ---
+document.addEventListener('DOMContentLoaded', () => {
+    if (serverVariantsDataEl && serverVariantsDataEl.value) {
+        try {
+            queuedVariantsArray = JSON.parse(serverVariantsDataEl.value);
+        } catch (error) {
+            console.error("Failed to parse variants JSON:", error);
+        }
+    }
+    renderVariantQueueUI();
+    
+    // Fire the attribute fetcher on page load to populate the "Product Type" on the main edit form
+    if (categorySelect.value) {
+        fetchAndRenderAttributes(categorySelect.value);
+    }
+});
+
 // ==========================================
-// 1. MODAL OPEN/CLOSE & ATTRIBUTE LOGIC
+// 1. FETCH DYNAMIC ATTRIBUTES & "WARN & WIPE" LOGIC
+// ==========================================
+
+// ✅ CRITICAL FIX: The Warn & Wipe Logic!
+categorySelect.addEventListener('change', async function(e) {
+    const newCategoryId = this.value;
+
+    if (queuedVariantsArray.length > 0) {
+        const result = await Swal.fire({
+            title: 'Change Category?',
+            text: 'Changing the category will permanently delete ALL existing variants from this page. You will have to recreate them. Are you sure?',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            cancelButtonColor: '#64748b',
+            confirmButtonText: 'Yes, wipe variants'
+        });
+
+        if (result.isConfirmed) {
+            // Wipe the array and UI
+            queuedVariantsArray = [];
+            renderVariantQueueUI();
+            
+            // Fetch the new attributes!
+            await fetchAndRenderAttributes(newCategoryId);
+            
+            Swal.fire('Variants Removed', 'Please click "Add New Variant" to set up variants for the new category.', 'info');
+        } else {
+            // They cancelled. Silently revert the dropdown back!
+            this.value = originalCategoryIdTracker; 
+        }
+    } else {
+        // No variants to wipe, just fetch safely
+        await fetchAndRenderAttributes(newCategoryId);
+    }
+});
+
+async function fetchAndRenderAttributes(categoryId) {
+    if (!categoryId) {
+        productTypeContainer.innerHTML = '';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/category/${categoryId}/attributes`);
+        const data = await response.json();
+
+        if (data.success) {
+            // MAGIC: Find the "Product Type" attribute
+            const productTypeAttr = data.attributes.find(attr => 
+                attr.displayLabel.toLowerCase().includes('product type') || 
+                attr.internalName.toLowerCase().includes('product type')
+            );
+            
+            // ✅ CRITICAL FIX: Save Variant Attributes Globally (Filtering out Product Type)
+            window.currentVariantAttributes = data.attributes.filter(attr => 
+                attr._id !== (productTypeAttr ? productTypeAttr._id : null)
+            );
+
+            // Render the Product Type dropdown on the main page
+            if (productTypeAttr) {
+                renderProductTypeDropdown(productTypeAttr);
+            } else {
+                productTypeContainer.innerHTML = ''; 
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching attributes:", error);
+    }
+}
+
+function renderProductTypeDropdown(attribute) {
+    // Generate the <option> tags from the attribute's possibleValues array
+    let optionsHtml = `<option value="">Select ${attribute.displayLabel}</option>`;
+    
+    // We get the existing product type from the EJS template string (defined globally or in hidden field)
+    // To make this bulletproof in JS files, you should pass it via a hidden input in editProduct.ejs, 
+    // e.g., <input type="hidden" id="serverProductType" value="<%= product.productType %>">
+    const hiddenTypeEl = document.getElementById('serverProductType');
+    const dbProductType = hiddenTypeEl ? hiddenTypeEl.value : '';
+
+    attribute.possibleValues.forEach(val => {
+        const isSelected = (val === dbProductType) ? 'selected' : '';
+        optionsHtml += `<option value="${val}" ${isSelected}>${val}</option>`;
+    });
+
+    // Inject into the page
+    productTypeContainer.innerHTML = `
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            ${attribute.displayLabel} *
+        </label>
+        <select name="productType" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors">
+            ${optionsHtml}
+        </select>
+    `;
+}
+
+// ==========================================
+// 2. MODAL LOGIC
 // ==========================================
 
 // Click "Add New Variant"
@@ -59,15 +170,18 @@ document.getElementById('openVariantModalBtn').addEventListener('click', async f
         return Swal.fire({ icon: 'warning', title: 'Hold on!', text: 'Please enter the Product Name and Brand before adding variants.', confirmButtonColor: '#e83e8c' });
     }
 
-    // CRITICAL FIX: Reset everything for a brand new variant!
+    // Reset everything for a brand new variant!
     editingVariantIndex = -1;
     tempOldImages = [];
     croppedImagesArray = [];
     tempVariantForm.reset();
 
-    await loadAndRenderAttributes();
+    if (!window.currentVariantAttributes) {
+        await fetchAndRenderAttributes(categorySelect.value);
+    }
+    renderDynamicAttributes(window.currentVariantAttributes);
+    
     generateSmartSKU();
-
     renderImagePreviews();
     openVariantModal();
 });
@@ -77,7 +191,10 @@ window.editVariantInQueue = async function (index) {
     editingVariantIndex = index;
     const variant = queuedVariantsArray[index];
 
-    await loadAndRenderAttributes();
+    if (!window.currentVariantAttributes) {
+        await fetchAndRenderAttributes(categorySelect.value);
+    }
+    renderDynamicAttributes(window.currentVariantAttributes);
 
     tempVariantForm.querySelector('[name="sku"]').value = variant.sku;
     tempVariantForm.querySelector('[name="price"]').value = variant.price;
@@ -112,24 +229,6 @@ window.editVariantInQueue = async function (index) {
     openVariantModal();
 };
 
-async function loadAndRenderAttributes() {
-    let attributes = categoryAttributeCache[CATEGORY_ID];
-    if (!attributes) {
-        try {
-            const response = await fetch(`/admin/category/${CATEGORY_ID}/attributes`);
-            const data = await response.json();
-            if (data.success) {
-                attributes = data.attributes;
-                categoryAttributeCache[CATEGORY_ID] = attributes;
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Failed to fetch category attributes.', 'error');
-            return;
-        }
-    }
-    renderDynamicAttributes(attributes);
-}
-
 function renderDynamicAttributes(attributes) {
     dynamicAttributesGrid.innerHTML = '';
 
@@ -142,7 +241,6 @@ function renderDynamicAttributes(attributes) {
         let inputHtml = '';
 
         if (attr.dataType === 'array') {
-            // Render Checkboxes for MULTIPLE selections
             let checkboxes = attr.possibleValues.map(val => `
                 <label class="inline-flex items-center mr-4 mb-2 cursor-pointer group">
                     <input type="checkbox" name="attr_${attr._id}" value="${val}" class="w-4 h-4 text-blue-600 bg-white border-slate-300 rounded focus:ring-blue-500 transition-colors">
@@ -150,7 +248,6 @@ function renderDynamicAttributes(attributes) {
                 </label>
             `).join('');
 
-            // Append explicit "N/A" checkbox at the end
             checkboxes += `
                 <label class="inline-flex items-center mr-4 mb-2 cursor-pointer group">
                     <input type="checkbox" name="attr_${attr._id}" value="N/A" class="w-4 h-4 text-slate-400 bg-white border-slate-300 rounded focus:ring-slate-500 transition-colors">
@@ -164,7 +261,6 @@ function renderDynamicAttributes(attributes) {
                 </div>`;
 
         } else if (attr.dataType === 'enum') {
-            // Dropdown for SINGLE selection
             const options = attr.possibleValues.map(val => `<option value="${val}">${val}</option>`).join('');
             const naOption = `<option value="N/A" class="italic text-slate-500">N/A (Not Applicable)</option>`;
             inputHtml = `
@@ -174,7 +270,6 @@ function renderDynamicAttributes(attributes) {
                 </select>
             `;
         } else {
-            // Standard Text/Number inputs
             const isNumber = attr.dataType === 'number';
             const placeholderText = isNumber ? `Enter ${attr.displayLabel || attr.name} (Type 0 if N/A)` : `Enter ${attr.displayLabel || attr.name} (Type N/A)`;
             inputHtml = `
@@ -222,12 +317,12 @@ document.querySelectorAll('.closeVariantModal').forEach(el => el.addEventListene
         tempVariantForm.reset();
         dynamicAttributesGrid.innerHTML = '';
         multiImageInput.value = '';
-        editingVariantIndex = -1; // CRITICAL: Reset state on close
+        editingVariantIndex = -1; // Reset state on close
     }, 300);
 }));
 
 // ==========================================
-// 2. IMAGE CROPPER LOGIC
+// 3. IMAGE CROPPER LOGIC
 // ==========================================
 addImageBtn.addEventListener('click', () => multiImageInput.click());
 
@@ -284,7 +379,7 @@ window.removeTempImage = function (index) { croppedImagesArray.splice(index, 1);
 window.removeOldTempImage = function (index) { tempOldImages.splice(index, 1); renderImagePreviews(); }
 
 // ==========================================
-// 3. SAVE VARIANT TO QUEUE
+// 4. SAVE VARIANT TO QUEUE
 // ==========================================
 document.getElementById('saveVariantToQueueBtn').addEventListener('click', function () {
     document.querySelectorAll('.error-border').forEach(el => el.classList.remove('border-red-500', 'error-border'));
@@ -366,18 +461,9 @@ document.getElementById('saveVariantToQueueBtn').addEventListener('click', funct
     document.querySelector('.closeVariantModal').click();
 });
 
-// ==========================================
-// RENDER UI (Responsive, Narrow-Screen Friendly Layout)
-// ==========================================
 function renderVariantQueueUI() {
     queuedVariantsList.innerHTML = '';
-
-    if (queuedVariantsArray.length === 0) {
-        queuedVariantsList.appendChild(emptyVariantsMsg);
-        emptyVariantsMsg.classList.remove('hidden');
-        return;
-    }
-
+    if (queuedVariantsArray.length === 0) { emptyVariantsMsg.classList.remove('hidden'); queuedVariantsList.appendChild(emptyVariantsMsg); return; }
     emptyVariantsMsg.classList.add('hidden');
 
     queuedVariantsArray.forEach((variant, index) => {
@@ -389,58 +475,26 @@ function renderVariantQueueUI() {
         }
 
         const stockNum = parseInt(variant.stock) || 0;
-        let stockText = '';
-        let stockClasses = '';
+        let stockText = stockNum === 0 ? 'Out of Stock' : (stockNum <= 10 ? 'Low Stock' : 'In Stock');
+        let stockClasses = stockNum === 0 ? 'text-red-700 bg-red-50' : (stockNum <= 10 ? 'text-amber-700 bg-amber-50' : 'text-green-700 bg-green-50');
 
-        if (stockNum === 0) {
-            stockText = 'Out of Stock';
-            stockClasses = 'text-red-700 dark:text-red-400 bg-red-50 dark:bg-red-900/30';
-        } else if (stockNum <= 10) {
-            stockText = 'Low Stock';
-            stockClasses = 'text-amber-700 dark:text-amber-400 bg-amber-50 dark:bg-amber-900/30';
-        } else {
-            stockText = 'In Stock';
-            stockClasses = 'text-green-700 dark:text-green-400 bg-green-50 dark:bg-green-900/30';
-        }
-
-        // Stacked Details to prevent squishing
         const cardHtml = `
-            <div class="variant-queue-card flex items-center gap-3 p-3 rounded-xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm hover:shadow-md transition-all group">
-                
-                <img src="${firstImgUrl}" class="w-14 h-14 rounded-lg object-cover border border-slate-100 dark:border-slate-700 flex-shrink-0">
-                
+            <div class="variant-queue-card flex items-center gap-3 p-3 rounded-xl border border-slate-200 bg-white shadow-sm group">
+                <img src="${firstImgUrl}" class="w-14 h-14 rounded-lg object-cover border border-slate-100 flex-shrink-0">
                 <div class="flex flex-col flex-grow min-w-0">
-                    <div class="font-bold text-slate-800 dark:text-white text-sm truncate uppercase" title="${variant.sku}">
-                        ${variant.sku}
-                    </div>
-                    
-                    <div class="text-slate-600 dark:text-slate-400 font-medium text-sm mt-0.5 mb-1.5">
-                        ₹${parseFloat(variant.price).toFixed(2)}
-                    </div>
-                    
-                    <div class="${stockClasses} font-semibold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider w-max">
-                        ${stockNum} - ${stockText}
-                    </div>
+                    <div class="font-bold text-slate-800 text-sm truncate uppercase">${variant.sku}</div>
+                    <div class="text-slate-600 font-medium text-sm mt-0.5 mb-1.5">₹${parseFloat(variant.price).toFixed(2)}</div>
+                    <div class="${stockClasses} font-semibold px-2 py-0.5 rounded text-[10px] uppercase tracking-wider w-max">${stockNum} - ${stockText}</div>
                 </div>
-                
                 <div class="flex flex-col gap-2 flex-shrink-0">
-                    <button type="button" onclick="editVariantInQueue(${index})" class="text-blue-600 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-md transition-colors flex items-center justify-center" title="Edit Variant">
-                        <span class="material-icons-outlined text-[16px]">edit</span>
-                    </button>
-                    <button type="button" onclick="removeVariantFromQueue(${index})" class="text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-md transition-colors flex items-center justify-center" title="Delete Variant">
-                        <span class="material-icons-outlined text-[16px]">delete</span>
-                    </button>
+                    <button type="button" onclick="editVariantInQueue(${index})" class="text-blue-600 bg-blue-50 hover:bg-blue-100 p-1.5 rounded-md"><span class="material-icons-outlined text-[16px]">edit</span></button>
+                    <button type="button" onclick="removeVariantFromQueue(${index})" class="text-red-600 bg-red-50 hover:bg-red-100 p-1.5 rounded-md"><span class="material-icons-outlined text-[16px]">delete</span></button>
                 </div>
-            </div>
-        `;
+            </div>`;
         queuedVariantsList.insertAdjacentHTML('beforeend', cardHtml);
     });
 }
-
-window.removeVariantFromQueue = function (index) {
-    queuedVariantsArray.splice(index, 1);
-    renderVariantQueueUI();
-}
+window.removeVariantFromQueue = function (index) { queuedVariantsArray.splice(index, 1); renderVariantQueueUI(); }
 
 // ==========================================
 // 5. FINAL UPDATE SUBMIT (PUT REQUEST)
@@ -459,6 +513,9 @@ mainForm.addEventListener('submit', async function (e) {
     const brandVal = brandInput.value.trim();
     const descVal = descInput ? descInput.value.trim() : '';
 
+    // ✅ NEW: Look for the dynamically generated Product Type dropdown
+    const productTypeSelect = document.querySelector('select[name="productType"]');
+
     if (nameVal.replace(/[^a-zA-Z0-9]/g, '').length < 3) {
         nameInput.classList.add('border-red-500', 'error-border');
         errorMessage += '• Name needs at least 3 valid chars.<br>';
@@ -476,6 +533,18 @@ mainForm.addEventListener('submit', async function (e) {
         errorMessage += '• If provided, the Description must contain at least 10 valid characters.<br>';
         isValid = false;
     }
+
+    // ✅ NEW: Strict validation for Product Type
+    if (productTypeSelect && !productTypeSelect.value) {
+        Swal.fire({
+            icon: 'warning',
+            title: 'Product Type Required',
+            text: 'Please select a Product Type from the dropdown.',
+            confirmButtonColor: '#e83e8c'
+        });
+        return;
+    }
+
 
     if (queuedVariantsArray.length === 0) {
         errorMessage += '• Need at least one variant.<br>';

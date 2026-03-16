@@ -12,7 +12,7 @@ import mongoose from "mongoose";
 // Instead of making multiple database calls, we dynamically build a single MongoDB 
 // Aggregation Pipeline based on whatever filters the user clicked on the frontend.
 export const getShopData = async (queryFilters, skip, limit) => {
-    const { search, category, brand, sort, minPrice, maxPrice } = queryFilters;
+    const { search, category, brand, productType, sort, minPrice, maxPrice } = queryFilters;
     let pipeline = [];
 
     // Rule 1: Never show a product if an admin has marked it as 'inactive'.
@@ -39,6 +39,15 @@ export const getShopData = async (queryFilters, skip, limit) => {
 
     if (brand) {
         pipeline.push({ $match: { brand: brand } });
+    }
+
+    //Filter by Product Type (Supports single string or array of checkboxes)
+    if (productType) {
+        if (Array.isArray(productType)) {
+            pipeline.push({ $match: { productType: { $in: productType } } });
+        } else {
+            pipeline.push({ $match: { productType: productType } });
+        }
     }
 
     // If the user typed something into the search bar, look for partial matches 
@@ -135,6 +144,11 @@ export const getActiveBrands = async () => {
     return await Product.distinct('brand', { status: 'active' });
 };
 
+//Fetch active product types for the sidebar
+export const getActiveProductTypes = async () => {
+    const types = await Product.distinct('productType', { status: 'active' });
+    return types.filter(type => type != null && type.trim() !== '');
+};
 
 // ==========================================
 // PRODUCT DETAIL PAGE (PDP) SERVICES

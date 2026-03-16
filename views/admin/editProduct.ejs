@@ -57,8 +57,8 @@
                         <div>
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Category
                                 *</label>
-                            <select id="productCategory" name="categoryId" required disabled
-                                class="w-full bg-slate-100 border border-slate-300 text-slate-500 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 transition-colors cursor-not-allowed">
+                            <select id="productCategory" name="categoryId" required 
+                                class="w-full bg-slate-100 border border-slate-300 text-slate-500 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-400 transition-colors">
                                 <% categories.forEach(cat=> { %>
                                     <option value="<%= cat._id %>" <%=product.categoryId.toString()===cat._id.toString()
                                         ? 'selected' : '' %>>
@@ -66,7 +66,9 @@
                                     </option>
                                     <% }) %>
                             </select>
-                            <p class="text-xs text-slate-500 mt-1">Category cannot be changed after creation.</p>
+                        </div>
+                        <div id="dynamicProductTypeContainer">
+                            <input type="hidden" id="serverProductType" value="<%= product.productType %>">
                         </div>
 
                         <div class="md:col-span-2">

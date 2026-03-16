@@ -31,11 +31,16 @@
                 </div>
 
                 <div class="flex gap-4 overflow-x-auto pb-2" id="thumbnailContainer">
-                    </div>
+                </div>
             </div>
 
             <div class="w-full lg:w-1/2 flex flex-col">
                 <p class="text-sm text-gray-500 uppercase tracking-widest font-semibold mb-2"><%= product.brand %></p>
+                
+                <p class="text-sm text-primary font-semibold tracking-wide uppercase mb-1">
+                    <%= product.productType || 'Beauty' %> 
+                </p>
+
                 <h1 class="text-3xl md:text-4xl font-display font-bold text-gray-900 mb-4"><%= product.name %></h1>
                 
                 <div class="flex items-center gap-4 mb-6">
@@ -60,20 +65,14 @@
                     <div class="flex flex-wrap gap-3" id="variantButtonsContainer">
                         <% variants.forEach((variant, index) => { %>
                             <% 
-                                // 1. Filter out any attribute that has a value of "N/A"
                                 let validAttributes = variant.attributes.filter(a => a.value && a.value.toUpperCase() !== 'N/A');
-                                
-                                // 2. Join the remaining valid attributes (e.g., "Red - Large")
                                 let label = validAttributes.map(a => a.value).join(' - ');
-                                
-                                // 3. If ALL attributes were N/A, fallback to showing the SKU so the button isn't blank
                                 if (!label || label.trim() === '') {
-                                    label = variant.sku; 
+                                    label = variant.sku;
                                 }
                             %>
                             <button onclick="selectVariant(<%= index %>)" id="variantBtn_<%= index %>"
-                                class="variant-btn border-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 
-                                <%= index === 0 ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-700 hover:border-gray-400' %>">
+                                class="variant-btn border-2 px-5 py-2.5 rounded-lg font-medium transition-all duration-200 <%= index === 0 ? 'border-primary bg-primary/5 text-primary' : 'border-gray-200 text-gray-700 hover:border-gray-400' %>">
                                 <%= label %>
                             </button>
                         <% }) %>
@@ -145,9 +144,6 @@
 </script>
 
 <script>
-    // ==========================================
-    // DYNAMIC VARIANT SWITCHER LOGIC
-    // ==========================================
     const mainImage = document.getElementById('mainImage');
     const thumbnailContainer = document.getElementById('thumbnailContainer');
     const productPrice = document.getElementById('productPrice');
@@ -155,11 +151,11 @@
     const stockBadge = document.getElementById('stockBadge');
     
     let currentVariantIndex = 0;
-
+    
     function selectVariant(index) {
         currentVariantIndex = index;
         const variant = variantsData[index];
-
+        
         // 1. Update Buttons Styling
         document.querySelectorAll('.variant-btn').forEach((btn, i) => {
             if (i === index) {
@@ -172,11 +168,11 @@
                 btn.classList.remove('bg-primary/5');
             }
         });
-
+        
         // 2. Update Price
         productPrice.innerText = `₹${variant.price.toFixed(2)}`;
-
-        // 3. Update Stock Status (Error Handling Constraint)
+        
+        // 3. Update Stock Status
         if (variant.stock <= 0) {
             addToCartBtn.disabled = true;
             addToCartBtn.innerHTML = '<span class="material-icons-outlined">remove_shopping_cart</span> Out of Stock';
@@ -199,17 +195,14 @@
 
         // 4. Update Images & Thumbnails
         mainImage.src = variant.images[0];
-        
         thumbnailContainer.innerHTML = '';
         variant.images.forEach((imgUrl, imgIndex) => {
             const thumb = document.createElement('button');
             thumb.className = `w-20 h-20 rounded-xl overflow-hidden border-2 shrink-0 transition-all ${imgIndex === 0 ? 'border-gray-900' : 'border-transparent hover:border-gray-300'}`;
             thumb.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover">`;
             
-            // Swap main image on thumbnail click
             thumb.onclick = () => {
                 mainImage.src = imgUrl;
-                // Update active border
                 Array.from(thumbnailContainer.children).forEach(c => c.classList.replace('border-gray-900', 'border-transparent'));
                 thumb.classList.replace('border-transparent', 'border-gray-900');
             };
@@ -217,28 +210,21 @@
         });
     }
 
-    // Initialize first variant on page load
     selectVariant(0);
-
-    // ==========================================
-    // ZOOMABLE IMAGE SCRIPT (Constraint i)
-    // ==========================================
+    
     function zoomImage(e) {
         const container = e.currentTarget;
         const img = container.querySelector('img');
         
-        // Don't zoom if out of stock
         if(variantsData[currentVariantIndex].stock <= 0) return; 
 
         const { left, top, width, height } = container.getBoundingClientRect();
         
-        // Calculate mouse position relative to image
         const x = ((e.clientX - left) / width) * 100;
         const y = ((e.clientY - top) / height) * 100;
         
-        // Set origin and scale
         img.style.transformOrigin = `${x}% ${y}%`;
-        img.style.transform = 'scale(2)'; // Zoom level
+        img.style.transform = 'scale(2)';
     }
 
     function resetZoom(e) {

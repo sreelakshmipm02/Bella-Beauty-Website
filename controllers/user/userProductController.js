@@ -2,6 +2,7 @@ import {
     getShopData, 
     getActiveCategories, 
     getActiveBrands,
+    getActiveProductTypes,
     getProductBySlug,
     getCategoryById,
     getActiveVariants,
@@ -23,6 +24,7 @@ export const getShopPage = async (req, res) => {
         const { products, totalProducts } = await getShopData(req.query, skip, limit);
         const categories = await getActiveCategories();
         const brands = await getActiveBrands();
+        const productTypes = await getActiveProductTypes(); 
 
         const totalPages = Math.ceil(totalProducts / limit);
 
@@ -32,6 +34,7 @@ export const getShopPage = async (req, res) => {
             products,
             categories,
             brands,
+            productTypes,
             currentPage: page,
             totalPages,
             totalProducts,

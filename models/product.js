@@ -12,7 +12,7 @@ const productSchema = new mongoose.Schema({
     },
     brand: {
         type: String,
-        default: "Aura",
+        required : true,
         trim: true
     },
     description: {
@@ -24,6 +24,10 @@ const productSchema = new mongoose.Schema({
         type: mongoose.Schema.Types.ObjectId,
         ref: "Category",
         required: true
+    },
+    productType: {
+        type: String,
+        required: false 
     },
     status: {
         type: String,

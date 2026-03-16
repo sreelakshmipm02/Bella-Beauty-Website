@@ -1,5 +1,5 @@
 // ==============================================================================
-// PRODUCT MANAGEMENT JS (RESTful API)
+// PRODUCT MANAGEMENT JS (RESTful API) - ADD PRODUCT
 // Integrates Complex Multi-Upload, Cropping, and Dynamic Attributes
 // ==============================================================================
 
@@ -8,7 +8,6 @@ let queuedVariantsArray = [];
 let croppedImagesArray = [];
 let variantCounter = 0;
 let editingVariantIndex = -1; // -1 means we are creating a NEW variant
-
 let cropperInstance = null;
 
 // --- DOM ELEMENTS ---
@@ -30,11 +29,73 @@ const croppedPreviews = document.getElementById('croppedPreviews');
 const cropperModal = document.getElementById('cropperModal');
 const imageToCrop = document.getElementById('imageToCrop');
 
-let categoryAttributeCache = {};
-
+const productTypeContainer = document.getElementById('dynamicProductTypeContainer');
 
 // ==========================================
-// 1. MODAL ANIMATION & OPEN FLOW (RESTFUL AJAX)
+// 1. FETCH & RENDER DYNAMIC ATTRIBUTES (Main Page vs Modal)
+// ==========================================
+
+// Listen for category changes on the main page
+categorySelect.addEventListener('change', async function() {
+    await fetchAndRenderAttributes(this.value);
+});
+
+// Fetch the data
+async function fetchAndRenderAttributes(categoryId) {
+    if (!categoryId) {
+        productTypeContainer.innerHTML = '';
+        return;
+    }
+
+    try {
+        const response = await fetch(`/admin/category/${categoryId}/attributes`);
+        const data = await response.json();
+
+        if (data.success) {
+            // MAGIC: Separate the "Product Type" attribute from the "Variant" attributes
+            const productTypeAttr = data.attributes.find(attr => 
+                attr.displayLabel.toLowerCase().includes('product type') || 
+                attr.internalName.toLowerCase().includes('product type')
+            );
+            
+            // ✅ CRITICAL FIX: Save the remaining attributes globally so the Modal ONLY sees these!
+            window.currentVariantAttributes = data.attributes.filter(attr => 
+                attr._id !== (productTypeAttr ? productTypeAttr._id : null)
+            );
+
+            // Render the Product Type dropdown on the main page
+            if (productTypeAttr) {
+                renderProductTypeDropdown(productTypeAttr);
+            } else {
+                productTypeContainer.innerHTML = ''; // Clear if this category has no "Type" attribute
+            }
+        }
+    } catch (error) {
+        console.error("Error fetching attributes:", error);
+    }
+}
+
+// Build the HTML dropdown dynamically
+function renderProductTypeDropdown(attribute) {
+    let optionsHtml = `<option value="">Select ${attribute.displayLabel}</option>`;
+    
+    attribute.possibleValues.forEach(val => {
+        optionsHtml += `<option value="${val}">${val}</option>`;
+    });
+
+    // Inject into the page
+    productTypeContainer.innerHTML = `
+        <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+            ${attribute.displayLabel} *
+        </label>
+        <select name="productType" required class="w-full bg-slate-50 border border-slate-300 text-slate-900 rounded-lg focus:ring-primary focus:border-primary block p-2.5 dark:bg-slate-800 dark:border-slate-600 dark:text-white transition-colors">
+            ${optionsHtml}
+        </select>
+    `;
+}
+
+// ==========================================
+// 2. MODAL ANIMATION & OPEN FLOW 
 // ==========================================
 document.getElementById('openVariantModalBtn').addEventListener('click', async function () {
     const categoryId = categorySelect.value;
@@ -51,34 +112,20 @@ document.getElementById('openVariantModalBtn').addEventListener('click', async f
         return;
     }
 
-    let attributes = [];
-    if (categoryAttributeCache[categoryId]) {
-        attributes = categoryAttributeCache[categoryId];
-    } else {
+    // Use the globally saved attributes that EXCLUDE the Product Type!
+    if (!window.currentVariantAttributes) {
         this.innerHTML = '<span class="material-icons-outlined animate-spin mr-1">progress_activity</span> Loading...';
         this.disabled = true;
-
-        try {
-            const response = await fetch(`/admin/category/${categoryId}/attributes`);
-            const data = await response.json();
-            if (data.success) {
-                attributes = data.attributes;
-                categoryAttributeCache[categoryId] = attributes;
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Failed to fetch category attributes.', 'error');
-            return;
-        } finally {
-            this.innerHTML = '<span class="material-icons-outlined text-sm">add</span> Add New Variant';
-            this.disabled = false;
-        }
+        await fetchAndRenderAttributes(categoryId);
+        this.innerHTML = '<span class="material-icons-outlined text-sm">add</span> Add New Variant';
+        this.disabled = false;
     }
 
-    renderDynamicAttributes(attributes);
+    renderDynamicAttributes(window.currentVariantAttributes);
     openVariantModal();
 });
 
-// Build HTML inputs based on Eraser.io Attribute datatypes
+// Build HTML inputs for the MODAL based on Attribute datatypes
 function renderDynamicAttributes(attributes) {
     dynamicAttributesGrid.innerHTML = '';
 
@@ -175,7 +222,7 @@ document.querySelectorAll('.closeVariantModal').forEach(el => {
 
 
 // ==========================================
-// 2. MULTI-IMAGE CROPPER FLOW
+// 3. MULTI-IMAGE CROPPER FLOW
 // ==========================================
 addImageBtn.addEventListener('click', () => multiImageInput.click());
 
@@ -256,9 +303,8 @@ window.removeTempImage = function (index) {
     renderImagePreviews();
 }
 
-
 // ==========================================
-// 3. QUEUE VARIANT (Save to JS Array) - WITH VALIDATION
+// 4. QUEUE VARIANT (Save to JS Array) - WITH VALIDATION
 // ==========================================
 document.getElementById('saveVariantToQueueBtn').addEventListener('click', function () {
     document.querySelectorAll('.error-border').forEach(el => el.classList.remove('border-red-500', 'error-border'));
@@ -351,7 +397,7 @@ document.getElementById('saveVariantToQueueBtn').addEventListener('click', funct
         });
     }
 
-    // --- 4. BUILD FINAL DATA & SAVE ---
+    // --- BUILD FINAL DATA & SAVE ---
     const formData = new FormData(tempVariantForm);
     const variantData = { attributes: attributesMap, imageFiles: [...croppedImagesArray] };
 
@@ -373,11 +419,11 @@ document.getElementById('saveVariantToQueueBtn').addEventListener('click', funct
     }
 
     renderVariantQueueUI();
-    document.querySelector('.closeVariantModal').click();
+    closeVariantModal();
 });
 
 // ==========================================
-// RENDER UI (Responsive, Narrow-Screen Friendly Layout)
+// RENDER UI (Responsive Layout)
 // ==========================================
 function renderVariantQueueUI() {
     queuedVariantsList.innerHTML = '';
@@ -457,22 +503,10 @@ window.editVariantInQueue = async function (index) {
     const variant = queuedVariantsArray[index];
     const categoryId = categorySelect.value;
 
-    let attributes = categoryAttributeCache[categoryId];
-    if (!attributes) {
-        try {
-            const response = await fetch(`/admin/category/${categoryId}/attributes`);
-            const data = await response.json();
-            if (data.success) {
-                attributes = data.attributes;
-                categoryAttributeCache[categoryId] = attributes;
-            }
-        } catch (error) {
-            Swal.fire('Error', 'Failed to fetch category attributes.', 'error');
-            return;
-        }
+    if (!window.currentVariantAttributes) {
+        await fetchAndRenderAttributes(categoryId);
     }
-
-    renderDynamicAttributes(attributes);
+    renderDynamicAttributes(window.currentVariantAttributes);
 
     tempVariantForm.querySelector('[name="sku"]').value = variant.sku;
     tempVariantForm.querySelector('[name="price"]').value = variant.price;
@@ -511,9 +545,8 @@ window.editVariantInQueue = async function (index) {
     }, 10);
 };
 
-
 // ==========================================
-// 4. FINAL SUBMIT (Standard POST Multipart)
+// 5. FINAL SUBMIT (Standard POST Multipart)
 // ==========================================
 mainForm.addEventListener('submit', async function (e) {
     e.preventDefault();
@@ -525,6 +558,7 @@ mainForm.addEventListener('submit', async function (e) {
     const brandInput = document.getElementById('productBrand');
     const categoryInput = document.getElementById('productCategory');
     const descInput = document.getElementById('productDescription');
+    const productTypeSelect = document.querySelector('select[name="productType"]');
 
     const nameVal = nameInput.value.trim();
     const brandVal = brandInput.value.trim();
@@ -552,6 +586,13 @@ mainForm.addEventListener('submit', async function (e) {
         descInput.classList.add('border-red-500', 'error-border');
         errorMessage += '• If provided, the Description must contain at least 10 valid letters or numbers.<br>';
         isValid = false;
+    }
+
+    // ✅ NEW: Final Form Validation for Product Type
+    if (productTypeSelect && !productTypeSelect.value) { 
+        productTypeSelect.classList.add('border-red-500', 'error-border'); 
+        errorMessage += '• Select a Product Type.<br>'; 
+        isValid = false; 
     }
 
     if (queuedVariantsArray.length === 0) {
