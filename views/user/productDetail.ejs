@@ -141,6 +141,8 @@
 
 <script>
     const variantsData = <%- variantsJSON %>;
+    // ✅ NEW: Store the cart items in a JavaScript array
+    const cartVariantIds = <%- cartVariantIdsJSON || '[]' %>;
 </script>
 
 <script>
@@ -172,23 +174,30 @@
         // 2. Update Price
         productPrice.innerText = `₹${variant.price.toFixed(2)}`;
         
-        // 3. Update Stock Status
+        // 3. Update Stock Status & Button State
+        const isInCart = cartVariantIds.includes(variant._id.toString());
+
         if (variant.stock <= 0) {
             addToCartBtn.disabled = true;
+            addToCartBtn.dataset.action = "outOfStock"; 
             addToCartBtn.innerHTML = '<span class="material-icons-outlined">remove_shopping_cart</span> Out of Stock';
-            addToCartBtn.classList.replace('bg-gray-900', 'bg-gray-300');
-            addToCartBtn.classList.replace('hover:bg-primary', 'hover:bg-gray-300');
-            addToCartBtn.classList.remove('text-white');
-            addToCartBtn.classList.add('text-gray-500', 'cursor-not-allowed');
+            addToCartBtn.className = "flex-1 bg-gray-300 text-gray-500 cursor-not-allowed text-lg font-bold py-4 rounded-xl transition flex justify-center items-center gap-2";
             stockBadge.classList.remove('hidden');
             mainImage.classList.add('opacity-70', 'grayscale');
-        } else {
+        } else if (isInCart) {
+            // ✅ IF ALREADY IN CART: Show Go To Cart immediately
             addToCartBtn.disabled = false;
+            addToCartBtn.dataset.action = "goToCart";
+            addToCartBtn.innerHTML = '<span class="material-icons-outlined">shopping_cart_checkout</span> Go to Cart';
+            addToCartBtn.className = "flex-1 bg-primary hover:bg-pink-700 text-white text-lg font-bold py-4 rounded-xl transition flex justify-center items-center gap-2 shadow-lg shadow-primary/30";
+            stockBadge.classList.add('hidden');
+            mainImage.classList.remove('opacity-70', 'grayscale');
+        } else {
+            // ✅ IF NOT IN CART: Show Add to Cart
+            addToCartBtn.disabled = false;
+            addToCartBtn.dataset.action = "add"; 
             addToCartBtn.innerHTML = '<span class="material-icons-outlined">shopping_bag</span> Add to Cart';
-            addToCartBtn.classList.replace('bg-gray-300', 'bg-gray-900');
-            addToCartBtn.classList.replace('hover:bg-gray-300', 'hover:bg-primary');
-            addToCartBtn.classList.remove('text-gray-500', 'cursor-not-allowed');
-            addToCartBtn.classList.add('text-white');
+            addToCartBtn.className = "flex-1 bg-gray-900 hover:bg-primary text-white text-lg font-bold py-4 rounded-xl transition flex justify-center items-center gap-2";
             stockBadge.classList.add('hidden');
             mainImage.classList.remove('opacity-70', 'grayscale');
         }
@@ -232,4 +241,89 @@
         img.style.transformOrigin = 'center center';
         img.style.transform = 'scale(1)';
     }
+// ==========================================
+    // ADD TO CART AJAX LOGIC
+    // ==========================================
+    const addToCartButton = document.getElementById('addToCartBtn');
+    
+    addToCartButton.addEventListener('click', async function() {
+        // ✅ 1. Check if the button is already in "Go to Cart" mode
+        if (this.dataset.action === "goToCart") {
+            window.location.href = '/cart';
+            return;
+        }
+
+        const selectedVariant = variantsData[currentVariantIndex];
+        if(selectedVariant.stock <= 0) return;
+
+        const originalText = this.innerHTML;
+        this.innerHTML = '<span class="material-icons-outlined animate-spin">refresh</span> Adding...';
+        this.disabled = true;
+
+        try {
+            const response = await fetch('/cart/add', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variantId: selectedVariant._id, quantity: 1 })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                // ✅ Update our local array so if they switch sizes and switch back, it remembers!
+                cartVariantIds.push(selectedVariant._id.toString());
+                // Instantly update the header badge
+                const badge = document.getElementById('cartBadge');
+                if (badge) {
+                    badge.innerText = data.cartCount;
+                    badge.classList.remove('hidden');
+                    badge.classList.add('scale-125'); 
+                    setTimeout(() => badge.classList.remove('scale-125'), 200);
+                }
+
+                // ✅ 2. Transform the button into "Go to Cart"
+                this.dataset.action = "goToCart"; // Change the mode
+                this.innerHTML = '<span class="material-icons-outlined">shopping_cart_checkout</span> Go to Cart';
+                // Change color to your primary pink to indicate success
+                this.className = "flex-1 bg-primary hover:bg-pink-700 text-white text-lg font-bold py-4 rounded-xl transition flex justify-center items-center gap-2 shadow-lg shadow-primary/30";
+                
+                // Keep it enabled so they can click it again to go to the cart page
+                this.disabled = false; 
+
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Added to Cart!',
+                    text: data.message,
+                    showConfirmButton: false,
+                    timer: 1500,
+                    position: 'top-end',
+                    toast: true
+                });
+            } else {
+                if (data.redirect) {
+                    window.location.href = data.redirect;
+                    return;
+                }
+                Swal.fire({ icon: 'error', title: 'Cannot Add Item', text: data.message });
+                // Reset button if there was a business logic error (e.g. Max 5 items reached)
+                this.innerHTML = originalText;
+                this.disabled = false;
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Network error. Please try again.', 'error');
+            this.innerHTML = originalText;
+            this.disabled = false;
+        }
+    });
+
+// ==========================================
+    // BROWSER BACK-BUTTON FIX (BFCache)
+    // ==========================================
+    window.addEventListener('pageshow', function (event) {
+        // If the page was loaded from the browser's hidden history cache
+        if (event.persisted) {
+            // Force a silent, instant reload to reset the button states
+            window.location.reload();
+        }
+    });
 </script>

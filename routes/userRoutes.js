@@ -29,11 +29,14 @@ import {
 import { googleAuthCallback } from "../controllers/user/authController.js";
 import { getHomePage } from "../controllers/user/homeController.js";
 import { getShopPage, getProductDetails } from "../controllers/user/userProductController.js";
+import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax } from "../controllers/user/cartController.js";
+import { verifyCartStockBeforeCheckout } from "../middlewares/cartMiddleware.js";
 
-import { preventCache, checkUserSession, isGuest } from "../middlewares/authMiddleware.js";
+import { preventCache, checkUserSession, checkUserSessionAjax, isGuest, injectCartCount } from "../middlewares/authMiddleware.js";
 import { uploadUser } from "../middlewares/upload.js";
 
 const router = express.Router();
+router.use(injectCartCount);
 
 // ==========================================
 // Public Web Routes
@@ -108,5 +111,14 @@ router.put('/password', checkUserSession, updatePassword);
 
 // Trigger password reset while logged in
 router.post('/password/forgot', checkUserSession, forgotPasswordLoggedIn);
+
+// ---------------week3------------------------
+// Cart Views
+router.get('/cart', checkUserSession, preventCache, getCartPage);
+
+// Cart AJAX Actions (No Refresh)
+router.post('/cart/add', checkUserSessionAjax, addToCart);
+router.patch('/cart/update', checkUserSessionAjax, updateCartAjax);
+router.delete('/cart/remove', checkUserSessionAjax, removeFromCartAjax);
 
 export default router;

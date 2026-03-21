@@ -102,13 +102,16 @@
                         <span class="material-icons-outlined text-2xl">favorite_border</span>
                     </button>
 
-                    <button
-                        class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
+                    <a href="/cart"
+                        class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group block"
                         title="Cart">
                         <span class="material-icons-outlined text-2xl">shopping_bag</span>
-                        <span
-                            class="absolute top-1 right-0.5 bg-primary text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-card-dark shadow-sm">2</span>
-                    </button>
+
+                        <span id="cartBadge"
+                            class="absolute top-1 right-0.5 bg-primary text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-card-dark shadow-sm transition-transform duration-200 <%= locals.cartItemCount > 0 ? '' : 'hidden' %>">
+                            <%= locals.cartItemCount || 0 %>
+                        </span>
+                    </a>
 
                     <a href="/account"
                         class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group"
