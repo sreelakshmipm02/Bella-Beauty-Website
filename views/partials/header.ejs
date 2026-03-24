@@ -76,19 +76,20 @@
                     <div class="hidden md:flex items-center gap-6 ml-4">
                         <a class="text-primary font-bold hover:text-primary transition" href="/">Home</a>
                         <a class="text-gray-600 dark:text-gray-300 hover:text-primary font-medium transition"
-                            href="/about_us">About Us</a>
+                            href="/shop">Shop</a>
                     </div>
                 </div>
 
                 <div class="hidden md:block flex-1 max-w-lg mx-8">
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="material-icons-outlined text-gray-400">search</span>
-                        </div>
+                    <form action="/shop" method="GET" class="relative">
+                        <button type="submit" class="absolute inset-y-0 left-0 pl-3 flex items-center z-10 cursor-pointer group">
+                            <span class="material-icons-outlined text-gray-400 group-hover:text-primary transition-colors">search</span>
+                        </button>
                         <input
+                            name="search"
                             class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-full leading-5 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition duration-150 ease-in-out"
                             placeholder="Search for products..." type="text" />
-                    </div>
+                    </form>
                 </div>
 
                 <div class="flex items-center gap-3 sm:gap-5">
@@ -125,15 +126,17 @@
         <div id="mobile-menu"
             class="hidden md:hidden bg-white dark:bg-card-dark border-t border-gray-100 dark:border-gray-800 transition-all duration-300 ease-in-out">
             <div class="px-4 pt-2 pb-6 space-y-1">
+                
                 <div class="mb-4 mt-2">
-                    <div class="relative">
-                        <div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                            <span class="material-icons-outlined text-gray-400">search</span>
-                        </div>
+                    <form action="/shop" method="GET" class="relative">
+                        <button type="submit" class="absolute inset-y-0 left-0 pl-3 flex items-center z-10 cursor-pointer group">
+                            <span class="material-icons-outlined text-gray-400 group-hover:text-primary transition-colors">search</span>
+                        </button>
                         <input
+                            name="search"
                             class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary"
                             placeholder="Search products..." type="text" />
-                    </div>
+                    </form>
                 </div>
 
                 <a href="/"

@@ -76,3 +76,24 @@ export const getUserWishlistVariantIds = async (userId) => {
     if (!wishlist) return [];
     return wishlist.items.map(item => item.productVariantId.toString());
 };
+
+// ==========================================
+// ADD TO WISHLIST SAFELY (Used when moving from cart)
+// ==========================================
+export const addToWishlistSafe = async (userId, variantId) => {
+    let wishlist = await Wishlist.findOne({ userId });
+    
+    if (!wishlist) {
+        wishlist = new Wishlist({ userId, items: [] });
+    }
+
+    const alreadyInWishlist = wishlist.items.some(item => item.productVariantId.toString() === variantId.toString());
+    
+    if (!alreadyInWishlist) {
+        wishlist.items.push({ productVariantId: variantId });
+        await wishlist.save();
+        return true; // Added successfully
+    }
+    
+    return false; // Already existed in wishlist
+};

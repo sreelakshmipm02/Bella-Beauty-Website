@@ -44,18 +44,31 @@
                                                         <%= item.productName %>
                                                     </a>
 
-                                                    <div class="text-sm text-gray-500 mt-1 flex gap-2">
+                                                    <div class="text-sm text-gray-500 mt-1 flex flex-wrap gap-2">
                                                         <% item.attributes.forEach(attr=> { %>
-                                                            <span class="bg-gray-100 px-2 py-0.5 rounded">
-                                                                <%= attr.value %>
-                                                            </span>
-                                                            <% }) %>
+                                                            <% if (attr.value && attr.value.toUpperCase() !=='N/A' ) {
+                                                                %>
+                                                                <span
+                                                                    class="bg-gray-50 border border-gray-100 px-2 py-0.5 rounded text-xs text-gray-600">
+                                                                    <%= attr.value %>
+                                                                </span>
+                                                                <% } %>
+                                                                    <% }) %>
                                                     </div>
                                                 </div>
-                                                <button onclick="removeItem('<%= item.variantId %>')"
-                                                    class="text-gray-400 hover:text-red-500 transition">
-                                                    <span class="material-icons-outlined">delete_outline</span>
-                                                </button>
+
+                                                <div class="flex items-center gap-3">
+                                                    <button onclick="moveToWishlist('<%= item.variantId %>')"
+                                                        class="text-primary hover:text-pink-700 transition"
+                                                        title="Move to Wishlist">
+                                                        <span class="material-icons-outlined">favorite_border</span>
+                                                    </button>
+                                                    <button onclick="removeItem('<%= item.variantId %>')"
+                                                        class="text-gray-400 hover:text-red-500 transition"
+                                                        title="Remove from Cart">
+                                                        <span class="material-icons-outlined">delete_outline</span>
+                                                    </button>
+                                                </div>
                                             </div>
 
                                             <div class="mt-auto flex items-center justify-between">
@@ -168,7 +181,6 @@
 
                 if (data.success) {
                     qtyInput.value = newQty;
-                    // ✅ FIXED: We are now passing the whole cart data, not just the summary
                     updateSummaryUI(data.cart);
                 } else {
                     Swal.fire('Limit Reached', data.message, 'warning');
@@ -178,6 +190,7 @@
                 Swal.fire('Error', 'Failed to update quantity', 'error');
             }
         }
+
         // 2. Remove Item
         async function removeItem(variantId) {
             const result = await Swal.fire({
@@ -188,7 +201,6 @@
                 confirmButtonColor: '#e11d48',
                 confirmButtonText: 'Yes, remove it'
             });
-
             if (result.isConfirmed) {
                 try {
                     const response = await fetch('/cart/remove', {
@@ -203,10 +215,8 @@
                         itemRow.style.transition = "all 0.3s";
                         itemRow.style.opacity = "0";
                         itemRow.style.transform = "translateX(-20px)";
-
                         setTimeout(() => {
                             itemRow.remove();
-                            // ✅ FIXED: Passing the whole cart data here too
                             updateSummaryUI(data.cart);
 
                             if (data.cart.items.length === 0) window.location.reload();
@@ -219,10 +229,41 @@
             }
         }
 
+        // ✅ MODIFICATION 3: Move Item to Wishlist AJAX
+        async function moveToWishlist(variantId) {
+            try {
+                const response = await fetch('/cart/move-to-wishlist', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ variantId })
+                });
+                const data = await response.json();
 
-        // 3. Update the sidebar numbers and itemized list safely
+                if (data.success) {
+                    Swal.fire({ icon: 'success', title: 'Moved to Wishlist!', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
+
+                    // Animate removal from cart UI
+                    const itemRow = document.querySelector(`.cart-item[data-variant-id="${variantId}"]`);
+                    itemRow.style.transition = "all 0.3s";
+                    itemRow.style.opacity = "0";
+                    itemRow.style.transform = "translateX(20px)";
+
+                    setTimeout(() => {
+                        itemRow.remove();
+                        updateSummaryUI(data.cart); // Instantly update price breakdown!
+                        if (data.cart.items.length === 0) window.location.reload();
+                    }, 300);
+                } else {
+                    Swal.fire('Error', data.message, 'error');
+                }
+            } catch (error) {
+                console.error("Move to Wishlist UI Error:", error);
+                Swal.fire('Error', 'Failed to move item', 'error');
+            }
+        }
+
+        // 4. Update the sidebar numbers and itemized list safely
         function updateSummaryUI(cart) {
-            // Safe updates for totals
             const subtotalEl = document.getElementById('summarySubtotal');
             if (subtotalEl) subtotalEl.innerText = `₹${cart.summary.subtotal}`;
 
@@ -232,7 +273,6 @@
             const totalEl = document.getElementById('summaryTotal');
             if (totalEl) totalEl.innerText = `₹${cart.summary.total}`;
 
-            // Safe update for badge
             const badge = document.getElementById('cartBadge');
             if (badge) {
                 badge.innerText = cart.summary.totalItems;
@@ -243,10 +283,9 @@
                 }
             }
 
-            // Safe update for itemized list
             const summaryItemsList = document.getElementById('summaryItemsList');
             if (summaryItemsList) {
-                summaryItemsList.innerHTML = ''; // Clear current list
+                summaryItemsList.innerHTML = '';
 
                 cart.items.forEach(item => {
                     if (!item.outOfStock) {
@@ -263,9 +302,8 @@
             }
         }
 
-        // 4. Pre-Checkout Verification
+        // 5. Pre-Checkout Verification
         function proceedToCheckout() {
-            // Double check if there are any visual "OUT OF STOCK" items on screen
             const outOfStockItems = document.querySelectorAll('.cart-item .bg-red-50');
             if (outOfStockItems.length > 0) {
                 Swal.fire({

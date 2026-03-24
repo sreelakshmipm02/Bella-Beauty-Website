@@ -29,8 +29,10 @@ import {
 import { googleAuthCallback } from "../controllers/user/authController.js";
 import { getHomePage } from "../controllers/user/homeController.js";
 import { getShopPage, getProductDetails } from "../controllers/user/userProductController.js";
-import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax } from "../controllers/user/cartController.js";
+import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, moveToWishlistAjax } from "../controllers/user/cartController.js";
 import { getWishlistPage, toggleWishlistAjax, moveToCartAjax } from "../controllers/user/wishlistController.js";
+import { getCheckoutPage, placeOrderAjax } from "../controllers/user/checkoutController.js";
+import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage } from "../controllers/user/orderController.js";
 
 import { verifyCartStockBeforeCheckout } from "../middlewares/cartMiddleware.js";
 import { preventCache, checkUserSession, checkUserSessionAjax, isGuest, injectCartCount } from "../middlewares/authMiddleware.js";
@@ -121,10 +123,24 @@ router.get('/cart', checkUserSession, preventCache, getCartPage);
 router.post('/cart/add', checkUserSessionAjax, addToCart);
 router.patch('/cart/update', checkUserSessionAjax, updateCartAjax);
 router.delete('/cart/remove', checkUserSessionAjax, removeFromCartAjax);
+router.post('/cart/move-to-wishlist', checkUserSessionAjax, moveToWishlistAjax);
 
 // Wishlist Routes
 router.get('/wishlist', checkUserSession, preventCache, getWishlistPage);
 router.post('/wishlist/toggle', checkUserSessionAjax, toggleWishlistAjax);
 router.post('/wishlist/move-to-cart', checkUserSessionAjax, moveToCartAjax);
+
+// CHECKOUT ROUTES
+// GET route is protected by the stock verification middleware
+router.get('/checkout', checkUserSession, verifyCartStockBeforeCheckout, preventCache, getCheckoutPage);
+
+// POST route for placing the order
+router.post('/checkout/place-order', checkUserSessionAjax, placeOrderAjax);
+
+// Order Success Route
+router.get('/order-success/:orderId', checkUserSession, preventCache, getOrderSuccessPage);
+// order routes
+router.get('/orders', checkUserSession, preventCache, getOrderHistoryPage);
+router.get('/orders/:orderId', checkUserSession, preventCache, getOrderDetailPage);
 
 export default router;

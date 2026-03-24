@@ -1,0 +1,57 @@
+<%- include("../partials/header") %>
+
+    <main
+        class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 min-h-[75vh] flex flex-col items-center justify-center text-center">
+
+        <div
+            class="w-28 h-28 bg-green-50 rounded-full flex items-center justify-center mb-8 shadow-inner border border-green-100 relative">
+            <span
+                class="material-icons-outlined absolute -top-2 -right-2 text-yellow-400 text-xl animate-bounce">auto_awesome</span>
+            <span
+                class="material-icons-outlined absolute -bottom-1 -left-4 text-primary text-2xl animate-pulse">star_border</span>
+
+            <span class="material-icons-outlined text-7xl text-green-500">check_circle</span>
+        </div>
+
+        <h1 class="text-4xl md:text-5xl font-bold font-display text-gray-900 mb-4 tracking-tight">Thank you for your
+            order!</h1>
+
+        <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8 w-full max-w-md shadow-sm">
+            <p class="text-gray-600 mb-2 text-lg">Your order ID is</p>
+            <p class="font-bold text-2xl text-primary tracking-wide">
+                <%= order.orderId %>
+            </p>
+        </div>
+
+        <p class="text-gray-500 mb-10 max-w-lg">
+            We have received your order and are getting it ready. We will send you an email with shipping details once
+            it leaves our warehouse.
+        </p>
+
+        <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
+            <a href="/orders/<%= order._id %>"
+                class="bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 px-8 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                <span class="material-icons-outlined text-sm">receipt_long</span> View Order Details
+            </a>
+
+            <a href="/shop"
+                class="bg-primary/10 text-primary hover:bg-primary/20 font-bold py-4 px-8 rounded-xl transition flex items-center justify-center gap-2 border border-primary/20">
+                <span class="material-icons-outlined text-sm">shopping_bag</span> Continue Shopping
+            </a>
+        </div>
+
+    </main>
+
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+    <script>
+        window.onload = () => {
+            confetti({
+                particleCount: 100,
+                spread: 70,
+                origin: { y: 0.6 },
+                colors: ['#ec4899', '#fce7f3', '#10b981', '#fbbf24'] // Your primary pinks + success green/yellow
+            });
+        };
+    </script>
+
+    <%- include("../partials/footer") %>

@@ -1,4 +1,5 @@
 import { addItemToCart, getCartData, updateItemQuantity, removeCartItem } from "../../services/userServices/cartService.js";
+import { addToWishlistSafe } from "../../services/userServices/wishlistService.js";
 
 export const addToCart = async (req, res) => {
     try {
@@ -61,6 +62,27 @@ export const removeFromCartAjax = async (req, res) => {
 
         res.json({ success: true, cart: newCartData });
     } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const moveToWishlistAjax = async (req, res) => {
+    try {
+        const userId = req.session.userId;
+        const { variantId } = req.body;
+
+        // 1. Add to Wishlist using our new Service
+        await addToWishlistSafe(userId, variantId);
+
+        // 2. Remove from Cart using the existing Service
+        await removeCartItem(userId, variantId);
+        
+        // 3. Get fresh cart data to send back to the UI
+        const updatedCart = await getCartData(userId);
+
+        res.json({ success: true, message: "Moved to Wishlist", cart: updatedCart });
+    } catch (error) {
+        console.error("Move to Wishlist Error:", error);
         res.status(400).json({ success: false, message: error.message });
     }
 };
