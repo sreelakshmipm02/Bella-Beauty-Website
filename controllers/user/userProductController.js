@@ -12,6 +12,8 @@ import {
 
 import { getUserCartVariantIds } from "../../services/userServices/cartService.js";
 
+import { getUserWishlistVariantIds } from "../../services/userServices/wishlistService.js";
+
 // Serves as the brain for the main "Shop All" page.
 // This controller gathers the user's search terms, filters, and page numbers, 
 // then asks the service layer to crunch the numbers. It hands all that data back 
@@ -87,10 +89,12 @@ export const getProductDetails = async (req, res) => {
             return res.redirect('/shop'); 
         }
 
-        // ✅ NEW: Fetch items already in cart so the button knows its state!
+        // Fetch items already in cart AND wishlist so the buttons know their state!
         let cartVariantIds = [];
+        let wishlistVariantIds = [];
         if (req.session.userId) {
             cartVariantIds = await getUserCartVariantIds(req.session.userId);
+            wishlistVariantIds = await getUserWishlistVariantIds(req.session.userId);
         }
 
         // We extract all the unique attribute IDs from the variants (like Size, Color)
@@ -112,7 +116,8 @@ export const getProductDetails = async (req, res) => {
             // We stringify the variants array so the frontend JavaScript can safely read it 
             // to dynamically swap images, prices, and stock statuses when the user clicks different options.
             variantsJSON: JSON.stringify(variants),
-            cartVariantIdsJSON: JSON.stringify(cartVariantIds), // ✅ NEW: Pass to frontend
+            cartVariantIdsJSON: JSON.stringify(cartVariantIds),
+            wishlistVariantIdsJSON: JSON.stringify(wishlistVariantIds),
             relatedProducts
         });
 

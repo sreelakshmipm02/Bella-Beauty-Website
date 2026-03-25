@@ -74,12 +74,12 @@ export const getUserWishlistVariantIds = async (userId) => {
     if (!userId) return [];
     const wishlist = await Wishlist.findOne({ userId });
     if (!wishlist) return [];
+    
+    // Returns a simple array of strings: ['id1', 'id2', ...]
     return wishlist.items.map(item => item.productVariantId.toString());
 };
 
-// ==========================================
-// ADD TO WISHLIST SAFELY (Used when moving from cart)
-// ==========================================
+// 5. Add to Wishlist Safely (Used when moving from cart)
 export const addToWishlistSafe = async (userId, variantId) => {
     let wishlist = await Wishlist.findOne({ userId });
     

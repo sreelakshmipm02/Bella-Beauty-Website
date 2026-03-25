@@ -117,12 +117,12 @@
                             onclick="window.location.href='/product/<%= product.slug %>'">
 
                             <div class="relative h-64 bg-gray-50 overflow-hidden">
-                                <% if (product.totalStock===0) { %>
+                                <% if (product.totalStock<=0) { %>
                                     <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase px-2 py-1 rounded z-10">Out of Stock</span>
                                 <% } %>
                                 <img src="<%= product.defaultImage || '/images/placeholder.jpg' %>"
                                     alt="<%= product.name %>"
-                                    class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 <%= product.totalStock === 0 ? 'opacity-50 grayscale' : '' %>" />
+                                    class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 <%= product.totalStock <= 0 ? 'opacity-50 grayscale' : '' %>" />
                             </div>
 
                             <div class="p-4 flex-1 flex flex-col">
