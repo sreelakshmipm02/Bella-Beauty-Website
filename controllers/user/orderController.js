@@ -1,5 +1,5 @@
 import Order from "../../models/order.js";
-import { getUserOrders, getOrderById } from "../../services/userServices/orderService.js";
+import { getUserOrders, getOrderById, cancelWholeOrderService, cancelOrderItemService, returnOrderService } from "../../services/userServices/orderService.js";
 
 
 // Render the Order Success / Thank You Page
@@ -69,5 +69,36 @@ export const getOrderDetailPage = async (req, res) => {
     } catch (error) {
         console.error("Order Detail Error:", error);
         res.redirect('/account/orders');
+    }
+};
+
+//---------------------------------------------
+//ORDER CANCELLATION AND RETURN FUNCTIONALITIES
+//---------------------------------------------
+
+export const cancelOrderAjax = async (req, res) => {
+    try {
+        await cancelWholeOrderService(req.params.orderId, req.session.userId, req.body.reason);
+        res.json({ success: true, message: "Order cancelled successfully." });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const cancelItemAjax = async (req, res) => {
+    try {
+        await cancelOrderItemService(req.params.orderId, req.params.itemId, req.session.userId, req.body.reason);
+        res.json({ success: true, message: "Item cancelled successfully." });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const returnOrderAjax = async (req, res) => {
+    try {
+        await returnOrderService(req.params.orderId, req.session.userId, req.body.reason);
+        res.json({ success: true, message: "Return requested successfully." });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
     }
 };

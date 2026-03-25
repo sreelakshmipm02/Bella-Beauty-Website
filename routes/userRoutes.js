@@ -32,7 +32,7 @@ import { getShopPage, getProductDetails } from "../controllers/user/userProductC
 import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, moveToWishlistAjax } from "../controllers/user/cartController.js";
 import { getWishlistPage, toggleWishlistAjax, moveToCartAjax } from "../controllers/user/wishlistController.js";
 import { getCheckoutPage, placeOrderAjax } from "../controllers/user/checkoutController.js";
-import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage } from "../controllers/user/orderController.js";
+import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage, cancelOrderAjax, cancelItemAjax, returnOrderAjax } from "../controllers/user/orderController.js";
 
 import { verifyCartStockBeforeCheckout } from "../middlewares/cartMiddleware.js";
 import { preventCache, checkUserSession, checkUserSessionAjax, isGuest, injectCartCount } from "../middlewares/authMiddleware.js";
@@ -142,5 +142,8 @@ router.get('/order-success/:orderId', checkUserSession, preventCache, getOrderSu
 // order routes
 router.get('/orders', checkUserSession, preventCache, getOrderHistoryPage);
 router.get('/orders/:orderId', checkUserSession, preventCache, getOrderDetailPage);
+router.post('/orders/:orderId/cancel', checkUserSessionAjax, cancelOrderAjax);
+router.post('/orders/:orderId/cancel-item/:itemId', checkUserSessionAjax, cancelItemAjax);
+router.post('/orders/:orderId/return', checkUserSessionAjax, returnOrderAjax);
 
 export default router;

@@ -41,7 +41,8 @@ const orderSchema = new mongoose.Schema({
             type: String,
             enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
             default: "Pending"
-        }
+        },
+        cancelReason: { type: String }
     }],
 
     // Saved here so old orders don't break if the user deletes their address later.
@@ -79,7 +80,9 @@ const orderSchema = new mongoose.Schema({
         discount: { type: Number, default: 0 },
         total: { type: Number, required: true }
     },
-
+    //Store reasons for whole-order actions
+    cancelReason: { type: String },
+    returnReason: { type: String },
     // 5. MASTER ORDER STATUS
     orderStatus: {
         type: String,
