@@ -37,6 +37,13 @@ import {
     updateProduct
  } from "../controllers/admin/productController.js";
 
+ import { 
+    getOrdersPage, 
+    getAdminOrderDetailPage, 
+    updateOrderStatusAjax,
+    processReturnAjax 
+} from "../controllers/admin/orderController.js";
+
 import { 
     checkAdminSession,
     preventCache 
@@ -121,4 +128,17 @@ router.patch('/products/:id/status', checkAdminSession, toggleProductStatus);
 router.get('/products/:id/edit', checkAdminSession, preventCache, getEditProductPage);
 
 router.put('/products/:id', checkAdminSession, uploadProduct.any(), updateProduct);
+
+// ==========================================
+// Order Management Routes (RESTful)
+// ==========================================
+// Get list of orders
+router.get('/orders', checkAdminSession, preventCache, getOrdersPage);
+
+// Get specific order details
+router.get('/orders/:id', checkAdminSession, preventCache, getAdminOrderDetailPage);
+
+// Update order status (PATCH updates a specific field on a resource)
+router.patch('/orders/:id/status', checkAdminSession, updateOrderStatusAjax);
+router.post('/orders/:orderId/items/:itemId/process-return', checkAdminSession, processReturnAjax);
 export default router;

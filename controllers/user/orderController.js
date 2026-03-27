@@ -137,3 +137,17 @@ export const returnOrderAjax = async (req, res) => {
         res.status(400).json({ success: false, message: error.message });
     }
 };
+
+// ==========================================
+// 7. RETURN SINGLE ITEM AJAX
+// ==========================================
+export const returnItemAjax = async (req, res) => {
+    try {
+        // We wrap the single itemId from the URL into an array: [req.params.itemId]
+        await returnMultipleItemsService(req.params.orderId, [req.params.itemId], req.session.userId, req.body.reason);
+        
+        res.json({ success: true, message: "Item return requested successfully." });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};

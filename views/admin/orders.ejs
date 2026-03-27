@@ -1,0 +1,123 @@
+<%- include("../partials/adminHeader") %>
+
+<main class="p-6 sm:p-10 space-y-6 max-w-7xl mx-auto">
+    <div class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <h1 class="text-3xl font-bold text-gray-900 tracking-tight">Order Management</h1>
+    </div>
+
+    <div class="bg-white p-4 sm:p-6 rounded-2xl shadow-sm border border-gray-100 flex flex-col md:flex-row gap-4 items-center justify-between">
+        <form id="filterForm" class="flex flex-col md:flex-row gap-4 w-full" action="/admin/orders" method="GET">
+            
+            <div class="relative flex-1">
+                <input type="text" name="search" id="searchInput" value="<%= searchQuery %>" placeholder="Search Order ID..." 
+                       class="w-full pl-10 pr-10 py-2.5 bg-gray-50 border border-gray-200 rounded-xl focus:ring-2 focus:ring-primary focus:bg-white outline-none transition">
+                <span class="material-icons-outlined absolute left-3 top-3 text-gray-400 text-sm">search</span>
+                <% if (searchQuery) { %>
+                    <a href="/admin/orders" class="absolute right-3 top-3 text-gray-400 hover:text-red-500 transition">
+                        <span class="material-icons-outlined text-[18px]">close</span>
+                    </a>
+                <% } %>
+            </div>
+
+            <div class="flex gap-4">
+                <select name="status" onchange="document.getElementById('filterForm').submit()" 
+                        class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary outline-none text-gray-700 font-medium transition cursor-pointer w-full md:w-auto">
+                    <option value="all" <%= currentStatus === 'all' ? 'selected' : '' %>>All Statuses</option>
+                    <option value="Pending" <%= currentStatus === 'Pending' ? 'selected' : '' %>>Pending</option>
+                    <option value="Processing" <%= currentStatus === 'Processing' ? 'selected' : '' %>>Processing</option>
+                    <option value="Shipped" <%= currentStatus === 'Shipped' ? 'selected' : '' %>>Shipped</option>
+                    <option value="Delivered" <%= currentStatus === 'Delivered' ? 'selected' : '' %>>Delivered</option>
+                    <option value="Cancelled" <%= currentStatus === 'Cancelled' ? 'selected' : '' %>>Cancelled</option>
+                    <option value="Returned" <%= currentStatus === 'Returned' ? 'selected' : '' %>>Returned</option>
+                </select>
+
+                <select name="sort" onchange="document.getElementById('filterForm').submit()" 
+                        class="bg-gray-50 border border-gray-200 rounded-xl px-4 py-2.5 focus:ring-2 focus:ring-primary outline-none text-gray-700 font-medium transition cursor-pointer w-full md:w-auto">
+                    <option value="newest" <%= currentSort === 'newest' ? 'selected' : '' %>>Newest First</option>
+                    <option value="oldest" <%= currentSort === 'oldest' ? 'selected' : '' %>>Oldest First</option>
+                    <option value="amount_desc" <%= currentSort === 'amount_desc' ? 'selected' : '' %>>Amount: High to Low</option>
+                    <option value="amount_asc" <%= currentSort === 'amount_asc' ? 'selected' : '' %>>Amount: Low to High</option>
+                </select>
+            </div>
+        </form>
+    </div>
+
+    <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
+        <div class="overflow-x-auto">
+            <table class="w-full text-left border-collapse">
+                <thead>
+                    <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b border-gray-100">
+                        <th class="p-5 font-semibold">Order ID & Date</th>
+                        <th class="p-5 font-semibold">Customer</th>
+                        <th class="p-5 font-semibold">Total</th>
+                        <th class="p-5 font-semibold">Status</th>
+                        <th class="p-5 font-semibold text-right">Actions</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-gray-100">
+                    <% if (orders.length === 0) { %>
+                        <tr>
+                            <td colspan="5" class="p-10 text-center">
+                                <span class="material-icons-outlined text-4xl text-gray-300 mb-2">inbox</span>
+                                <p class="text-gray-500 font-medium">No orders found matching your criteria.</p>
+                            </td>
+                        </tr>
+                    <% } else { %>
+                        <% orders.forEach(order => { %>
+                            <tr class="hover:bg-gray-50/50 transition">
+                                <td class="p-5">
+                                    <p class="font-bold text-gray-900"><%= order.orderId %></p>
+                                    <p class="text-xs text-gray-500 mt-0.5"><%= new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %></p>
+                                </td>
+                                <td class="p-5">
+                                    <p class="font-bold text-gray-900 text-sm"><%= (order.userId && order.userId.name) ? order.userId.name : order.shippingAddress.fullName %></p>
+                                    <p class="text-xs text-gray-500"><%= order.userId ? order.userId.email : 'N/A' %></p>
+                                </td>
+                                <td class="p-5">
+                                    <p class="font-bold text-gray-900">₹<%= order.summary.total.toFixed(2) %></p>
+                                    <p class="text-xs text-gray-500"><%= order.items.length %> item(s)</p>
+                                </td>
+                                <td class="p-5">
+                                    <% 
+                                        let statusColor = 'bg-yellow-100 text-yellow-800';
+                                        if (order.orderStatus === 'Delivered') statusColor = 'bg-green-100 text-green-800';
+                                        if (order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned') statusColor = 'bg-red-100 text-red-800';
+                                        if (order.orderStatus === 'Shipped' || order.orderStatus === 'Processing') statusColor = 'bg-blue-100 text-blue-800';
+                                    %>
+                                    <span class="px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider <%= statusColor %>">
+                                        <%= order.orderStatus %>
+                                    </span>
+                                </td>
+                                <td class="p-5 text-right">
+                                    <a href="/admin/orders/<%= order._id %>" class="inline-flex items-center justify-center gap-1 bg-white border border-gray-200 hover:border-primary hover:text-primary text-gray-700 font-bold py-2 px-4 rounded-lg transition text-sm shadow-sm">
+                                        View <span class="material-icons-outlined text-[16px]">visibility</span>
+                                    </a>
+                                </td>
+                            </tr>
+                        <% }) %>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+
+        <% if (totalPages > 1) { %>
+            <div class="p-5 border-t border-gray-100 flex justify-center sm:justify-end gap-2 bg-gray-50/50">
+                <% for(let i=1; i<=totalPages; i++) { %>
+                    <button onclick="changePage(<%= i %>)" class="w-9 h-9 rounded-lg flex items-center justify-center text-sm font-bold transition shadow-sm <%= currentPage === i ? 'bg-primary text-white border-primary' : 'bg-white text-gray-600 border border-gray-200 hover:bg-gray-50' %>">
+                        <%= i %>
+                    </button>
+                <% } %>
+            </div>
+        <% } %>
+    </div>
+</main>
+
+<script>
+    function changePage(page) {
+        const urlParams = new URLSearchParams(window.location.search);
+        urlParams.set('page', page);
+        window.location.href = `/admin/orders?${urlParams.toString()}`;
+    }
+</script>
+
+<%- include("../partials/adminFooter") %>

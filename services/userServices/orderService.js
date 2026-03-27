@@ -8,35 +8,20 @@ import { getAddressById } from "./userAddress.js";
 // HELPER: RECALCULATE MASTER ORDER STATUS
 // ==========================================
 const recalculateMasterStatus = (items) => {
-    // Get an array of just the statuses (e.g., ['Delivered', 'Cancelled', 'Pending'])
     const statuses = items.map(item => item.status);
 
-    // 1. If every single item is Cancelled
-    if (statuses.every(s => s === 'Cancelled')) {
-        return 'Cancelled';
-    }
+    if (statuses.every(s => s === 'Cancelled')) return 'Cancelled';
+    if (statuses.every(s => s === 'Returned' || s === 'Cancelled')) return 'Returned';
     
-    // 2. If every active item was Returned (ignoring cancelled ones)
-    if (statuses.every(s => s === 'Returned' || s === 'Cancelled')) {
-        return 'Returned';
-    }
+    // NEW: If any item is requesting a return, flag the whole order so the admin notices!
+    if (statuses.includes('Return Requested')) return 'Return Requested';
 
-    // 3. If every active item has successfully arrived (ignoring returned/cancelled)
-    if (statuses.every(s => s === 'Delivered' || s === 'Returned' || s === 'Cancelled')) {
-        return 'Delivered';
-    }
+    // Treat 'Return Rejected' as essentially 'Delivered' (since the user keeps it)
+    if (statuses.every(s => s === 'Delivered' || s === 'Returned' || s === 'Cancelled' || s === 'Return Rejected')) return 'Delivered';
 
-    // 4. If at least one item is on the way
-    if (statuses.includes('Shipped')) {
-        return 'Shipped';
-    }
+    if (statuses.includes('Shipped')) return 'Shipped';
+    if (statuses.includes('Processing') || statuses.includes('Delivered') || statuses.includes('Return Rejected')) return 'Processing';
 
-    // 5. If at least one item is being processed, or it's partially delivered
-    if (statuses.includes('Processing') || statuses.includes('Delivered')) {
-        return 'Processing';
-    }
-
-    // 6. Default state
     return 'Pending';
 };
 
@@ -188,7 +173,7 @@ export const returnMultipleItemsService = async (orderId, itemIds, userId, reaso
     for (let itemId of itemIds) {
         const item = order.items.id(itemId);
         if (item && item.status === 'Delivered') {
-            item.status = 'Returned';
+            item.status = 'Return Requested';
             item.cancelReason = reason; 
         }
     }

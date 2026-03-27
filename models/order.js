@@ -36,13 +36,14 @@ const orderSchema = new mongoose.Schema({
         quantity: { type: Number, required: true },
         itemTotal: { type: Number, required: true },
         
-        // Individual item status (In case one item gets cancelled but others ship!)
+        // Individual item status (Updated for Return Approvals)
         status: {
             type: String,
-            enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
+            enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned", "Return Requested", "Return Rejected"],
             default: "Pending"
         },
-        cancelReason: { type: String }
+        cancelReason: { type: String },
+        adminRejectReason: { type: String } // Saves the admin's explanation for denying a return
     }],
 
     // Saved here so old orders don't break if the user deletes their address later.
@@ -80,13 +81,15 @@ const orderSchema = new mongoose.Schema({
         discount: { type: Number, default: 0 },
         total: { type: Number, required: true }
     },
-    //Store reasons for whole-order actions
+    
+    // Store reasons for whole-order actions
     cancelReason: { type: String },
     returnReason: { type: String },
-    // 5. MASTER ORDER STATUS
+    
+    // 5. MASTER ORDER STATUS (Updated for Return Approvals)
     orderStatus: {
         type: String,
-        enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned"],
+        enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned", "Return Requested", "Return Rejected"],
         default: "Pending"
     }
 }, { timestamps: true });
