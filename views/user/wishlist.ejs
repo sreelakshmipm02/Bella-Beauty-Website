@@ -11,74 +11,57 @@
                 <span class="material-icons-outlined text-6xl text-gray-300 mb-4">favorite_border</span>
                 <h3 class="text-xl font-bold text-gray-900">Your wishlist is empty</h3>
                 <p class="text-gray-500 mt-2">Save your favorite items here to buy them later.</p>
-                <a href="/shop"
-                    class="inline-block mt-6 bg-primary hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-lg transition">Explore
-                    Products</a>
+                <a href="/shop" class="inline-block mt-6 bg-primary hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-lg transition">Explore Products</a>
             </div>
             <% } else { %>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="wishlistGrid">
                     <% wishlistItems.forEach(item=> { %>
-                        <div class="wishlist-card bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative"
-                            data-variant-id="<%= item.variantId %>">
-
-                            <button onclick="toggleWishlist('<%= item.variantId %>')"
-                                class="absolute top-3 right-3 bg-white/80 backdrop-blur text-red-500 hover:text-red-700 hover:bg-white p-2 rounded-full shadow-sm z-10 transition">
+                        <div class="wishlist-card bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative" data-variant-id="<%= item.variantId %>">
+                            <button onclick="toggleWishlist('<%= item.variantId %>')" class="absolute top-3 right-3 bg-white/80 backdrop-blur text-red-500 hover:text-red-700 hover:bg-white p-2 rounded-full shadow-sm z-10 transition">
                                 <span class="material-icons-outlined text-sm">close</span>
                             </button>
 
                             <a href="/product/<%= item.slug %>" class="relative h-64 bg-gray-50 overflow-hidden block">
                                 <% if (item.stock===0) { %>
-                                    <span
-                                        class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase px-2 py-1 rounded z-10">Out
-                                        of Stock</span>
-                                    <% } %>
-                                        <img src="<%= item.image %>" alt="<%= item.productName %>"
-                                            class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 <%= item.stock === 0 ? 'opacity-50 grayscale' : '' %>" />
+                                    <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase px-2 py-1 rounded z-10">Out of Stock</span>
+                                <% } %>
+                                <img src="<%= item.image %>" alt="<%= item.productName %>" class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 <%= item.stock === 0 ? 'opacity-50 grayscale' : '' %>" />
                             </a>
 
                             <div class="p-4 flex-1 flex flex-col">
-                                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">
-                                    <%= item.brand %>
-                                </p>
-                                <h3 class="font-medium text-gray-900 mb-1 line-clamp-1">
-                                    <%= item.productName %>
-                                </h3>
-
+                                <p class="text-xs text-gray-500 uppercase tracking-wide mb-1"><%= item.brand %></p>
+                                <h3 class="font-medium text-gray-900 mb-1 line-clamp-1"><%= item.productName %></h3>
                                 <div class="text-xs text-gray-500 mb-3 flex gap-2">
                                     <% item.attributes.forEach(attr=> { %>
                                         <% if (attr.value && attr.value.toUpperCase() !=='N/A' ) { %>
-                                            <span
-                                                class="bg-gray-50 border border-gray-100 text-gray-600 text-xs px-2 py-1 rounded">
-                                                <%= attr.value %>
-                                            </span>
-                                            <% } %>
-                                                <% }) %>
+                                            <span class="bg-gray-50 border border-gray-100 text-gray-600 text-xs px-2 py-1 rounded"><%= attr.value %></span>
+                                        <% } %>
+                                    <% }) %>
                                 </div>
 
                                 <div class="mt-auto flex items-center justify-between pt-2 border-t border-gray-50">
                                     <span class="font-bold text-lg text-gray-900">₹<%= item.price.toFixed(2) %></span>
 
                                     <% if (item.stock> 0) { %>
-                                        <button onclick="moveToCart('<%= item.variantId %>')"
-                                            class="text-primary hover:bg-primary/10 font-bold p-2 rounded-lg transition flex items-center gap-1 text-sm">
+                                        <button onclick="moveToCart('<%= item.variantId %>')" class="text-primary hover:bg-primary/10 font-bold p-2 rounded-lg transition flex items-center gap-1 text-sm">
                                             <span class="material-icons-outlined text-lg">add_shopping_cart</span>
                                         </button>
-                                        <% } else { %>
-                                            <span
-                                                class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded">Unavailable</span>
-                                            <% } %>
+                                    <% } else { %>
+                                        <span class="text-xs font-bold text-red-500 bg-red-50 px-2 py-1 rounded">Unavailable</span>
+                                    <% } %>
                                 </div>
                             </div>
                         </div>
-                        <% }) %>
+                    <% }) %>
                 </div>
-                <% } %>
+            <% } %>
     </main>
 
     <script>
         async function moveToCart(variantId) {
             try {
-                const response = await fetch('/wishlist/move-to-cart', {
+                // RESTful update
+                const response = await fetch('/wishlist/items/move-to-cart', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ variantId })
@@ -105,7 +88,8 @@
 
         async function toggleWishlist(variantId) {
             try {
-                const response = await fetch('/wishlist/toggle', {
+                // RESTful update
+                const response = await fetch('/wishlist/items/toggle', {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ variantId })

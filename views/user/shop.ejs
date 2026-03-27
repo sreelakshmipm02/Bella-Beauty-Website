@@ -165,7 +165,6 @@
 <%- include('../partials/footer') %>
 
 <script>
-    // --- Combined Filter, Sort, & Search Logic ---
     function updateFilters(page = 1) {
         const search = document.getElementById('searchInput').value.trim();
         const category = document.getElementById('categorySelect').value;
@@ -173,10 +172,7 @@
         const sort = document.getElementById('sortSelect').value;
         const minPrice = document.getElementById('minPrice').value;
         const maxPrice = document.getElementById('maxPrice').value;
-
-        // ✅ NEW: Capture all checked Product Types
         const checkedTypes = Array.from(document.querySelectorAll('input[name="productType"]:checked')).map(cb => cb.value);
-
         const params = new URLSearchParams();
         if (search) params.set('search', search);
         if (category) params.set('category', category);
@@ -186,7 +182,6 @@
         if (maxPrice) params.set('maxPrice', maxPrice);
         if (page > 1) params.set('page', page);
 
-        // Append each selected type to the URL query string
         if (checkedTypes.length > 0) {
             checkedTypes.forEach(type => params.append('productType', type));
         }
@@ -194,14 +189,11 @@
         window.location.href = `/shop?${params.toString()}`;
     }
 
-    // --- Event Listeners ---
     document.getElementById('applyFiltersBtn').addEventListener('click', () => updateFilters(1));
     document.getElementById('sortSelect').addEventListener('change', () => updateFilters(1));
-
     document.getElementById('searchInput').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') updateFilters(1);
     });
-
     const searchInput = document.getElementById('searchInput');
     const clearSearchBtn = document.getElementById('clearSearchBtn');
 
@@ -209,18 +201,15 @@
         if (this.value.trim().length > 0) clearSearchBtn.classList.remove('hidden');
         else clearSearchBtn.classList.add('hidden');
     });
-
     clearSearchBtn.addEventListener('click', function () {
         searchInput.value = '';
         this.classList.add('hidden');
         updateFilters(1);
     });
-
     const clearAll = () => window.location.href = '/shop';
     document.getElementById('clearFiltersBtn').addEventListener('click', clearAll);
     const resetEmptyBtn = document.getElementById('resetEmptyBtn');
     if (resetEmptyBtn) resetEmptyBtn.addEventListener('click', clearAll);
-
     function changePage(page) {
         updateFilters(page);
     }

@@ -4,6 +4,45 @@ import ProductVariant from "../../models/productVariant.js";
 import { getCartData } from "./cartService.js";
 import { getAddressById } from "./userAddress.js";
 
+// ==========================================
+// HELPER: RECALCULATE MASTER ORDER STATUS
+// ==========================================
+const recalculateMasterStatus = (items) => {
+    // Get an array of just the statuses (e.g., ['Delivered', 'Cancelled', 'Pending'])
+    const statuses = items.map(item => item.status);
+
+    // 1. If every single item is Cancelled
+    if (statuses.every(s => s === 'Cancelled')) {
+        return 'Cancelled';
+    }
+    
+    // 2. If every active item was Returned (ignoring cancelled ones)
+    if (statuses.every(s => s === 'Returned' || s === 'Cancelled')) {
+        return 'Returned';
+    }
+
+    // 3. If every active item has successfully arrived (ignoring returned/cancelled)
+    if (statuses.every(s => s === 'Delivered' || s === 'Returned' || s === 'Cancelled')) {
+        return 'Delivered';
+    }
+
+    // 4. If at least one item is on the way
+    if (statuses.includes('Shipped')) {
+        return 'Shipped';
+    }
+
+    // 5. If at least one item is being processed, or it's partially delivered
+    if (statuses.includes('Processing') || statuses.includes('Delivered')) {
+        return 'Processing';
+    }
+
+    // 6. Default state
+    return 'Pending';
+};
+
+// ==========================================
+// PROCESS CHECKOUT
+// ==========================================
 export const processCheckout = async (userId, addressId, paymentMethod) => {
     // 1. Fetch Cart & Address
     const cartData = await getCartData(userId);
@@ -55,7 +94,7 @@ export const processCheckout = async (userId, addressId, paymentMethod) => {
     for (let item of cartData.items) {
         await ProductVariant.findByIdAndUpdate(
             item.variantId,
-            { $inc: { stock: -item.quantity } } // Subtracts the purchased amount
+            { $inc: { stock: -item.quantity } } 
         );
     }
 
@@ -69,14 +108,17 @@ export const processCheckout = async (userId, addressId, paymentMethod) => {
 };
 
 // ==========================================
-// FETCH USER ORDERS (With Search)
+// FETCH USER ORDERS (With Powerful Search)
 // ==========================================
 export const getUserOrders = async (userId, searchQuery = '') => {
     let query = { userId };
     
-    // If the user types in the search bar, look for matching Order IDs
+    // If the user types in the search bar, look for matching Order IDs OR Product Names
     if (searchQuery) {
-        query.orderId = { $regex: searchQuery, $options: 'i' };
+        query.$or = [
+            { orderId: { $regex: searchQuery, $options: 'i' } }, 
+            { "items.productName": { $regex: searchQuery, $options: 'i' } } 
+        ];
     }
 
     // Sort by newest first
@@ -92,57 +134,31 @@ export const getOrderById = async (orderId, userId) => {
 };
 
 // ==========================================
-// CANCEL ENTIRE ORDER
+// CANCEL MULTIPLE ITEMS 
 // ==========================================
-export const cancelWholeOrderService = async (orderId, userId, reason) => {
-    const order = await Order.findOne({ _id: orderId, userId });
-    if (!order) throw new Error("Order not found");
-    if (order.orderStatus === 'Shipped' || order.orderStatus === 'Delivered') {
-        throw new Error("Cannot cancel an order that has already shipped.");
-    }
-
-    // 1. Return stock for every item that hasn't already been cancelled
-    for (let item of order.items) {
-        if (item.status !== 'Cancelled') {
-            await ProductVariant.findByIdAndUpdate(item.productVariantId, { $inc: { stock: item.quantity } });
-            item.status = 'Cancelled';
-            item.cancelReason = reason;
-        }
-    }
-
-    // 2. Update master order
-    order.orderStatus = 'Cancelled';
-    order.cancelReason = reason;
-    await order.save();
-
-    return order;
-};
-
-// ==========================================
-// CANCEL SPECIFIC ITEM
-// ==========================================
-export const cancelOrderItemService = async (orderId, itemId, userId, reason) => {
+export const cancelMultipleItemsService = async (orderId, itemIds, userId, reason) => {
     const order = await Order.findOne({ _id: orderId, userId });
     if (!order) throw new Error("Order not found");
     if (order.orderStatus === 'Shipped' || order.orderStatus === 'Delivered') {
         throw new Error("Cannot cancel items for an order that has already shipped.");
     }
 
-    const item = order.items.id(itemId);
-    if (!item || item.status === 'Cancelled') throw new Error("Item already cancelled or not found");
+    // 1. Cancel the specific items and return stock
+    for (let itemId of itemIds) {
+        const item = order.items.id(itemId);
+        if (item && item.status !== 'Cancelled') {
+            await ProductVariant.findByIdAndUpdate(item.productVariantId, { $inc: { stock: item.quantity } });
+            item.status = 'Cancelled';
+            item.cancelReason = reason;
+        }
+    }
 
-    // 1. Return stock just for this item
-    await ProductVariant.findByIdAndUpdate(item.productVariantId, { $inc: { stock: item.quantity } });
+    // 2. Recalculate the master order status intelligently
+    order.orderStatus = recalculateMasterStatus(order.items);
     
-    // 2. Update item status
-    item.status = 'Cancelled';
-    item.cancelReason = reason;
-
-    // 3. Check if ALL items are now cancelled. If yes, cancel the whole order.
-    const allCancelled = order.items.every(i => i.status === 'Cancelled');
-    if (allCancelled) {
-        order.orderStatus = 'Cancelled';
-        order.cancelReason = "All items cancelled individually";
+    // If it decided the whole order is cancelled, set the master reason
+    if (order.orderStatus === 'Cancelled') {
+        order.cancelReason = "Items cancelled by user";
     }
 
     await order.save();
@@ -150,24 +166,40 @@ export const cancelOrderItemService = async (orderId, itemId, userId, reason) =>
 };
 
 // ==========================================
-// REQUEST ORDER RETURN
+// RETURN MULTIPLE ITEMS
 // ==========================================
-export const returnOrderService = async (orderId, userId, reason) => {
+export const returnMultipleItemsService = async (orderId, itemIds, userId, reason) => {
     const order = await Order.findOne({ _id: orderId, userId });
     if (!order) throw new Error("Order not found");
-    if (order.orderStatus !== 'Delivered') {
+    
+    // Check if the overall order has at least reached the delivered phase
+    if (order.orderStatus !== 'Delivered' && order.orderStatus !== 'Returned') {
         throw new Error("Only delivered orders can be returned.");
     }
 
-    // Usually, returns trigger a "Return Requested" status for the admin to approve, 
-    // but we will mark it "Returned" here based on your UI setup.
-    order.orderStatus = 'Returned';
-    order.returnReason = reason;
-    
-    // Mark all delivered items as Returned
-    order.items.forEach(item => {
-        if (item.status === 'Delivered') item.status = 'Returned';
-    });
+    const deliveryDate = new Date(order.updatedAt);
+    const diffInDays = (new Date() - deliveryDate) / (1000 * 3600 * 24);
+
+    if (diffInDays > 10) {
+        throw new Error("Return window has expired. Items can only be returned within 10 days of delivery.");
+    }
+
+    // 1. Return the specific items
+    for (let itemId of itemIds) {
+        const item = order.items.id(itemId);
+        if (item && item.status === 'Delivered') {
+            item.status = 'Returned';
+            item.cancelReason = reason; 
+        }
+    }
+
+    // 2. Recalculate the master order status intelligently
+    order.orderStatus = recalculateMasterStatus(order.items);
+
+    // If it decided the whole order is returned, set the master reason
+    if (order.orderStatus === 'Returned') {
+        order.returnReason = "Items returned by user";
+    }
 
     await order.save();
     return order;

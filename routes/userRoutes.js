@@ -72,10 +72,7 @@ router.post("/reset-password/:token", resetPasswordSubmit);
 // ==========================================
 // Protected Account & Profile Routes
 // ==========================================
-// preventCache now correctly fires before checkUserSession
 router.get('/account', preventCache, checkUserSession, userAccount);
-
-// RESTful: PUT /profile updates the user's profile resource
 router.put('/profile', checkUserSession, uploadUser.single('profileImage'), updateProfile);
 
 // Email update flow
@@ -85,65 +82,50 @@ router.put('/email', checkUserSession, verifyEmailUpdate);
 // ==========================================
 // RESTful Address Management Routes
 // ==========================================
-// preventCache now correctly fires before checkUserSession
 router.get('/address', preventCache, checkUserSession, addressPage);
-
-// Create new address
 router.post('/address', checkUserSession, addAddress);
-
-// Get single address (AJAX)
 router.get('/address/:addressId', checkUserSession, getSingleAddress);
-
-// Update entire address
 router.put('/address/:addressId', checkUserSession, editAddress);
-
-// Delete address
 router.delete('/address/:addressId', checkUserSession, adressDelete);
-
-// Update specific address property (Set Default)
 router.patch('/address/:addressId/default', checkUserSession, setAsDefault);
 
 // ==========================================
 // Protected Password Management
 // ==========================================
-// preventCache now correctly fires before checkUserSession
 router.get('/password', preventCache, checkUserSession, passwordPage);
-
-// Update password
 router.put('/password', checkUserSession, updatePassword);
-
-// Trigger password reset while logged in
 router.post('/password/forgot', checkUserSession, forgotPasswordLoggedIn);
 
 // ---------------week3------------------------
+
 // Cart Views
 router.get('/cart', checkUserSession, preventCache, getCartPage);
 
-// Cart AJAX Actions (No Refresh)
-router.post('/cart/add', checkUserSessionAjax, addToCart);
-router.patch('/cart/update', checkUserSessionAjax, updateCartAjax);
-router.delete('/cart/remove', checkUserSessionAjax, removeFromCartAjax);
-router.post('/cart/move-to-wishlist', checkUserSessionAjax, moveToWishlistAjax);
+// Cart AJAX Actions (RESTful)
+router.post('/cart/items', checkUserSessionAjax, addToCart);
+router.patch('/cart/items', checkUserSessionAjax, updateCartAjax);
+router.delete('/cart/items', checkUserSessionAjax, removeFromCartAjax);
+router.post('/cart/items/move-to-wishlist', checkUserSessionAjax, moveToWishlistAjax);
 
-// Wishlist Routes
+// Wishlist Routes (RESTful)
 router.get('/wishlist', checkUserSession, preventCache, getWishlistPage);
-router.post('/wishlist/toggle', checkUserSessionAjax, toggleWishlistAjax);
-router.post('/wishlist/move-to-cart', checkUserSessionAjax, moveToCartAjax);
+router.post('/wishlist/items/toggle', checkUserSessionAjax, toggleWishlistAjax);
+router.post('/wishlist/items/move-to-cart', checkUserSessionAjax, moveToCartAjax);
 
 // CHECKOUT ROUTES
-// GET route is protected by the stock verification middleware
 router.get('/checkout', checkUserSession, verifyCartStockBeforeCheckout, preventCache, getCheckoutPage);
+router.post('/orders', checkUserSessionAjax, placeOrderAjax); // Place order
 
-// POST route for placing the order
-router.post('/checkout/place-order', checkUserSessionAjax, placeOrderAjax);
+// Order Success Route (RESTful Sub-resource)
+router.get('/orders/:orderId/success', checkUserSession, preventCache, getOrderSuccessPage);
 
-// Order Success Route
-router.get('/order-success/:orderId', checkUserSession, preventCache, getOrderSuccessPage);
-// order routes
+// Order Routes
 router.get('/orders', checkUserSession, preventCache, getOrderHistoryPage);
 router.get('/orders/:orderId', checkUserSession, preventCache, getOrderDetailPage);
+
+// Order Action Routes (RESTful Sub-resources)
 router.post('/orders/:orderId/cancel', checkUserSessionAjax, cancelOrderAjax);
-router.post('/orders/:orderId/cancel-item/:itemId', checkUserSessionAjax, cancelItemAjax);
+router.post('/orders/:orderId/items/:itemId/cancel', checkUserSessionAjax, cancelItemAjax);
 router.post('/orders/:orderId/return', checkUserSessionAjax, returnOrderAjax);
 
 export default router;

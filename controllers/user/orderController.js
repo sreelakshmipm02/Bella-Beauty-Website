@@ -1,15 +1,19 @@
 import Order from "../../models/order.js";
-import { getUserOrders, getOrderById, cancelWholeOrderService, cancelOrderItemService, returnOrderService } from "../../services/userServices/orderService.js";
+import { 
+    getUserOrders, 
+    getOrderById, 
+    cancelMultipleItemsService, 
+    returnMultipleItemsService 
+} from "../../services/userServices/orderService.js";
 
-
-// Render the Order Success / Thank You Page
+// ==========================================
+// 1. ORDER SUCCESS PAGE
+// ==========================================
 export const getOrderSuccessPage = async (req, res) => {
     try {
         const orderId = req.params.orderId;
         const userId = req.session.userId;
 
-        // Fetch the order. We include userId in the query as a strict security check
-        // so users can't randomly guess URLs and view other people's receipts!
         const order = await Order.findOne({ _id: orderId, userId: userId });
 
         if (!order) {
@@ -28,12 +32,12 @@ export const getOrderSuccessPage = async (req, res) => {
 };
 
 // ==========================================
-// 1. ORDER LISTING PAGE (With Search)
+// 2. ORDER HISTORY PAGE (With Search)
 // ==========================================
 export const getOrderHistoryPage = async (req, res) => {
     try {
         const userId = req.session.userId;
-        const searchQuery = req.query.search || ''; // Grab search term from URL
+        const searchQuery = req.query.search || ''; 
         
         const orders = await getUserOrders(userId, searchQuery);
 
@@ -50,7 +54,7 @@ export const getOrderHistoryPage = async (req, res) => {
 };
 
 // ==========================================
-// 2. ORDER DETAIL PAGE
+// 3. ORDER DETAIL PAGE
 // ==========================================
 export const getOrderDetailPage = async (req, res) => {
     try {
@@ -58,7 +62,7 @@ export const getOrderDetailPage = async (req, res) => {
         const order = await getOrderById(req.params.orderId, userId);
 
         if (!order) {
-            return res.redirect('/account/orders');
+            return res.redirect('/orders');
         }
 
         res.render("user/orderDetail", {
@@ -68,35 +72,66 @@ export const getOrderDetailPage = async (req, res) => {
         });
     } catch (error) {
         console.error("Order Detail Error:", error);
-        res.redirect('/account/orders');
+        res.redirect('/orders');
     }
 };
 
-//---------------------------------------------
-//ORDER CANCELLATION AND RETURN FUNCTIONALITIES
-//---------------------------------------------
-
+// ==========================================
+// 4. CANCEL ENTIRE ORDER AJAX
+// ==========================================
 export const cancelOrderAjax = async (req, res) => {
     try {
-        await cancelWholeOrderService(req.params.orderId, req.session.userId, req.body.reason);
+        // Fetch the order to get all item IDs
+        const order = await Order.findOne({ _id: req.params.orderId, userId: req.session.userId });
+        if (!order) throw new Error("Order not found");
+        
+        // Extract all item IDs into an array
+        const allItemIds = order.items.map(item => item._id);
+
+        // Pass the array to our smart service
+        await cancelMultipleItemsService(req.params.orderId, allItemIds, req.session.userId, req.body.reason);
+        
         res.json({ success: true, message: "Order cancelled successfully." });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
 };
 
+// ==========================================
+// 5. CANCEL SINGLE ITEM AJAX
+// ==========================================
 export const cancelItemAjax = async (req, res) => {
     try {
-        await cancelOrderItemService(req.params.orderId, req.params.itemId, req.session.userId, req.body.reason);
+        // We wrap the single itemId from the URL into an array: [req.params.itemId]
+        await cancelMultipleItemsService(req.params.orderId, [req.params.itemId], req.session.userId, req.body.reason);
+        
         res.json({ success: true, message: "Item cancelled successfully." });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }
 };
 
+// ==========================================
+// 6. REQUEST RETURN AJAX
+// ==========================================
 export const returnOrderAjax = async (req, res) => {
     try {
-        await returnOrderService(req.params.orderId, req.session.userId, req.body.reason);
+        // Fetch order to find which items were actually delivered
+        const order = await Order.findOne({ _id: req.params.orderId, userId: req.session.userId });
+        if (!order) throw new Error("Order not found");
+        
+        // Extract only the IDs of items that are 'Delivered'
+        const deliveredItemIds = order.items
+            .filter(item => item.status === 'Delivered')
+            .map(item => item._id);
+
+        if (deliveredItemIds.length === 0) {
+            throw new Error("No delivered items found to return.");
+        }
+
+        // Pass the array to our smart service
+        await returnMultipleItemsService(req.params.orderId, deliveredItemIds, req.session.userId, req.body.reason);
+        
         res.json({ success: true, message: "Return requested successfully." });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
