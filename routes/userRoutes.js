@@ -32,7 +32,7 @@ import { getShopPage, getProductDetails } from "../controllers/user/userProductC
 import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, moveToWishlistAjax } from "../controllers/user/cartController.js";
 import { getWishlistPage, toggleWishlistAjax, moveToCartAjax } from "../controllers/user/wishlistController.js";
 import { getCheckoutPage, placeOrderAjax } from "../controllers/user/checkoutController.js";
-import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage, cancelOrderAjax, cancelItemAjax, returnOrderAjax, returnItemAjax } from "../controllers/user/orderController.js";
+import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage, cancelOrderAjax, cancelItemAjax, returnOrderAjax, returnItemAjax, downloadInvoice } from "../controllers/user/orderController.js";
 
 import { verifyCartStockBeforeCheckout } from "../middlewares/cartMiddleware.js";
 import { preventCache, checkUserSession, checkUserSessionAjax, isGuest, injectCartCount } from "../middlewares/authMiddleware.js";
@@ -128,5 +128,6 @@ router.post('/orders/:orderId/cancel', checkUserSessionAjax, cancelOrderAjax);
 router.post('/orders/:orderId/items/:itemId/cancel', checkUserSessionAjax, cancelItemAjax);
 router.post('/orders/:orderId/return', checkUserSessionAjax, returnOrderAjax);
 router.post('/orders/:orderId/items/:itemId/return', checkUserSessionAjax, returnItemAjax);
+router.get('/orders/:orderId/invoice', checkUserSession, downloadInvoice);
 
 export default router;

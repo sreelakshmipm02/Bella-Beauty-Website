@@ -6,6 +6,8 @@ import {
     returnMultipleItemsService 
 } from "../../services/userServices/orderService.js";
 
+import { generateInvoicePDF } from "../../services/userServices/invoiceService.js";
+
 // ==========================================
 // 1. ORDER SUCCESS PAGE
 // ==========================================
@@ -149,5 +151,30 @@ export const returnItemAjax = async (req, res) => {
         res.json({ success: true, message: "Item return requested successfully." });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+//INVOICE GENERATION
+
+export const downloadInvoice = async (req, res) => {
+    try {
+        const { orderId } = req.params;
+        const userId = req.session.userId;
+
+        // Ensure user owns the order and it's delivered [cite: 180, 182]
+        const order = await getOrderById(orderId, userId);
+        if (!order || order.orderStatus !== 'Delivered') {
+            return res.status(400).send("Invoice only available for delivered orders.");
+        }
+
+        const pdfBuffer = await generateInvoicePDF(order);
+
+        res.setHeader('Content-Type', 'application/pdf');
+        res.setHeader('Content-Disposition', `attachment; filename=Invoice-${order.orderId}.pdf`);
+        res.send(pdfBuffer);
+        
+    } catch (error) {
+        console.error("Invoice Download Error:", error);
+        res.status(500).send("Internal Server Error");
     }
 };

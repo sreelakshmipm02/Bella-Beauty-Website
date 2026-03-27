@@ -165,7 +165,7 @@
 
     <script>
         function downloadInvoice(orderId) {
-            Swal.fire({ icon: 'info', title: 'Coming Soon!', text: 'Invoice generation will be added in Phase 3.' });
+            window.location.href = `/orders/${orderId}/invoice`;
         }
 
         const cancelReasons = [
