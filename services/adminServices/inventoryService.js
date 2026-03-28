@@ -16,11 +16,11 @@ export const getInventoryList = async (page = 1, limit = 10, search = '', lowSto
 
     const skip = (page - 1) * limit;
 
-    const variants = await ProductVariant.find(query)
-        .sort({ stock: 1 }) // Show lowest stock first by default
-        .skip(skip)
-        .limit(limit);
-
+const variants = await ProductVariant.find(query)
+    .populate('productId', 'name') // Add this to fetch the Product Name!
+    .sort({ stock: 1 })
+    .skip(skip)
+    .limit(limit);
     const totalVariants = await ProductVariant.countDocuments(query);
 
     return { variants, totalVariants };

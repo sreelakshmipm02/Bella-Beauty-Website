@@ -56,6 +56,12 @@
         .material-icons-outlined {
             font-size: 20px;
         }
+
+        /* Sidebar active link styling */
+        .sidebar-link.active {
+            background-color: #E91E63;
+            color: white !important;
+        }
     </style>
 </head>
 
@@ -84,72 +90,105 @@
         </div>
 
         <div class="flex items-center gap-6">
-            <button
-                class="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full">
-                <span class="material-icons-outlined">notifications</span>
-                <span
-                    class="absolute top-2 right-2 w-2 h-2 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full"></span>
-            </button>
+            <div class="relative group">
+                <button onclick="toggleNotificationDropdown(event)"
+                    class="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all outline-none">
+                    <span class="material-icons-outlined">notifications</span>
+
+                    <% if (typeof lowStockCount !== 'undefined' && lowStockCount > 0) { %>
+                        <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></span>
+                    <% } %>
+                </button>
+
+                <div id="notification-dropdown"
+                    class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <h3 class="font-bold text-sm">Notifications</h3>
+                        <% if (typeof lowStockCount !== 'undefined' && lowStockCount > 0) { %>
+                            <span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">Action Required</span>
+                        <% } %>
+                    </div>
+                    
+                    <div class="max-h-64 overflow-y-auto">
+                        <% if (typeof lowStockCount !== 'undefined' && lowStockCount > 0) { %>
+                            <a href="/admin/inventory?lowStock=true"
+                                class="flex items-start gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 shrink-0">
+                                    <span class="material-icons-outlined text-sm">inventory</span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-800 dark:text-slate-200">Critical Stock Alert</p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">
+                                        <%= lowStockCount %> Items are running low.
+                                    </p>
+                                    <p class="text-[10px] text-primary mt-1 font-bold underline">Restock Now</p>
+                                </div>
+                            </a>
+                        <% } else { %>
+                            <div class="p-8 text-center">
+                                <span class="material-icons-outlined text-slate-300 text-3xl">notifications_none</span>
+                                <p class="text-xs text-slate-500 mt-2 font-medium">No new notifications</p>
+                            </div>
+                        <% } %>
+                    </div>
+                </div>
+            </div>
+
             <div class="flex items-center gap-3">
-                <div
-                    class="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 text-primary flex items-center justify-center rounded-full font-bold">
-                    AD</div>
+                <div class="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 text-primary flex items-center justify-center rounded-full font-bold">
+                    AD
+                </div>
                 <span class="text-sm font-medium hidden sm:block">Admin User</span>
             </div>
         </div>
     </header>
 
-    <!-- LAYOUT -->
     <div class="flex flex-1 overflow-hidden relative">
         <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden transition-opacity"></div>
 
         <aside id="sidebar"
             class="fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
-            <!-- NAV (scrollable) -->
+            
             <nav class="flex-1 overflow-y-auto p-4 space-y-1">
-
-                <!-- ACTIVE -->
-                <a href="/admin/dashboard" class="sidebar-link">
+                <a href="/admin/dashboard" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">dashboard</span>
                     <span class="font-medium">Dashboard</span>
                 </a>
 
-                <!-- LINKS -->
-                <a href="/admin/orders" class="sidebar-link">
+                <a href="/admin/orders" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">shopping_cart</span>
                     Order Management
                 </a>
-                <a href="/admin/category" class="sidebar-link">
+                <a href="/admin/category" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">category</span>
                     Category Management
                 </a>
-                <a href="/admin/products" class="sidebar-link">
+                <a href="/admin/products" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">inventory_2</span>
                     Product Management
                 </a>
-                <a href="/admin/inventory" class="sidebar-link">
+                <a href="/admin/inventory" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">inventory</span>
                     Stock Management
                 </a>
-                <a href="#" class="sidebar-link">
+                <a href="#" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">confirmation_number</span>
                     Coupon Management
                 </a>
-                <a href="#" class="sidebar-link">
+                <a href="#" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">assignment_return</span>
                     Return & Refund
                 </a>
-                <a href="/admin/user" class="sidebar-link">
+                <a href="/admin/user" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">people</span>
                     User Management
                 </a>
-                <a href="#" class="sidebar-link">
+                <a href="#" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
                     <span class="material-icons-outlined">payments</span>
                     Sales & Revenue
                 </a>
             </nav>
 
-            <!-- SIGN OUT (fixed bottom) -->
             <script src="/js/logoutPopup.js"></script>
             <div class="p-4 border-t border-slate-200 dark:border-slate-800">
                 <button onclick="confirmLogout('/admin/logout')"
@@ -159,26 +198,55 @@
                 </button>
             </div>
         </aside>
+
         <main class="flex-1 overflow-y-auto p-8 relative">
 
-            <!-- SIDEBAR LINK SCRIPT -->
-            <script>
-                document.addEventListener("DOMContentLoaded", () => {
-                    const currentPath = window.location.pathname;
-                    const links = document.querySelectorAll(".sidebar-link");
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                // Handle Active Sidebar State
+                const currentPath = window.location.pathname;
+                const links = document.querySelectorAll(".sidebar-link");
 
-                    links.forEach(link => {
-                        const linkPath = link.getAttribute("href");
-
-                        // Check if current path matches the link path
-                        if (currentPath === linkPath) {
-                            link.classList.add("active");
-                            // Remove the default hover classes if they interfere with active state
-                            link.classList.remove("text-slate-500");
-                        } else {
-                            // Ensure active is removed from non-matching links
-                            link.classList.remove("active");
-                        }
-                    });
+                links.forEach(link => {
+                    const linkPath = link.getAttribute("href");
+                    if (currentPath === linkPath) {
+                        link.classList.add("active");
+                    }
                 });
-            </script>
+
+                // Mobile Menu Logic
+                const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+
+                if (mobileMenuToggle) {
+                    mobileMenuToggle.addEventListener('click', () => {
+                        sidebar.classList.remove('-translate-x-full');
+                        overlay.classList.remove('hidden');
+                    });
+                }
+
+                if (overlay) {
+                    overlay.addEventListener('click', () => {
+                        sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
+                    });
+                }
+            });
+
+            // Notification Dropdown Toggle
+            function toggleNotificationDropdown(event) {
+                event.stopPropagation();
+                const dropdown = document.getElementById('notification-dropdown');
+                dropdown.classList.toggle('hidden');
+
+                // Close dropdown when clicking anywhere else
+                const closeHandler = (e) => {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                document.addEventListener('click', closeHandler);
+            }
+        </script>

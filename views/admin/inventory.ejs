@@ -5,8 +5,9 @@
         <h1 class="text-3xl font-bold text-gray-900">Inventory Management</h1>
         <div class="flex items-center gap-4">
             <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="lowStockToggle" class="sr-only peer" <%= lowStockFilter ? 'checked' : '' %>>
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500"></div>
+                <input type="checkbox" id="lowStockToggle" class="sr-only peer" <%=lowStockFilter ? 'checked' : '' %>>
+                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500">
+                </div>
                 <span class="ml-3 text-sm font-medium text-gray-700">Low Stock Only (< 10)</span>
             </label>
         </div>
@@ -19,15 +20,22 @@
                     <th class="p-4">Product / SKU</th>
                     <th class="p-4">Current Stock</th>
                     <th class="p-4">Quick Update</th>
-                    <th class="p-4 text-right">Actions</th>
-                </tr>
+                    </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
-                <% variants.forEach(variant => { %>
+                <% variants.forEach(variant=> { %>
                     <tr class="<%= variant.stock < 10 ? 'bg-red-50/30' : '' %> transition">
                         <td class="p-4">
-                            <p class="font-bold text-gray-900"><%= variant.sku %></p>
-                            <p class="text-xs text-gray-500">ID: <%= variant._id %></p>
+                            <div class="flex flex-col">
+                                <p class="font-bold text-gray-900 text-sm mb-0.5">
+                                    <%= variant.productId ? variant.productId.name : 'Unknown Product' %>
+                                </p>
+                                <div class="flex items-center gap-2">
+                                    <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-mono uppercase">
+                                        SKU: <%= variant.sku %>
+                                    </span>
+                                </div>
+                            </div>
                         </td>
                         <td class="p-4">
                             <span class="px-3 py-1 rounded-full text-xs font-bold <%= variant.stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' %>">
@@ -36,18 +44,14 @@
                         </td>
                         <td class="p-4">
                             <div class="flex items-center gap-2">
-                                <input type="number" id="input_<%= variant._id %>" value="<%= variant.stock %>" min="0" 
-                                       class="w-20 px-2 py-1 border rounded-lg text-sm focus:ring-primary outline-none">
-                                <button onclick="quickUpdateStock('<%= variant._id %>')" 
-                                        class="text-primary hover:text-pink-700 font-bold text-xs uppercase">Save</button>
+                                <input type="number" id="input_<%= variant._id %>" value="<%= variant.stock %>"
+                                    min="0"
+                                    class="w-20 px-2 py-1 border rounded-lg text-sm focus:ring-primary outline-none">
+                                <button onclick="quickUpdateStock('<%= variant._id %>')"
+                                    class="text-primary hover:text-pink-700 font-bold text-xs uppercase">Save</button>
                             </div>
                         </td>
-                        <td class="p-4 text-right">
-                            <a href="/admin/products/edit-variant/<%= variant._id %>" class="text-gray-400 hover:text-primary transition">
-                                <span class="material-icons-outlined">edit</span>
-                            </a>
-                        </td>
-                    </tr>
+                        </tr>
                 <% }) %>
             </tbody>
         </table>
@@ -55,15 +59,13 @@
 </main>
 
 <script>
-    // Handle Low Stock Toggle
-    document.getElementById('lowStockToggle').addEventListener('change', function() {
+    document.getElementById('lowStockToggle').addEventListener('change', function () {
         window.location.href = `/admin/inventory?lowStock=${this.checked}`;
     });
 
-    // AJAX Stock Update
     async function quickUpdateStock(variantId) {
         const newStock = document.getElementById(`input_${variantId}`).value;
-        
+
         try {
             const response = await fetch('/admin/inventory/stock', {
                 method: 'PATCH',
@@ -71,7 +73,7 @@
                 body: JSON.stringify({ variantId, stock: parseInt(newStock) })
             });
             const data = await response.json();
-            
+
             if (data.success) {
                 Swal.fire({ icon: 'success', title: 'Updated!', toast: true, position: 'top-end', timer: 1500, showConfirmButton: false });
                 setTimeout(() => window.location.reload(), 1500);
