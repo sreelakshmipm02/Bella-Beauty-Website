@@ -49,8 +49,15 @@ import {
     preventCache 
 } from "../middlewares/authMiddleware.js";
 
-import { uploadCategory,uploadProduct } from "../middlewares/upload.js";
+import { 
+    uploadCategory,
+    uploadProduct 
+} from "../middlewares/upload.js";
 
+import { 
+    getInventoryPage, 
+    updateStockAjax 
+} from "../controllers/admin/inventoryController.js";
 const router = express.Router();
 
 // ==========================================
@@ -141,4 +148,9 @@ router.get('/orders/:id', checkAdminSession, preventCache, getAdminOrderDetailPa
 // Update order status (PATCH updates a specific field on a resource)
 router.patch('/orders/:id/status', checkAdminSession, updateOrderStatusAjax);
 router.post('/orders/:orderId/items/:itemId/process-return', checkAdminSession, processReturnAjax);
+
+// Inventory Management
+router.get('/inventory', checkAdminSession, preventCache, getInventoryPage);
+router.patch('/inventory/stock', checkAdminSession, updateStockAjax);
+
 export default router;
