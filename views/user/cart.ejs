@@ -156,6 +156,18 @@
     </main>
 
     <script>
+
+        // Detect when the page is loaded from the "Back" button (Cache)
+        window.addEventListener('pageshow', function (event) {
+            // event.persisted is true if the page was loaded from the BFcache (back-forward cache)
+            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+                // Force close any lingering SweetAlert loading modals
+                if (Swal.isVisible()) {
+                    Swal.close();
+                }
+            }
+        });
+
         // 1. Update Quantity
         async function updateQty(variantId, change) {
             const itemRow = document.querySelector(`.cart-item[data-variant-id="${variantId}"]`);
@@ -294,11 +306,14 @@
 
         async function proceedToCheckout() {
             try {
-                // Show loading state
+                // 1. Show the loading state
                 Swal.fire({
                     title: 'Verifying items...',
                     allowOutsideClick: false,
-                    didOpen: () => { Swal.showLoading(); }
+                    showConfirmButton: false, // Ensure no buttons are visible
+                    didOpen: () => {
+                        Swal.showLoading();
+                    }
                 });
 
                 const response = await fetch('/cart/verify-checkout', {
@@ -308,23 +323,24 @@
 
                 const data = await response.json();
 
+                // 2. ONLY redirect if the server gives the green light
                 if (data.success) {
+                    Swal.close();
                     window.location.href = '/checkout';
                 } else {
-                    // STOP: Show the specific error message from the server
+                    // 3. STOP HERE and show the error
                     Swal.fire({
                         icon: 'warning',
                         title: 'Availability Issue',
-                        text: data.message, // Shows: "Rice Water Sunscreen is no longer available..."
+                        text: data.message,
                         confirmButtonText: 'Update Cart',
                         confirmButtonColor: '#E91E63'
                     }).then(() => {
-                        // Reload cleans the cart and updates the UI
                         window.location.reload();
                     });
                 }
             } catch (error) {
-                Swal.fire('Error', 'Something went wrong. Please refresh the page.', 'error');
+                Swal.fire('Error', 'Verification failed. Please try again.', 'error');
             }
         }
     </script>
