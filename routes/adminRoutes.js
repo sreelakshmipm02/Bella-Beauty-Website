@@ -59,100 +59,75 @@ import {
     getInventoryPage, 
     updateStockAjax 
 } from "../controllers/admin/inventoryController.js";
+
 const router = express.Router();
 
-// ==========================================
-// Authentication & Dashboard Routes
-// ==========================================
+// ---------------------------------------------------------
+//  AUTH & ACCOUNT ACCESS
+// ---------------------------------------------------------
 router.get('/login', preventCache, adminLoginPage);
 router.post('/login', adminLogin);
-router.get('/dashboard', checkAdminSession, preventCache, dashboardPage);
 router.get('/logout', adminLogout);
 
+// Password recovery flow
 router.get("/forgot-password", adminForgotPasswordPage);
 router.post("/forgot-password", adminForgotPasswordSubmit);
 router.get("/reset-password/:token", adminResetPasswordPage);
 router.post("/reset-password/:token", adminResetPasswordSubmit);
 
-// ==========================================
-// User Management Routes
-// ==========================================
+// ---------------------------------------------------------
+//  DASHBOARD & USER METRICS
+// ---------------------------------------------------------
+router.get('/dashboard', checkAdminSession, preventCache, dashboardPage);
 router.get('/user', checkAdminSession, preventCache, userManagementPage);
-// RESTful: PATCH /resource/:id/property
+
+// Using PATCH here because we're only flipping the active/blocked status
 router.patch('/user/:userId/status', checkAdminSession, toggleUserStatus); 
 
-//-------------week1 completed-----------------------------------------------
-
-// ==========================================
-// Category Management Routes (RESTful)
-// ==========================================
-// Get category listing page
+// ---------------------------------------------------------
+//  CATEGORY & ATTRIBUTE SETUP
+// ---------------------------------------------------------
 router.get('/category', checkAdminSession, preventCache, categoryManagementPage);
-
-// Create new category
 router.post('/category', checkAdminSession, uploadCategory.single('categoryImage'), addCategorySubmit);
-
-// Get single category data (AJAX)
 router.get('/category/:id', checkAdminSession, getCategoryById);
-
-// Update entire category
 router.put('/category/:id', checkAdminSession, uploadCategory.single('categoryImage'), editCategorySubmit);
-
-// Update category status (Soft Delete)
 router.patch('/category/:categoryId/status', checkAdminSession, softDeleteCategory);
 
-
-// ==========================================
-// Attribute Management Routes (RESTful)
-// ==========================================
-// Create new attribute
+// Global product attributes (Size, Color, etc.)
 router.post('/attributes', checkAdminSession, addAttributeSubmit);
-
-// Get single attribute data
 router.get('/attributes/:id', checkAdminSession, getAttributeForEdit);
-
-// Update attribute
 router.put('/attributes/:id', checkAdminSession, editAttributeSubmit);
-
-// Delete attribute
 router.delete('/attributes/:id', checkAdminSession, deleteAttributeSubmit);
 
-// ==========================================
-// Product Management Routes (RESTful)
-// ==========================================
-
-// Product Management Listing
+// ---------------------------------------------------------
+//  PRODUCT CATALOG
+// ---------------------------------------------------------
 router.get('/products', checkAdminSession, preventCache, getProductsPage);
-// Add Product Page
 router.get('/products/new', checkAdminSession, preventCache, getAddProductPage);
-// Fetch dynamic attributes when category is selected
+
+// Fetches the specific fields (like sizes) when a category is picked in the UI
 router.get('/category/:id/attributes', checkAdminSession, getCategoryAttributes);
 
-// We use `.any()` because the field names are dynamic (variant_images_0, variant_images_1, etc.)
+// Using .any() because variant images come in as dynamic field names (image_0, image_1, etc.)
 router.post('/products', checkAdminSession, uploadProduct.any(), createProduct);
-
+router.get('/products/:id/edit', checkAdminSession, preventCache, getEditProductPage);
+router.put('/products/:id', checkAdminSession, uploadProduct.any(), updateProduct);
 router.patch('/products/:id/status', checkAdminSession, toggleProductStatus);
 
-router.get('/products/:id/edit', checkAdminSession, preventCache, getEditProductPage);
-
-router.put('/products/:id', checkAdminSession, uploadProduct.any(), updateProduct);
-
-// ==========================================
-// Order Management Routes (RESTful)
-// ==========================================
-// Get list of orders
+// ---------------------------------------------------------
+//  ORDERS & RETURNS
+// ---------------------------------------------------------
 router.get('/orders', checkAdminSession, preventCache, getOrdersPage);
-
-// Get specific order details
 router.get('/orders/:id', checkAdminSession, preventCache, getAdminOrderDetailPage);
 
-// Update order status (PATCH updates a specific field on a resource)
+// Quick status updates via AJAX to avoid full page reloads
 router.patch('/orders/:id/status', checkAdminSession, updateOrderStatusAjax);
-// Add this in your Order Management section
 router.patch('/orders/:id/payment-status', checkAdminSession, updatePaymentStatusAjax);
 router.post('/orders/:orderId/items/:itemId/process-return', checkAdminSession, processReturnAjax);
 
-// Inventory Management
+// ---------------------------------------------------------
+//  STOCK MANAGEMENT
+// ---------------------------------------------------------
 router.get('/inventory', checkAdminSession, preventCache, getInventoryPage);
 router.patch('/inventory/stock', checkAdminSession, updateStockAjax);
 

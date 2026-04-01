@@ -5,37 +5,36 @@ import express from "express";
 import path from "path";
 import session from "express-session";
 import passport from "passport";
-import configurePassport from "./config/passport.js";
 import MongoStore from "connect-mongo";
 import { fileURLToPath } from "url";
+
+// Internal configurations and models
+import configurePassport from "./config/passport.js";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
-
-// Import ProductVariant to count stock for the notification bell
 import ProductVariant from "./models/productVariant.js"; 
 
-// fix __dirname in ES module
+// Since we are using ES Modules, we need to manually reconstruct __dirname 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 const app = express();
 
-// connect to mongodb
+// Establish the database connection
 connectDB(process.env.MONGO_URI);
 
-// view engine setup
+// --- View Engine & Assets ---
 app.set("view engine", "ejs");
 app.set("views", path.join(__dirname, "views"));
+app.use(express.static(path.join(__dirname, "public")));
 
-// middlewares
+// --- Body Parsing ---
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
-// static files
-app.use(express.static(path.join(__dirname, "public")));
-
-// session setup
+// --- Session Management ---
+// Using MongoStore so sessions persist even if the server restarts
 app.use(
     session({
         secret: process.env.SESSION_SECRET || "bella_secret_key",
@@ -46,43 +45,40 @@ app.use(
             collectionName: "sessions"
         }),
         cookie: {
-            maxAge: 1000 * 60 * 60 * 24 // 1 day
+            maxAge: 1000 * 60 * 60 * 24 // Valid for 24 hours
         }
     })
 );
 
-// passport
+// --- Authentication (Passport) ---
 configurePassport();
 app.use(passport.initialize());
 app.use(passport.session());
 
-// ==========================================
-// GLOBAL ADMIN NOTIFICATION MIDDLEWARE
-// ==========================================
+// --- Admin Alerts Middleware ---
+// This middleware injects a 'lowStockCount' variable into all admin views.
+// We only run the DB query on /admin routes to keep the public site snappy.
 app.use(async (req, res, next) => {
-    // We check if the URL starts with /admin so we don't waste 
-    // database resources on the public-facing user side.
     if (req.path.startsWith('/admin')) {
         try {
-            // Count items with stock lower than 10
             const count = await ProductVariant.countDocuments({ stock: { $lt: 10 } });
             res.locals.lowStockCount = count;
         } catch (err) {
-            console.error("Global Middleware Error:", err);
+            console.error("Failed to fetch low stock count:", err);
             res.locals.lowStockCount = 0;
         }
     } else {
-        // Fallback for non-admin routes
         res.locals.lowStockCount = 0;
     }
     next();
 });
 
-// routes
+// --- Route Definitions ---
 app.use("/", userRoutes);
 app.use("/admin", adminRoutes);
 
-// 404 handler
+// --- Error Handling ---
+// Catch-all for any routes not defined above
 app.use((req, res) => {
     res.status(404).send("Page Not Found!");
 });
