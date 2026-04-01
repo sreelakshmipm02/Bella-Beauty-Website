@@ -69,23 +69,26 @@ export const getCartData = async (userId) => {
         populate: { path: 'productId' }
     });
 
-    if (!cart || cart.items.length === 0) return { items: [], summary: { subtotal: 0, tax: 0, total: 0, totalItems: 0 } };
+    if (!cart || !cart.items || cart.items.length === 0) {
+        return { items: [], summary: { subtotal: 0, tax: 0, total: 0, totalItems: 0 } };
+    }
 
     let formattedItems = [];
     let cartModified = false;
 
-    // Loop through items and auto-correct stock issues silently
+    // STEP 1: Build the list of items that are still active
     for (let item of cart.items) {
         const variant = item.productVariantId;
         
-        if (variantIsActive(variant)) {
+        // Safety check: Does the variant and product still exist?
+        if (variant && variant.productId && variantIsActive(variant)) {
             let actualQty = item.quantity;
             let outOfStock = false;
 
             if (variant.stock === 0) {
                 outOfStock = true;
             } else if (actualQty > variant.stock) {
-                actualQty = variant.stock; // Auto-reduce to max available
+                actualQty = variant.stock;
                 item.quantity = actualQty;
                 cartModified = true;
             }
@@ -96,30 +99,36 @@ export const getCartData = async (userId) => {
                 productName: variant.productId.name,
                 brand: variant.productId.brand,
                 slug: variant.productId.slug,
-                image: variant.images[0],
+                image: variant.images ? variant.images[0] : null,
                 price: variant.price,
                 quantity: actualQty,
                 stock: variant.stock,
                 attributes: variant.attributes,
                 itemTotal: (variant.price * actualQty).toFixed(2),
                 outOfStock: outOfStock,
-                variant: variant // Pass full variant for total calculation
+                variant: variant 
             });
         } else {
-            // Remove deactivated items from cart
-            cart.items = cart.items.filter(i => i._id.toString() !== item._id.toString());
+            // Found an inactive or deleted item
             cartModified = true;
         }
     }
 
-    if (cartModified) await cart.save();
+    // STEP 2: Sync the Database if items were removed or adjusted
+    if (cartModified) {
+        const activeVariantIds = formattedItems.map(f => f.variantId.toString());
+        cart.items = cart.items.filter(item => 
+            item.productVariantId && 
+            activeVariantIds.includes(item.productVariantId._id.toString())
+        );
+        await cart.save();
+    }
 
     return {
         items: formattedItems.reverse(),
         summary: calculateCartTotals(formattedItems)
     };
 };
-
 // ==========================================
 // 3. UPDATE QUANTITY (AJAX)
 // ==========================================
@@ -168,4 +177,35 @@ export const getUserCartVariantIds = async (userId) => {
     
     // Return an array of string IDs (e.g., ['65abc123...', '65def456...'])
     return cart.items.map(item => item.productVariantId.toString());
+};
+
+export const validateCartAvailability = async (userId) => {
+    // 1. Fetch cart with full population
+    const cart = await Cart.findOne({ userId }).populate({
+        path: 'items.productVariantId',
+        populate: { path: 'productId' }
+    });
+
+    if (!cart || cart.items.length === 0) {
+        throw new Error("Your cart is empty.");
+    }
+
+    // 2. The Logic Loop
+    for (const item of cart.items) {
+        const variant = item.productVariantId;
+        const product = variant?.productId;
+
+        // Check if Admin deactivated the product or variant
+        if (!variant || !product || product.isListed === false || product.status !== 'active' || variant.status !== 'active') {
+            const itemName = product ? product.name : "An item in your cart";
+            throw new Error(`"${itemName}" is no longer available. Please remove it to proceed.`);
+        }
+
+        // Check for sudden stock-out
+        if (variant.stock <= 0) {
+            throw new Error(`"${product.name}" is now out of stock.`);
+        }
+    }
+
+    return true; // Everything is valid
 };

@@ -1,4 +1,4 @@
-import { addItemToCart, getCartData, updateItemQuantity, removeCartItem } from "../../services/userServices/cartService.js";
+import { addItemToCart, getCartData, updateItemQuantity, removeCartItem, validateCartAvailability } from "../../services/userServices/cartService.js";
 import { addToWishlistSafe } from "../../services/userServices/wishlistService.js";
 
 export const addToCart = async (req, res) => {
@@ -84,5 +84,28 @@ export const moveToWishlistAjax = async (req, res) => {
     } catch (error) {
         console.error("Move to Wishlist Error:", error);
         res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+export const verifyCheckoutAvailability = async (req, res) => {
+    try {
+        const userId = req.user._id;
+
+        // 1. Call the service to do the hard work
+        await validateCartAvailability(userId);
+
+        // 2. If it passed, sync the latest totals (just in case)
+        await getCartData(userId);
+
+        // 3. Send success to trigger window.location.href in frontend
+        res.json({ success: true });
+
+    } catch (error) {
+        // 4. Catch the specific error message from the service
+        // e.g., "Rice Water Sunscreen is no longer available"
+        res.status(400).json({ 
+            success: false, 
+            message: error.message 
+        });
     }
 };

@@ -7,7 +7,7 @@
             <div class="bg-red-50 text-red-600 p-4 rounded-lg mb-6 flex items-center gap-2">
                 <span class="material-icons-outlined">error_outline</span>
                 <%= errorMsg %>
-             </div>
+            </div>
             <% } %>
 
                 <% if (cart.items.length===0) { %>
@@ -15,60 +15,85 @@
                         <span class="material-icons-outlined text-6xl text-gray-300 mb-4">shopping_cart</span>
                         <h3 class="text-xl font-bold text-gray-900">Your cart is empty</h3>
                         <p class="text-gray-500 mt-2">Looks like you haven't added anything yet.</p>
-                        <a href="/shop" class="inline-block mt-6 bg-primary hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-lg transition">Start Shopping</a>
+                        <a href="/shop"
+                            class="inline-block mt-6 bg-primary hover:bg-pink-700 text-white font-bold py-3 px-8 rounded-lg transition">Start
+                            Shopping</a>
                     </div>
                     <% } else { %>
                         <div class="flex flex-col lg:flex-row gap-8">
 
                             <div class="w-full lg:w-2/3 space-y-4" id="cartItemsContainer">
                                 <% cart.items.forEach(item=> { %>
-                                     <div class="cart-item flex gap-4 p-4 bg-white border border-gray-200 rounded-xl relative <%= item.outOfStock ? 'opacity-70 bg-gray-50' : '' %>" data-variant-id="<%= item.variantId %>">
-                                        <a href="/product/<%= item.slug %>" class="w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-gray-100">
-                                            <img src="<%= item.image %>" class="w-full h-full object-cover <%= item.outOfStock ? 'grayscale' : '' %>">
+                                    <div class="cart-item flex gap-4 p-4 bg-white border border-gray-200 rounded-xl relative <%= item.outOfStock ? 'opacity-70 bg-gray-50' : '' %>"
+                                        data-variant-id="<%= item.variantId %>">
+                                        <a href="/product/<%= item.slug %>"
+                                            class="w-24 h-24 shrink-0 rounded-lg overflow-hidden border border-gray-100">
+                                            <img src="<%= item.image %>"
+                                                class="w-full h-full object-cover <%= item.outOfStock ? 'grayscale' : '' %>">
                                         </a>
 
                                         <div class="flex flex-col flex-grow">
                                             <div class="flex justify-between items-start">
                                                 <div>
-                                                    <p class="text-xs text-gray-500 uppercase tracking-widest"><%= item.brand %></p>
-                                                    <a href="/product/<%= item.slug %>" class="font-bold text-gray-900 hover:text-primary transition line-clamp-1">
+                                                    <p class="text-xs text-gray-500 uppercase tracking-widest">
+                                                        <%= item.brand %>
+                                                    </p>
+                                                    <a href="/product/<%= item.slug %>"
+                                                        class="font-bold text-gray-900 hover:text-primary transition line-clamp-1">
                                                         <%= item.productName %>
                                                     </a>
                                                     <div class="text-sm text-gray-500 mt-1 flex flex-wrap gap-2">
                                                         <% item.attributes.forEach(attr=> { %>
-                                                            <% if (attr.value && attr.value.toUpperCase() !=='N/A' ) { %>
-                                                                <span class="bg-gray-50 border border-gray-100 px-2 py-0.5 rounded text-xs text-gray-600"><%= attr.value %></span>
-                                                            <% } %>
-                                                        <% }) %>
+                                                            <% if (attr.value && attr.value.toUpperCase() !=='N/A' ) {
+                                                                %>
+                                                                <span
+                                                                    class="bg-gray-50 border border-gray-100 px-2 py-0.5 rounded text-xs text-gray-600">
+                                                                    <%= attr.value %>
+                                                                </span>
+                                                                <% } %>
+                                                                    <% }) %>
                                                     </div>
                                                 </div>
 
                                                 <div class="flex items-center gap-3">
-                                                    <button onclick="moveToWishlist('<%= item.variantId %>')" class="text-primary hover:text-pink-700 transition" title="Move to Wishlist">
+                                                    <button onclick="moveToWishlist('<%= item.variantId %>')"
+                                                        class="text-primary hover:text-pink-700 transition"
+                                                        title="Move to Wishlist">
                                                         <span class="material-icons-outlined">favorite_border</span>
                                                     </button>
-                                                    <button onclick="removeItem('<%= item.variantId %>')" class="text-gray-400 hover:text-red-500 transition" title="Remove from Cart">
+                                                    <button onclick="removeItem('<%= item.variantId %>')"
+                                                        class="text-gray-400 hover:text-red-500 transition"
+                                                        title="Remove from Cart">
                                                         <span class="material-icons-outlined">delete_outline</span>
                                                     </button>
                                                 </div>
                                             </div>
 
                                             <div class="mt-auto flex items-center justify-between">
-                                                <div class="font-bold text-gray-900 item-price">₹<%= item.price.toFixed(2) %></div>
+                                                <div class="font-bold text-gray-900 item-price">₹<%=
+                                                        item.price.toFixed(2) %>
+                                                </div>
 
                                                 <% if (item.outOfStock) { %>
-                                                    <span class="text-red-600 font-bold text-sm bg-red-50 px-3 py-1 rounded">OUT OF STOCK</span>
-                                                <% } else { %>
-                                                    <div class="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-1">
-                                                        <button onclick="updateQty('<%= item.variantId %>', -1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-primary transition rounded-md hover:bg-white hover:shadow-sm">
-                                                            <span class="material-icons-outlined text-sm">remove</span>
-                                                        </button>
-                                                        <input type="text" readonly value="<%= item.quantity %>" class="item-qty w-10 text-center bg-transparent border-none text-sm font-bold p-0 focus:ring-0">
-                                                        <button onclick="updateQty('<%= item.variantId %>', 1)" class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-primary transition rounded-md hover:bg-white hover:shadow-sm">
-                                                            <span class="material-icons-outlined text-sm">add</span>
-                                                        </button>
-                                                    </div>
-                                                <% } %>
+                                                    <span
+                                                        class="text-red-600 font-bold text-sm bg-red-50 px-3 py-1 rounded">OUT
+                                                        OF STOCK</span>
+                                                    <% } else { %>
+                                                        <div
+                                                            class="flex items-center bg-gray-50 border border-gray-200 rounded-lg p-1">
+                                                            <button onclick="updateQty('<%= item.variantId %>', -1)"
+                                                                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-primary transition rounded-md hover:bg-white hover:shadow-sm">
+                                                                <span
+                                                                    class="material-icons-outlined text-sm">remove</span>
+                                                            </button>
+                                                            <input type="text" readonly value="<%= item.quantity %>"
+                                                                class="item-qty w-10 text-center bg-transparent border-none text-sm font-bold p-0 focus:ring-0">
+                                                            <button onclick="updateQty('<%= item.variantId %>', 1)"
+                                                                class="w-8 h-8 flex items-center justify-center text-gray-500 hover:text-primary transition rounded-md hover:bg-white hover:shadow-sm">
+                                                                <span class="material-icons-outlined text-sm">add</span>
+                                                            </button>
+                                                        </div>
+                                                        <% } %>
                                             </div>
                                         </div>
                                     </div>
@@ -79,27 +104,33 @@
                                 <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 sticky top-24">
                                     <h3 class="text-lg font-bold text-gray-900 mb-6">Order Summary</h3>
 
-                                    <div class="border-b border-gray-200 pb-4 mb-4 max-h-48 overflow-y-auto custom-scrollbar pr-2" id="summaryItemsList">
+                                    <div class="border-b border-gray-200 pb-4 mb-4 max-h-48 overflow-y-auto custom-scrollbar pr-2"
+                                        id="summaryItemsList">
                                         <% cart.items.forEach(item=> { %>
                                             <% if (!item.outOfStock) { %>
                                                 <div class="flex justify-between text-sm mb-3">
                                                     <span class="text-gray-600 truncate pr-4 flex-1">
-                                                        <%= item.productName %> <span class="text-gray-400 text-xs">(x <%= item.quantity %>)</span>
+                                                        <%= item.productName %> <span class="text-gray-400 text-xs">(x
+                                                                <%= item.quantity %>)
+                                                            </span>
                                                     </span>
-                                                    <span class="font-medium text-gray-900">₹<%= item.itemTotal %></span>
+                                                    <span class="font-medium text-gray-900">₹<%= item.itemTotal %>
+                                                    </span>
                                                 </div>
-                                            <% } %>
-                                        <% }) %>
+                                                <% } %>
+                                                    <% }) %>
                                     </div>
 
                                     <div class="space-y-4 mb-6 text-sm text-gray-600 border-b border-gray-200 pb-6">
                                         <div class="flex justify-between">
                                             <span>Subtotal (Pre-Tax)</span>
-                                            <span class="font-medium text-gray-900" id="summarySubtotal">₹<%= cart.summary.subtotal %></span>
+                                            <span class="font-medium text-gray-900" id="summarySubtotal">₹<%=
+                                                    cart.summary.subtotal %></span>
                                         </div>
                                         <div class="flex justify-between">
                                             <span>Estimated Tax (18% GST)</span>
-                                            <span class="font-medium text-gray-900" id="summaryTax">₹<%= cart.summary.tax %></span>
+                                            <span class="font-medium text-gray-900" id="summaryTax">₹<%=
+                                                    cart.summary.tax %></span>
                                         </div>
                                         <div class="flex justify-between text-green-600">
                                             <span>Discount</span>
@@ -109,11 +140,14 @@
 
                                     <div class="flex justify-between items-end mb-8">
                                         <span class="font-bold text-gray-900">Total</span>
-                                        <span class="text-2xl font-bold text-gray-900" id="summaryTotal">₹<%= cart.summary.total %></span>
+                                        <span class="text-2xl font-bold text-gray-900" id="summaryTotal">₹<%=
+                                                cart.summary.total %></span>
                                     </div>
 
-                                    <button id="checkoutBtn" onclick="proceedToCheckout()" class="w-full bg-gray-900 hover:bg-primary text-white font-bold py-4 rounded-xl transition flex justify-center items-center gap-2">
-                                        Proceed to Checkout <span class="material-icons-outlined text-sm">arrow_forward</span>
+                                    <button id="checkoutBtn" onclick="proceedToCheckout()"
+                                        class="w-full bg-gray-900 hover:bg-primary text-white font-bold py-4 rounded-xl transition flex justify-center items-center gap-2">
+                                        Proceed to Checkout <span
+                                            class="material-icons-outlined text-sm">arrow_forward</span>
                                     </button>
                                 </div>
                             </div>
@@ -128,7 +162,7 @@
             const qtyInput = itemRow.querySelector('.item-qty');
             const currentQty = parseInt(qtyInput.value);
             const newQty = currentQty + change;
-            if (newQty < 1) return; 
+            if (newQty < 1) return;
 
             try {
                 // RESTful update
@@ -208,7 +242,7 @@
                     itemRow.style.transform = "translateX(20px)";
                     setTimeout(() => {
                         itemRow.remove();
-                        updateSummaryUI(data.cart); 
+                        updateSummaryUI(data.cart);
                         if (data.cart.items.length === 0) window.location.reload();
                     }, 300);
                 } else {
@@ -258,17 +292,40 @@
             }
         }
 
-        function proceedToCheckout() {
-            const outOfStockItems = document.querySelectorAll('.cart-item .bg-red-50');
-            if (outOfStockItems.length > 0) {
+        async function proceedToCheckout() {
+            try {
+                // Show loading state
                 Swal.fire({
-                    icon: 'error',
-                    title: 'Cart contains out-of-stock items',
-                    text: 'Please remove out-of-stock items before proceeding to checkout.'
+                    title: 'Verifying items...',
+                    allowOutsideClick: false,
+                    didOpen: () => { Swal.showLoading(); }
                 });
-                return;
+
+                const response = await fetch('/cart/verify-checkout', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    window.location.href = '/checkout';
+                } else {
+                    // STOP: Show the specific error message from the server
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Availability Issue',
+                        text: data.message, // Shows: "Rice Water Sunscreen is no longer available..."
+                        confirmButtonText: 'Update Cart',
+                        confirmButtonColor: '#E91E63'
+                    }).then(() => {
+                        // Reload cleans the cart and updates the UI
+                        window.location.reload();
+                    });
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Something went wrong. Please refresh the page.', 'error');
             }
-            window.location.href = '/checkout';
         }
     </script>
 
