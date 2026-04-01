@@ -1,4 +1,4 @@
-import { getAdminOrdersList, getAdminOrderById, updateOrderStatusService, processReturnRequestService } from "../../services/adminServices/orderService.js";
+import { getAdminOrdersList, getAdminOrderById, updateOrderStatusService, processReturnRequestService, updatePaymentStatusService } from "../../services/adminServices/orderService.js";
 
 // ==========================================
 // RENDER ORDERS LIST PAGE
@@ -72,6 +72,21 @@ export const processReturnAjax = async (req, res) => {
         await processReturnRequestService(req.params.orderId, req.params.itemId, action, rejectReason);
         
         res.json({ success: true, message: `Return ${action.toLowerCase()}ed successfully.` });
+    } catch (error) {
+        res.status(400).json({ success: false, message: error.message });
+    }
+};
+
+// Add this to your admin orderController.js
+export const updatePaymentStatusAjax = async (req, res) => {
+    try {
+        const { status } = req.body;
+        await updatePaymentStatusService(req.params.id, status);
+        
+        res.json({ 
+            success: true, 
+            message: `Payment status updated to ${status}.` 
+        });
     } catch (error) {
         res.status(400).json({ success: false, message: error.message });
     }

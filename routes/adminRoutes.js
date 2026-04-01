@@ -41,7 +41,8 @@ import {
     getOrdersPage, 
     getAdminOrderDetailPage, 
     updateOrderStatusAjax,
-    processReturnAjax 
+    processReturnAjax,
+    updatePaymentStatusAjax
 } from "../controllers/admin/orderController.js";
 
 import { 
@@ -147,6 +148,8 @@ router.get('/orders/:id', checkAdminSession, preventCache, getAdminOrderDetailPa
 
 // Update order status (PATCH updates a specific field on a resource)
 router.patch('/orders/:id/status', checkAdminSession, updateOrderStatusAjax);
+// Add this in your Order Management section
+router.patch('/orders/:id/payment-status', checkAdminSession, updatePaymentStatusAjax);
 router.post('/orders/:orderId/items/:itemId/process-return', checkAdminSession, processReturnAjax);
 
 // Inventory Management

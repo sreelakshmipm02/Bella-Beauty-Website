@@ -52,7 +52,6 @@
                                 <p class="text-sm text-gray-500 mb-3">Price: ₹<%= item.price %> | Qty: <%= item.quantity %></p>
                                 
                                 <% 
-                                    // Fallback to 'Pending' if the database field is empty
                                     let itemStatus = item.status || 'Pending';
                                     let itemStatusColor = 'text-yellow-700 bg-yellow-100 border-yellow-300';
                                     
@@ -151,9 +150,16 @@
                         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Payment Method</h3>
                         <p class="font-bold text-gray-900"><%= order.payment.method %></p>
                     </div>
-                    <span class="px-3 py-1 rounded-md text-xs font-bold uppercase tracking-wider <%= order.payment.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
-                        <%= order.payment.status %>
-                    </span>
+                    
+                    <select onchange="updatePaymentStatus('<%= order._id %>', this.value)"
+                        class="text-[10px] font-bold px-3 py-1 rounded-md border outline-none cursor-pointer transition
+                        <%= order.payment.status === 'Paid' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200' %>"
+                        <%= order.payment.status === 'Refunded' ? 'disabled' : '' %>>
+                        <option value="Pending" <%= order.payment.status === 'Pending' ? 'selected' : '' %>>Pending</option>
+                        <option value="Paid" <%= order.payment.status === 'Paid' ? 'selected' : '' %>>Paid</option>
+                        <option value="Failed" <%= order.payment.status === 'Failed' ? 'selected' : '' %>>Failed</option>
+                        <option value="Refunded" <%= order.payment.status === 'Refunded' ? 'selected' : '' %>>Refunded</option>
+                    </select>
                 </div>
 
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Price Summary</h3>
@@ -188,6 +194,7 @@
 </main>
 
 <script>
+    // Existing Order Status Handler
     async function updateOrderStatus(orderId, newStatus, oldStatus) {
         const { isConfirmed } = await Swal.fire({
             title: 'Change Status?',
@@ -199,13 +206,50 @@
         });
 
         if (!isConfirmed) {
-            window.location.reload(); // Revert dropdown visually if cancelled
+            window.location.reload();
             return;
         }
 
         try {
-            // Making a RESTful PATCH request to the route we set up!
             const response = await fetch(`/admin/orders/${orderId}/status`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.fire({ icon: 'success', title: 'Updated!', text: data.message, showConfirmButton: false, timer: 1500 });
+                setTimeout(() => window.location.reload(), 1500);
+            } else {
+                Swal.fire('Error', data.message, 'error');
+                window.location.reload();
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Network Error', 'error');
+            window.location.reload();
+        }
+    }
+
+    // New: Payment Status Handler
+    async function updatePaymentStatus(orderId, newStatus) {
+        const { isConfirmed } = await Swal.fire({
+            title: 'Update Payment Status?',
+            text: `Are you sure you want to mark this as ${newStatus}?`,
+            icon: 'info',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, update it!',
+            confirmButtonColor: '#ec4899'
+        });
+
+        if (!isConfirmed) {
+            window.location.reload();
+            return;
+        }
+
+        try {
+            const response = await fetch(`/admin/orders/${orderId}/payment-status`, {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ status: newStatus })
@@ -240,27 +284,13 @@
                 confirmButtonText: 'Reject Return',
                 inputValidator: (value) => {
                     const trimmedValue = value.trim();
-                    
-                    // Check if empty
-                    if (!trimmedValue) {
-                        return 'You must provide a reason!';
-                    }
-                    
-                    // Check minimum length
-                    if (trimmedValue.length < 10) {
-                        return 'Please provide a clear reason (at least 10 characters).';
-                    }
-                    
-                    // Check maximum length
-                    if (trimmedValue.length > 250) {
-                        return 'Reason is too long (maximum 250 characters).';
-                    }
+                    if (!trimmedValue) return 'You must provide a reason!';
+                    if (trimmedValue.length < 10) return 'Please provide a clear reason (at least 10 characters).';
+                    if (trimmedValue.length > 250) return 'Reason is too long (maximum 250 characters).';
                 }
             });
 
             if (!isConfirmed) return;
-            
-            // Sanitize admin input to prevent XSS
             rejectReason = value.trim().replace(/</g, "&lt;").replace(/>/g, "&gt;");
             
         } else {

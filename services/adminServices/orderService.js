@@ -118,3 +118,19 @@ export const processReturnRequestService = async (orderId, itemId, action, rejec
     
     return order;
 };
+
+// Add this to your admin orderService.js
+export const updatePaymentStatusService = async (orderId, newStatus) => {
+    const order = await Order.findById(orderId);
+    if (!order) throw new Error("Order not found");
+
+    // Prevent changing status if already Refunded (final state)
+    if (order.payment.status === 'Refunded') {
+        throw new Error("Cannot change status of a refunded payment.");
+    }
+
+    order.payment.status = newStatus;
+    await order.save();
+    
+    return order;
+};
