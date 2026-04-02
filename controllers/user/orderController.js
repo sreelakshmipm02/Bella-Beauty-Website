@@ -5,15 +5,20 @@ import {
     cancelMultipleItemsService, 
     returnMultipleItemsService 
 } from "../../services/userServices/orderService.js";
-
 import { generateInvoicePDF } from "../../services/userServices/invoiceService.js";
 
-// ==========================================
-// 1. ORDER SUCCESS PAGE
-// ==========================================
+// ---------------------------------------------------------
+//  1. ORDER VIEWS (Success, History, & Detail)
+// ---------------------------------------------------------
+
+/**
+ * Renders the confirmation page immediately after a successful checkout.
+ * We perform a quick ownership check to ensure users can't guess order IDs 
+ * to see other people's success pages.
+ */
 export const getOrderSuccessPage = async (req, res) => {
     try {
-        const orderId = req.params.orderId;
+        const { orderId } = req.params;
         const userId = req.session.userId;
 
         const order = await Order.findOne({ _id: orderId, userId: userId });
@@ -33,9 +38,10 @@ export const getOrderSuccessPage = async (req, res) => {
     }
 };
 
-// ==========================================
-// 2. ORDER HISTORY PAGE (With Search)
-// ==========================================
+/**
+ * Renders the list of all orders a user has placed.
+ * Supports a simple search query to filter by Order ID or Product names.
+ */
 export const getOrderHistoryPage = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -55,9 +61,9 @@ export const getOrderHistoryPage = async (req, res) => {
     }
 };
 
-// ==========================================
-// 3. ORDER DETAIL PAGE
-// ==========================================
+/**
+ * Renders the full breakdown of a single order.
+ */
 export const getOrderDetailPage = async (req, res) => {
     try {
         const userId = req.session.userId;
@@ -78,19 +84,21 @@ export const getOrderDetailPage = async (req, res) => {
     }
 };
 
-// ==========================================
-// 4. CANCEL ENTIRE ORDER AJAX
-// ==========================================
+// ---------------------------------------------------------
+//  2. CANCELLATION LOGIC (AJAX)
+// ---------------------------------------------------------
+
+/**
+ * Cancels all eligible items in an order at once.
+ */
 export const cancelOrderAjax = async (req, res) => {
     try {
-        // Fetch the order to get all item IDs
         const order = await Order.findOne({ _id: req.params.orderId, userId: req.session.userId });
         if (!order) throw new Error("Order not found");
         
-        // Extract all item IDs into an array
+        // We map all item IDs to treat the "Whole Order" as a multi-item cancellation
         const allItemIds = order.items.map(item => item._id);
 
-        // Pass the array to our smart service
         await cancelMultipleItemsService(req.params.orderId, allItemIds, req.session.userId, req.body.reason);
         
         res.json({ success: true, message: "Order cancelled successfully." });
@@ -99,12 +107,12 @@ export const cancelOrderAjax = async (req, res) => {
     }
 };
 
-// ==========================================
-// 5. CANCEL SINGLE ITEM AJAX
-// ==========================================
+/**
+ * Cancels a specific single item from an order.
+ */
 export const cancelItemAjax = async (req, res) => {
     try {
-        // We wrap the single itemId from the URL into an array: [req.params.itemId]
+        // We wrap the single ID in an array to keep the service layer call consistent
         await cancelMultipleItemsService(req.params.orderId, [req.params.itemId], req.session.userId, req.body.reason);
         
         res.json({ success: true, message: "Item cancelled successfully." });
@@ -113,16 +121,19 @@ export const cancelItemAjax = async (req, res) => {
     }
 };
 
-// ==========================================
-// 6. REQUEST RETURN AJAX
-// ==========================================
+// ---------------------------------------------------------
+//  3. RETURN LOGIC (AJAX)
+// ---------------------------------------------------------
+
+/**
+ * Requests a return for the entire order. 
+ * Only items with a status of 'Delivered' are processed for return.
+ */
 export const returnOrderAjax = async (req, res) => {
     try {
-        // Fetch order to find which items were actually delivered
         const order = await Order.findOne({ _id: req.params.orderId, userId: req.session.userId });
         if (!order) throw new Error("Order not found");
         
-        // Extract only the IDs of items that are 'Delivered'
         const deliveredItemIds = order.items
             .filter(item => item.status === 'Delivered')
             .map(item => item._id);
@@ -131,7 +142,6 @@ export const returnOrderAjax = async (req, res) => {
             throw new Error("No delivered items found to return.");
         }
 
-        // Pass the array to our smart service
         await returnMultipleItemsService(req.params.orderId, deliveredItemIds, req.session.userId, req.body.reason);
         
         res.json({ success: true, message: "Return requested successfully." });
@@ -140,12 +150,11 @@ export const returnOrderAjax = async (req, res) => {
     }
 };
 
-// ==========================================
-// 7. RETURN SINGLE ITEM AJAX
-// ==========================================
+/**
+ * Requests a return for one specific item.
+ */
 export const returnItemAjax = async (req, res) => {
     try {
-        // We wrap the single itemId from the URL into an array: [req.params.itemId]
         await returnMultipleItemsService(req.params.orderId, [req.params.itemId], req.session.userId, req.body.reason);
         
         res.json({ success: true, message: "Item return requested successfully." });
@@ -154,27 +163,34 @@ export const returnItemAjax = async (req, res) => {
     }
 };
 
-//INVOICE GENERATION
+// ---------------------------------------------------------
+//  4. DOCUMENT GENERATION
+// ---------------------------------------------------------
 
+/**
+ * Generates and triggers a PDF download for the order invoice.
+ * We only allow this for delivered orders to ensure the transaction is finalized.
+ */
 export const downloadInvoice = async (req, res) => {
     try {
         const { orderId } = req.params;
         const userId = req.session.userId;
 
-        // Ensure user owns the order and it's delivered [cite: 180, 182]
         const order = await getOrderById(orderId, userId);
+        
         if (!order || order.orderStatus !== 'Delivered') {
             return res.status(400).send("Invoice only available for delivered orders.");
         }
 
         const pdfBuffer = await generateInvoicePDF(order);
 
+        // Set headers to tell the browser to treat this as a downloadable PDF file
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=Invoice-${order.orderId}.pdf`);
         res.send(pdfBuffer);
         
     } catch (error) {
         console.error("Invoice Download Error:", error);
-        res.status(500).send("Internal Server Error");
+        res.status(500).send("Failed to generate invoice. Please try again later.");
     }
 };

@@ -3,54 +3,64 @@ import ProductVariant from "../../models/productVariant.js";
 import Product from "../../models/product.js";
 import Category from "../../models/category.js";
 
+// Global shopping constraints
 const MAX_QTY_PER_ITEM = 5;
-const GST_RATE = 0.18; // 18% GST (You can adjust this)
+const GST_RATE = 0.18; // 18% Tax
 
-// --- Helper: Calculate Cart Totals ---
+// ---------------------------------------------------------
+//  HELPERS: TOTALS & VALIDATION
+// ---------------------------------------------------------
+
+/**
+ * Calculates the final price, tax, and item count.
+ * We extract tax from the subtotal (assuming price is inclusive).
+ */
 const calculateCartTotals = (items) => {
     let subtotal = 0;
 
     items.forEach(item => {
-        if (!item.outOfStock && variantIsActive(item.variant)) {
-            subtotal += (item.variant.price * item.quantity);
+        // Double-check status before adding to the bill
+        if (!item.outOfStock) {
+            subtotal += (item.price * item.quantity);
         }
     });
 
-    // Assuming the item price INCLUDES GST. We extract the tax amount.
     const preTaxAmount = subtotal / (1 + GST_RATE);
     const taxAmount = subtotal - preTaxAmount;
 
     return {
         subtotal: preTaxAmount.toFixed(2),
         tax: taxAmount.toFixed(2),
-        total: subtotal.toFixed(2), // Final price user pays
+        total: subtotal.toFixed(2),
         totalItems: items.length
     };
 };
 
-// Updated Helper to include Category check
+/**
+ * Validates the "Life Chain" of a product.
+ * Returns true only if Category, Product, and Variant are all active/listed.
+ */
 const variantIsActive = async (variant) => {
-    // 1. Basic existence and status checks
     if (!variant || variant.status !== 'active') return false;
 
-    // 2. Product checks
     const product = await Product.findById(variant.productId).populate('categoryId');
     if (!product || product.status !== 'active') return false;
 
-    // 3. Category checks (The missing piece)
     const category = product.categoryId;
     if (!category || category.isListed === false) return false;
 
     return true;
 };
 
-// ==========================================
-// 1. ADD ITEM TO CART 
-// ==========================================
+// ---------------------------------------------------------
+//  1. ADD ITEM TO CART 
+// ---------------------------------------------------------
+
 export const addItemToCart = async (userId, variantId, quantity = 1) => {
     const variant = await ProductVariant.findById(variantId).populate('productId');
 
-    if (!variantIsActive(variant)) throw new Error("This product is currently unavailable.");
+    // Business rule checks
+    if (!await variantIsActive(variant)) throw new Error("This product is currently unavailable.");
     if (variant.stock <= 0) throw new Error("This item is out of stock.");
     if (quantity > variant.stock) throw new Error(`Only ${variant.stock} left in stock.`);
     if (quantity > MAX_QTY_PER_ITEM) throw new Error(`Maximum limit is ${MAX_QTY_PER_ITEM} per item.`);
@@ -61,11 +71,13 @@ export const addItemToCart = async (userId, variantId, quantity = 1) => {
     const existingItemIndex = cart.items.findIndex(item => item.productVariantId.toString() === variantId.toString());
 
     if (existingItemIndex > -1) {
+        // Increment quantity if item already exists in cart
         const newQty = cart.items[existingItemIndex].quantity + quantity;
         if (newQty > variant.stock) throw new Error(`Cannot add more. Only ${variant.stock} left.`);
         if (newQty > MAX_QTY_PER_ITEM) throw new Error(`Limit of ${MAX_QTY_PER_ITEM} reached.`);
         cart.items[existingItemIndex].quantity = newQty;
     } else {
+        // Add new entry to the items array
         cart.items.push({ productVariantId: variantId, quantity });
     }
 
@@ -73,16 +85,17 @@ export const addItemToCart = async (userId, variantId, quantity = 1) => {
     return cart;
 };
 
-// ==========================================
-// 2. GET CART DATA (With Auto-Correction)
-// ==========================================
+// ---------------------------------------------------------
+//  2. DATA RETRIEVAL (With Auto-Sync/Healing)
+// ---------------------------------------------------------
+
 export const getCartData = async (userId) => {
-    // 1. Fetch and populate. We must include categoryId for the check.
+    // We deep populate to check the status of everything in the product's hierarchy
     const cart = await Cart.findOne({ userId }).populate({
         path: 'items.productVariantId',
         populate: {
             path: 'productId',
-            populate: { path: 'categoryId' } // Deep populate category
+            populate: { path: 'categoryId' }
         }
     });
 
@@ -98,8 +111,7 @@ export const getCartData = async (userId) => {
         const product = variant?.productId;
         const category = product?.categoryId;
 
-        // --- THE "KEEP" CONDITIONS ---
-        // We only keep the item if ALL of these are true:
+        // Validity Flags
         const isProductActive = product && product.status === 'active';
         const isVariantActive = variant && variant.status === 'active';
         const isCategoryActive = category && category.status !== 'inactive';
@@ -108,7 +120,7 @@ export const getCartData = async (userId) => {
         if (isProductActive && isVariantActive && isCategoryActive && hasStock) {
             let actualQty = item.quantity;
 
-            // Auto-adjust quantity if it exceeds available stock
+            // Auto-correct if user's quantity exceeds current warehouse stock
             if (actualQty > variant.stock) {
                 actualQty = variant.stock;
                 item.quantity = actualQty;
@@ -128,22 +140,20 @@ export const getCartData = async (userId) => {
                 attributes: variant.attributes,
                 itemTotal: (variant.price * actualQty).toFixed(2),
                 outOfStock: false,
-                variant: variant
+                variant: variant // Kept for sub-logic in total calculation
             });
         } else {
-            // If ANY condition failed (Category inactive, Product inactive, or 0 Stock)
-            // We do NOT push to formattedItems, and we mark the cart for cleaning
+            // Mark cart for cleaning if any part of the product chain is now inactive
             cartModified = true;
         }
     }
 
-    // STEP 2: The Sync Logic (Deletes the items from MongoDB)
+    // Database Cleaning: Remove any items that failed the "active" check
     if (cartModified) {
         const activeVariantIds = formattedItems.map(f => f.variantId.toString());
 
         cart.items = cart.items.filter(item => {
             if (!item.productVariantId) return false;
-            // Get ID regardless of whether it is populated or just an ID string
             const currentId = item.productVariantId._id
                 ? item.productVariantId._id.toString()
                 : item.productVariantId.toString();
@@ -155,13 +165,15 @@ export const getCartData = async (userId) => {
     }
 
     return {
-        items: formattedItems.reverse(),
+        items: formattedItems.reverse(), // Newest items first
         summary: calculateCartTotals(formattedItems)
     };
 };
-// ==========================================
-// 3. UPDATE QUANTITY (AJAX)
-// ==========================================
+
+// ---------------------------------------------------------
+//  3. QUANTITY & REMOVAL ACTIONS
+// ---------------------------------------------------------
+
 export const updateItemQuantity = async (userId, variantId, newQuantity) => {
     const variant = await ProductVariant.findById(variantId);
 
@@ -178,13 +190,9 @@ export const updateItemQuantity = async (userId, variantId, newQuantity) => {
     cart.items[itemIndex].quantity = newQuantity;
     await cart.save();
 
-    // Return fresh data for the frontend to update instantly
     return await getCartData(userId);
 };
 
-// ==========================================
-// 4. REMOVE ITEM (AJAX)
-// ==========================================
 export const removeCartItem = async (userId, variantId) => {
     const cart = await Cart.findOne({ userId });
     if (!cart) return;
@@ -195,22 +203,30 @@ export const removeCartItem = async (userId, variantId) => {
     return await getCartData(userId);
 };
 
-// ==========================================
-// 5. GET CART VARIANT IDs (For UI State)
-// ==========================================
+// ---------------------------------------------------------
+//  4. UI STATE UTILITIES
+// ---------------------------------------------------------
+
+/**
+ * Returns an array of variant IDs in the cart.
+ * Essential for highlighting "In Cart" items on the shop page.
+ */
 export const getUserCartVariantIds = async (userId) => {
     if (!userId) return [];
-
-    // Model is safely kept only in the service file!
     const cart = await Cart.findOne({ userId });
     if (!cart) return [];
-
-    // Return an array of string IDs (e.g., ['65abc123...', '65def456...'])
     return cart.items.map(item => item.productVariantId.toString());
 };
 
+// ---------------------------------------------------------
+//  5. PRE-CHECKOUT GATEKEEPER
+// ---------------------------------------------------------
+
+/**
+ * Final manual check before proceeding to checkout.
+ * Provides specific error messages for Category/Product/Variant deactivation.
+ */
 export const validateCartAvailability = async (userId) => {
-    // 1. Fetch cart
     const cart = await Cart.findOne({ userId }).populate('items.productVariantId');
 
     if (!cart || !cart.items || cart.items.length === 0) {
@@ -219,39 +235,23 @@ export const validateCartAvailability = async (userId) => {
 
     for (const item of cart.items) {
         const variant = item.productVariantId;
+        if (!variant) throw new Error("An item in your cart is no longer available.");
 
-        // If the variant was deleted from DB
-        if (!variant) {
-            throw new Error("An item in your cart is no longer available.");
-        }
-
-        // 2. Fetch Product and its Category explicitly
         const product = await Product.findById(variant.productId).populate('categoryId');
-
-        if (!product) {
-            throw new Error("A product in your cart has been removed.");
-        }
+        if (!product) throw new Error("A product in your cart has been removed.");
 
         const category = product.categoryId;
 
-        // --- THE HIERARCHY OF DEACTIVATION ---
-
-        // A. Check Category Status
+        // Hierarchy of status checks
         if (!category || category.status === 'inactive') {
-            throw new Error(`The "${category ? category.name : 'selected'}" category has been deactivated. Please remove items from this category to proceed.`);
+            throw new Error(`The "${category ? category.name : 'selected'}" category has been deactivated.`);
         }
-
-        // B. Check Product Status
         if (product.status !== 'active') {
             throw new Error(`"${product.name}" is currently unavailable.`);
         }
-
-        // C. Check Variant Status
         if (variant.status !== 'active') {
             throw new Error(`A specific version of "${product.name}" is no longer available.`);
         }
-
-        // D. Check Stock
         if (variant.stock <= 0) {
             throw new Error(`"${product.name}" just went out of stock.`);
         }

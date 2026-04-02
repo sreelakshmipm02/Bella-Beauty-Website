@@ -12,14 +12,14 @@ const cartItemSchema = new mongoose.Schema({
         min: 1,
         default: 1
     }
-}, { _id: false }); // Prevents Mongoose from creating a separate _id for every item inside the array
+}, { _id: false }); 
 
 const cartSchema = new mongoose.Schema({
     userId: {
         type: mongoose.Schema.Types.ObjectId,
         ref: "User",
         required: true,
-        unique: true // One user strictly equals one cart
+        unique: true 
     },
     items: [cartItemSchema]
 }, { timestamps: true });

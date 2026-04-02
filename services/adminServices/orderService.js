@@ -1,48 +1,63 @@
 import Order from "../../models/order.js";
 import ProductVariant from "../../models/productVariant.js";
 
-// ==========================================
-// HELPER: RECALCULATE MASTER ORDER STATUS
-// ==========================================
+// ---------------------------------------------------------
+//  HELPER: MASTER STATUS RECALCULATOR
+// ---------------------------------------------------------
+
+/**
+ * Determines the overall order status based on individual item states.
+ * This ensures the 'Main Status' on the dashboard accurately reflects 
+ * what's happening with the items inside (Cancellations, Returns, etc).
+ */
 const recalculateMasterStatus = (items) => {
     const statuses = items.map(item => item.status);
 
+    // If every single item is gone, the whole order is closed
     if (statuses.every(s => s === 'Cancelled')) return 'Cancelled';
     if (statuses.every(s => s === 'Returned' || s === 'Cancelled')) return 'Returned';
     
-    // NEW: If any item is requesting a return, flag the whole order so the admin notices!
+    // Priority: If any item needs admin attention for a return, flag the whole order
     if (statuses.includes('Return Requested')) return 'Return Requested';
 
-    // Treat 'Return Rejected' as essentially 'Delivered' (since the user keeps it)
-    if (statuses.every(s => s === 'Delivered' || s === 'Returned' || s === 'Cancelled' || s === 'Return Rejected')) return 'Delivered';
+    // If items are mixed (some kept, some returned/rejected), it counts as a completed delivery
+    const completedStates = ['Delivered', 'Returned', 'Cancelled', 'Return Rejected'];
+    if (statuses.every(s => completedStates.includes(s))) return 'Delivered';
 
     if (statuses.includes('Shipped')) return 'Shipped';
-    if (statuses.includes('Processing') || statuses.includes('Delivered') || statuses.includes('Return Rejected')) return 'Processing';
+    
+    // Default fallback for items still in progress
+    if (statuses.includes('Processing') || statuses.includes('Delivered') || statuses.includes('Return Rejected')) {
+        return 'Processing';
+    }
 
     return 'Pending';
 };
 
-// ==========================================
-// 1. FETCH ALL ORDERS (With Filters, Sort & Pagination)
-// ==========================================
+// ---------------------------------------------------------
+//  1. ORDER DATA RETRIEVAL
+// ---------------------------------------------------------
+
+/**
+ * Fetches a filtered and sorted list of all customer orders.
+ * Supports searching by Order ID and sorting by date or total amount.
+ */
 export const getAdminOrdersList = async (page = 1, limit = 6, search = '', statusFilter = 'all', sortOption = 'newest') => {
     let query = {};
 
-    // Search by Order ID
     if (search) {
         query.orderId = { $regex: search, $options: 'i' };
     }
 
-    // Filter by exact status
     if (statusFilter && statusFilter !== 'all') {
         query.orderStatus = statusFilter;
     }
 
-    // Determine the sorting order
-    let sortQuery = { createdAt: -1 }; // Default: Newest first
+    // Sorting Map
+    let sortQuery = { createdAt: -1 }; 
     if (sortOption === 'oldest') sortQuery = { createdAt: 1 };
-    if (sortOption === 'amount_desc') sortQuery = { 'summary.total': -1 }; // Highest amount first
-    if (sortOption === 'amount_asc') sortQuery = { 'summary.total': 1 };   // Lowest amount first
+    if (sortOption === 'amount_desc') sortQuery = { 'summary.total': -1 }; 
+    if (sortOption === 'amount_asc') sortQuery = { 'summary.total': 1 };   
 
     const skip = (page - 1) * limit;
 
@@ -57,43 +72,71 @@ export const getAdminOrdersList = async (page = 1, limit = 6, search = '', statu
     return { orders, totalOrders };
 };
 
-// ==========================================
-// 2. FETCH SINGLE ORDER DETAILS
-// ==========================================
+/**
+ * Fetches full details for a specific order, including customer 
+ * contact info and product variant data for the admin view.
+ */
 export const getAdminOrderById = async (orderId) => {
     return await Order.findById(orderId)
         .populate('userId', 'name email phone')
         .populate('items.productVariantId');
 };
 
-// ==========================================
-// 3. UPDATE ORDER STATUS
-// ==========================================
+// ---------------------------------------------------------
+//  2. STATUS & PAYMENT MANAGEMENT
+// ---------------------------------------------------------
+
+/**
+ * Updates the order status and cascades the change down to the items.
+ * Does not overwrite items that have already been manually Cancelled or Returned.
+ */
 export const updateOrderStatusService = async (orderId, newStatus) => {
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
 
+    // Guard clause: Don't allow updates to closed orders
     if (order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned') {
         throw new Error(`Cannot change status. Order is already ${order.orderStatus}.`);
     }
 
-    // Cascade the new status to all items that aren't already Cancelled or Returned by the user
+    // Batch update items while respecting user-driven cancellations
     order.items.forEach(item => {
         if (item.status !== 'Cancelled' && item.status !== 'Returned') {
             item.status = newStatus;
         }
     });
 
-    // Run our smart recalculator just to be safe!
     order.orderStatus = recalculateMasterStatus(order.items);
 
     await order.save();
     return order;
 };
 
-// ==========================================
-// 4. PROCESS RETURN REQUEST (APPROVE/REJECT)
-// ==========================================
+/**
+ * Manually adjusts payment status (e.g., marking a COD order as Paid).
+ */
+export const updatePaymentStatusService = async (orderId, newStatus) => {
+    const order = await Order.findById(orderId);
+    if (!order) throw new Error("Order not found");
+
+    if (order.payment.status === 'Refunded') {
+        throw new Error("Cannot change status of a refunded payment.");
+    }
+
+    order.payment.status = newStatus;
+    await order.save();
+    
+    return order;
+};
+
+// ---------------------------------------------------------
+//  3. RETURN PROCESSING
+// ---------------------------------------------------------
+
+/**
+ * Approves or Rejects a customer return request.
+ * If approved, it automatically restores the product stock to the inventory.
+ */
 export const processReturnRequestService = async (orderId, itemId, action, rejectReason) => {
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
@@ -105,31 +148,14 @@ export const processReturnRequestService = async (orderId, itemId, action, rejec
 
     if (action === 'Approve') {
         item.status = 'Returned';
-        // When a return is approved, we restore the stock!
+        // Logic: Put the item back in stock since the customer returned it
         await ProductVariant.findByIdAndUpdate(item.productVariantId, { $inc: { stock: item.quantity } });
     } else if (action === 'Reject') {
         item.status = 'Return Rejected';
         item.adminRejectReason = rejectReason;
     }
 
-    // Recalculate master status
     order.orderStatus = recalculateMasterStatus(order.items);
-    await order.save();
-    
-    return order;
-};
-
-// Add this to your admin orderService.js
-export const updatePaymentStatusService = async (orderId, newStatus) => {
-    const order = await Order.findById(orderId);
-    if (!order) throw new Error("Order not found");
-
-    // Prevent changing status if already Refunded (final state)
-    if (order.payment.status === 'Refunded') {
-        throw new Error("Cannot change status of a refunded payment.");
-    }
-
-    order.payment.status = newStatus;
     await order.save();
     
     return order;

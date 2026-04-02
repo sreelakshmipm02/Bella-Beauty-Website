@@ -13,7 +13,7 @@ const selectedAttributeSchema = new mongoose.Schema({
     }
 }, { _id: false });
 
-// This is the correct schema for Product Variants
+// This is the schema for Product Variants
 const productVariantSchema = new mongoose.Schema({
     productId: {
         type: mongoose.Schema.Types.ObjectId,
