@@ -82,11 +82,12 @@
 
                 <div class="hidden md:block flex-1 max-w-lg mx-8">
                     <form action="/shop" method="GET" class="relative">
-                        <button type="submit" class="absolute inset-y-0 left-0 pl-3 flex items-center z-10 cursor-pointer group">
-                            <span class="material-icons-outlined text-gray-400 group-hover:text-primary transition-colors">search</span>
+                        <button type="submit"
+                            class="absolute inset-y-0 left-0 pl-3 flex items-center z-10 cursor-pointer group">
+                            <span
+                                class="material-icons-outlined text-gray-400 group-hover:text-primary transition-colors">search</span>
                         </button>
-                        <input
-                            name="search"
+                        <input name="search"
                             class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-full leading-5 bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary focus:border-primary sm:text-sm transition duration-150 ease-in-out"
                             placeholder="Search for products..." type="text" />
                     </form>
@@ -101,6 +102,11 @@
                         class="p-2 text-gray-600 dark:text-gray-300 hover:text-primary transition-colors relative group block"
                         title="Wishlist">
                         <span class="material-icons-outlined text-2xl">favorite_border</span>
+
+                        <span id="wishlistBadge"
+                            class="absolute top-1 right-0.5 bg-primary text-white text-[10px] font-bold h-4 w-4 rounded-full flex items-center justify-center ring-2 ring-white dark:ring-card-dark shadow-sm transition-transform duration-200 <%= locals.wishlistCount > 0 ? '' : 'hidden' %>">
+                            <%= locals.wishlistCount || 0 %>
+                        </span>
                     </a>
 
                     <a href="/cart"
@@ -126,14 +132,15 @@
         <div id="mobile-menu"
             class="hidden md:hidden bg-white dark:bg-card-dark border-t border-gray-100 dark:border-gray-800 transition-all duration-300 ease-in-out">
             <div class="px-4 pt-2 pb-6 space-y-1">
-                
+
                 <div class="mb-4 mt-2">
                     <form action="/shop" method="GET" class="relative">
-                        <button type="submit" class="absolute inset-y-0 left-0 pl-3 flex items-center z-10 cursor-pointer group">
-                            <span class="material-icons-outlined text-gray-400 group-hover:text-primary transition-colors">search</span>
+                        <button type="submit"
+                            class="absolute inset-y-0 left-0 pl-3 flex items-center z-10 cursor-pointer group">
+                            <span
+                                class="material-icons-outlined text-gray-400 group-hover:text-primary transition-colors">search</span>
                         </button>
-                        <input
-                            name="search"
+                        <input name="search"
                             class="block w-full pl-10 pr-3 py-2.5 border border-gray-200 dark:border-gray-700 rounded-xl bg-gray-50 dark:bg-gray-800 text-gray-900 dark:text-white placeholder-gray-500 focus:outline-none focus:ring-1 focus:ring-primary"
                             placeholder="Search products..." type="text" />
                     </form>

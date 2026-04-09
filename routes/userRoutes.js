@@ -21,13 +21,14 @@ import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage, cancelOrd
 
 // Middleware imports
 import { verifyCartStockBeforeCheckout } from "../middlewares/cartMiddleware.js";
-import { preventCache, checkUserSession, checkUserSessionAjax, isGuest, injectCartCount } from "../middlewares/authMiddleware.js";
+import { preventCache, checkUserSession, checkUserSessionAjax, isGuest, injectCartCount, injectWishlistCount } from "../middlewares/authMiddleware.js";
 import { uploadUser } from "../middlewares/upload.js";
 
 const router = express.Router();
 
-// Always inject the current cart count so the navbar badge stays updated
+// Always inject the current cart and wishlist count so the navbar badge stays updated
 router.use(injectCartCount);
+router.use(injectWishlistCount);
 
 // ---------------------------------------------------------
 //  1. PUBLIC VISITOR ROUTES
@@ -49,7 +50,7 @@ router.get("/logout", userLogout);
 
 // Google Sign-In logic
 router.get("/auth/google", passport.authenticate("google", { scope: ["profile", "email"] }));
-router.get("/auth/google/callback", passport.authenticate("google", { failureRedirect: "/login" }), googleAuthCallback);
+router.get("/auth/google/callback", googleAuthCallback);
 
 // --- Public Password Recovery ---
 router.get("/forgot-password", preventCache, forgotPasswordPage);

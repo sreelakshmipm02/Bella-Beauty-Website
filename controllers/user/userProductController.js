@@ -1,6 +1,6 @@
-import { 
-    getShopData, 
-    getActiveCategories, 
+import {
+    getShopData,
+    getActiveCategories,
     getActiveBrands,
     getActiveProductTypes,
     getProductBySlug,
@@ -21,14 +21,14 @@ import { getUserWishlistVariantIds } from "../../services/userServices/wishlistS
 export const getShopPage = async (req, res) => {
     try {
         const page = parseInt(req.query.page) || 1;
-        const limit = 9; 
+        const limit = 9;
         const skip = (page - 1) * limit;
 
         // Fetch the filtered products, plus the lists of categories and brands needed for the sidebar dropdowns
         const { products, totalProducts } = await getShopData(req.query, skip, limit);
         const categories = await getActiveCategories();
         const brands = await getActiveBrands();
-        const productTypes = await getActiveProductTypes(); 
+        const productTypes = await getActiveProductTypes();
 
         const totalPages = Math.ceil(totalProducts / limit);
 
@@ -44,7 +44,7 @@ export const getShopPage = async (req, res) => {
             totalProducts,
             // We pass the raw query object back to the frontend so the UI can "remember" 
             // what the user searched for and keep those checkboxes/inputs filled in.
-            query: req.query 
+            query: req.query
         });
 
     } catch (error) {
@@ -72,12 +72,12 @@ export const getProductDetails = async (req, res) => {
         }
 
         const category = await getCategoryById(product.categoryId);
-        
+
         // Safety Check 2: Even if the product is active, is its parent category active?
         // (If an admin disables the "Skincare" category, all skincare products should instantly hide)
         if (!category || category.status !== 'active') {
             console.log("❌ Redirecting: Category is missing or not active.");
-            return res.redirect('/shop'); 
+            return res.redirect('/shop');
         }
 
         const variants = await getActiveVariants(product._id);
@@ -86,7 +86,7 @@ export const getProductDetails = async (req, res) => {
         // Safety Check 3: Does the product actually have things to sell?
         if (!variants || variants.length === 0) {
             console.log("❌ Redirecting: Product has 0 active variants.");
-            return res.redirect('/shop'); 
+            return res.redirect('/shop');
         }
 
         // Fetch items already in cart AND wishlist so the buttons know their state!

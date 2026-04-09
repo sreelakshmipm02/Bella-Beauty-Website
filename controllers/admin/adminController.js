@@ -11,15 +11,25 @@ export const adminLoginPage = (req, res) => {
 };
 
 // Handle Login Submission
+// Handle Login Submission
 export const adminLogin = async (req, res) => {
     try {
         const { email, password } = req.body;
 
+        // 1. Capture existing user session data before admin login
+        const existingUserId = req.session.userId;
+
         // Call the service to handle logic
         const admin = await authenticateAdmin(email, password);
 
-        // If successful (no error thrown), set session and redirect
+        // 2. Set the Admin ID
         req.session.adminId = admin._id;
+
+        // 3. Re-attach the User ID if it existed
+        if (existingUserId) {
+            req.session.userId = existingUserId;
+        }
+
         res.redirect("/admin/dashboard");
 
     } catch (error) {
@@ -112,17 +122,9 @@ export const toggleUserStatus = async (req, res) => {
 
 // Logout process 
 export const adminLogout = (req, res) => {
-    // 1. Destroy the session
-    req.session.destroy((err) => {
-        if (err) {
-            console.log("Error destroying session:", err);
-            return res.redirect("/admin/dashboard");
-        }
-
-        // 2. Clear the cookie 
-        res.clearCookie("connect.sid");
-
-        // 3. Redirect to Login
-        res.redirect("/admin/login");
-    });
+    if (req.session) {
+        // ONLY delete the admin key. userId remains untouched.
+        delete req.session.adminId;
+    }
+    res.redirect('/admin/login');
 };

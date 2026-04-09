@@ -58,12 +58,18 @@ export default function configurePassport() {
 
     // session handling
     passport.serializeUser((user, done) => {
+        // Only serialize the ID
         done(null, user.id);
     });
 
     passport.deserializeUser(async (id, done) => {
-        const user = await User.findById(id);
-        done(null, user);
+        try {
+            // Only attempt to find a User if this isn't an admin-only session
+            const user = await User.findById(id);
+            done(null, user);
+        } catch (error) {
+            done(error, null);
+        }
     });
 
 }

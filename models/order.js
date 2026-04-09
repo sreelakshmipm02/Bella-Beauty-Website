@@ -11,7 +11,7 @@ const generateOrderId = () => {
 };
 
 const orderSchema = new mongoose.Schema({
-    // Your custom, readable Order ID
+
     orderId: {
         type: String,
         unique: true,
@@ -23,7 +23,6 @@ const orderSchema = new mongoose.Schema({
         required: true
     },
     
-    // We save the exact name and price at the time of purchase.
     items: [{
         productVariantId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -32,7 +31,7 @@ const orderSchema = new mongoose.Schema({
         },
         productName: { type: String, required: true },
         image: { type: String, required: true },
-        price: { type: Number, required: true }, // Price *at the time* of checkout
+        price: { type: Number, required: true }, 
         quantity: { type: Number, required: true },
         itemTotal: { type: Number, required: true },
         
@@ -43,10 +42,9 @@ const orderSchema = new mongoose.Schema({
             default: "Pending"
         },
         cancelReason: { type: String },
-        adminRejectReason: { type: String } // Saves the admin's explanation for denying a return
+        adminRejectReason: { type: String } 
     }],
 
-    // Saved here so old orders don't break if the user deletes their address later.
     shippingAddress: {
         fullName: { type: String, required: true },
         phone: { type: String, required: true },
@@ -70,7 +68,7 @@ const orderSchema = new mongoose.Schema({
             enum: ["Pending", "Paid", "Failed", "Refunded"],
             default: "Pending"
         },
-        transactionId: { type: String } // To store Razorpay/Stripe IDs later
+        transactionId: { type: String } 
     },
 
     // 4. PRICE SUMMARY

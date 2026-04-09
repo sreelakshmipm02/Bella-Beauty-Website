@@ -93,14 +93,25 @@ export const loginPage = (req, res) => {
 };
 
 //post login page
+// post login page
 export const loginSubmit = async (req, res) => {
     try {
         const { identifier, password } = req.body;
 
-        const user = await loginUser(identifier, password);
-        req.session.userId = user._id;
-        res.redirect("/");
+        // 1. Capture existing admin session data before user login
+        const existingAdminId = req.session.adminId;
 
+        const user = await loginUser(identifier, password);
+
+        // 2. Set the User ID
+        req.session.userId = user._id;
+
+        // 3. Re-attach the Admin ID if it existed
+        if (existingAdminId) {
+            req.session.adminId = existingAdminId;
+        }
+
+        res.redirect("/");
 
     } catch (error) {
         res.render("user/login", { error: error.message });
@@ -299,20 +310,13 @@ export const forgotPasswordLoggedIn = async (req, res) => {
 //----------------------------------------------------------------------
 // Logout process 
 export const userLogout = (req, res) => {
-    // 1. Destroy the session
-    req.session.destroy((err) => {
-        if (err) {
-            console.log("Error destroying session:", err);
-            return res.redirect("/");
-        }
-
-        // 2. Clear the cookie 
-        res.clearCookie("connect.sid");
-
-        // 3. Redirect to Login
-        res.redirect("/login");
-    });
+    if (req.session) {
+        // ONLY delete the user key. adminId remains untouched.
+        delete req.session.userId; 
+    }
+    res.redirect('/login');
 };
+
 // Render Forgot Password Page
 export const forgotPasswordPage = (req, res) => {
     res.render("user/forgot-password", { message: null, error: null });
