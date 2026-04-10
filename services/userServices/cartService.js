@@ -13,13 +13,12 @@ const GST_RATE = 0.18; // 18% Tax
 
 /**
  * Calculates the final price, tax, and item count.
- * We extract tax from the subtotal (assuming price is inclusive).
+ * Includes dynamic shipping cost calculation (Free over ₹500).
  */
 const calculateCartTotals = (items) => {
     let subtotal = 0;
 
     items.forEach(item => {
-        // Double-check status before adding to the bill
         if (!item.outOfStock) {
             subtotal += (item.price * item.quantity);
         }
@@ -28,14 +27,27 @@ const calculateCartTotals = (items) => {
     const preTaxAmount = subtotal / (1 + GST_RATE);
     const taxAmount = subtotal - preTaxAmount;
 
+    // --- NEW: Dynamic Shipping Logic ---
+    const FREE_SHIPPING_THRESHOLD = 500;
+    const STANDARD_DELIVERY_CHARGE = 40; // Change this to your preferred delivery fee
+
+    // If subtotal is 0 (empty cart), shipping is 0. Otherwise apply threshold logic.
+    let shippingCost = 0;
+    if (subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD) {
+        shippingCost = STANDARD_DELIVERY_CHARGE;
+    }
+
+    // Add shipping cost to the final total
+    const finalTotal = subtotal + shippingCost;
+
     return {
         subtotal: preTaxAmount.toFixed(2),
         tax: taxAmount.toFixed(2),
-        total: subtotal.toFixed(2),
+        shipping: shippingCost, // Now available in the summary object
+        total: finalTotal.toFixed(2),
         totalItems: items.length
     };
 };
-
 /**
  * Validates the "Life Chain" of a product.
  * Returns true only if Category, Product, and Variant are all active/listed.

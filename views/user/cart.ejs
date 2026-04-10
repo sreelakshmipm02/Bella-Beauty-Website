@@ -132,6 +132,12 @@
                                             <span>Discount</span>
                                             <span class="font-medium" id="summaryDiscount">- ₹0.00</span>
                                         </div>
+                                        <div class="flex justify-between <%= cart.summary.shipping === 0 ? 'text-green-600' : 'text-gray-600' %>" id="summaryDeliveryContainer">
+    <span>Delivery</span>
+    <span class="font-medium" id="summaryDelivery">
+        <%= cart.summary.shipping === 0 ? 'Free' : '₹' + cart.summary.shipping.toFixed(2) %>
+    </span>
+</div>
                                     </div>
 
                                     <div class="flex justify-between items-end mb-8">
@@ -262,9 +268,24 @@
         const taxEl = document.getElementById('summaryTax');
         const totalEl = document.getElementById('summaryTotal');
         
+        // NEW: Get Delivery Elements
+        const deliveryEl = document.getElementById('summaryDelivery');
+        const deliveryContainer = document.getElementById('summaryDeliveryContainer');
+        
         if (subtotalEl) subtotalEl.innerText = `₹${cart.summary.subtotal}`;
         if (taxEl) taxEl.innerText = `₹${cart.summary.tax}`;
         if (totalEl) totalEl.innerText = `₹${cart.summary.total}`;
+
+        // NEW: Update Delivery UI dynamically
+        if (deliveryEl && deliveryContainer) {
+            if (cart.summary.shipping === 0) {
+                deliveryEl.innerText = 'Free';
+                deliveryContainer.className = 'flex justify-between text-green-600';
+            } else {
+                deliveryEl.innerText = `₹${cart.summary.shipping.toFixed(2)}`;
+                deliveryContainer.className = 'flex justify-between text-gray-600';
+            }
+        }
 
         const badge = document.getElementById('cartBadge');
         if (badge) {

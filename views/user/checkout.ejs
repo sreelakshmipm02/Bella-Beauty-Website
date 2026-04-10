@@ -101,10 +101,12 @@
                             <span>Tax (GST)</span>
                             <span class="font-medium text-gray-900">₹<%= cart.summary.tax %></span>
                         </div>
-                        <div class="flex justify-between text-green-600">
-                            <span>Delivery</span>
-                            <span class="font-medium">Free</span>
-                        </div>
+                        <div class="flex justify-between <%= cart.summary.shipping === 0 ? 'text-green-600' : 'text-gray-600' %>">
+    <span>Delivery</span>
+    <span class="font-medium">
+        <%= cart.summary.shipping === 0 ? 'Free' : '+ ₹' + cart.summary.shipping.toFixed(2) %>
+    </span>
+</div>
                     </div>
 
                     <div class="flex justify-between items-end mb-8">

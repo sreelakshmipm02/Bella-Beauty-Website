@@ -13,30 +13,34 @@
                 <p class="text-sm text-gray-500 ml-9">
                     Order ID: <span class="font-bold text-gray-900">
                         <%= order.orderId %>
-                    </span> • Placed on <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                    </span> • Placed on <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric' ,
+                        month: 'short' , year: 'numeric' }) %>
                 </p>
             </div>
 
             <div class="flex items-center gap-3 ml-9 md:ml-0">
-                <% if (order.orderStatus === 'Delivered') { %>
+                <% if (order.orderStatus==='Delivered' ) { %>
                     <button onclick="downloadInvoice('<%= order._id %>')"
                         class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-2 px-4 rounded-lg transition flex items-center gap-2 text-sm">
                         <span class="material-icons-outlined text-sm">download</span> Invoice
                     </button>
-                <% } else { %>
-                    <span class="text-xs text-gray-400 italic">Invoice available after delivery</span>
-                <% } %>
+                    <% } else { %>
+                        <span class="text-xs text-gray-400 italic">Invoice available after delivery</span>
+                        <% } %>
 
-                <% let statusColor='bg-yellow-100 text-yellow-800 border-yellow-200' ;
-                if (order.orderStatus === 'Delivered' ) statusColor='bg-green-100 text-green-800 border-green-200' ;
-                if (order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned' ) statusColor='bg-gray-100 text-gray-800 border-gray-200' ;
-                if (order.orderStatus === 'Shipped' ) statusColor='bg-blue-100 text-blue-800 border-blue-200' ;
-                if (order.orderStatus === 'Return Requested' ) statusColor='bg-blue-100 text-blue-800 border-blue-200' ;
-                if (order.orderStatus === 'Return Rejected' ) statusColor='bg-red-100 text-red-800 border-red-200' ;
-                %>
-                    <span class="px-4 py-2 rounded-lg font-bold text-sm border <%= statusColor %>">
-                        <%= order.orderStatus %>
-                    </span>
+                            <% let statusColor='bg-yellow-100 text-yellow-800 border-yellow-200' ; if
+                                (order.orderStatus==='Delivered' )
+                                statusColor='bg-green-100 text-green-800 border-green-200' ; if
+                                (order.orderStatus==='Cancelled' || order.orderStatus==='Returned' )
+                                statusColor='bg-gray-100 text-gray-800 border-gray-200' ; if
+                                (order.orderStatus==='Shipped' ) statusColor='bg-blue-100 text-blue-800 border-blue-200'
+                                ; if (order.orderStatus==='Return Requested' )
+                                statusColor='bg-blue-100 text-blue-800 border-blue-200' ; if
+                                (order.orderStatus==='Return Rejected' )
+                                statusColor='bg-red-100 text-red-800 border-red-200' ; %>
+                                <span class="px-4 py-2 rounded-lg font-bold text-sm border <%= statusColor %>">
+                                    <%= order.orderStatus %>
+                                </span>
             </div>
         </div>
 
@@ -48,49 +52,67 @@
 
                     <div class="space-y-6">
                         <% order.items.forEach(item=> { %>
-                            <div class="flex flex-col sm:flex-row gap-6 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
-                                <div class="w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
+                            <div
+                                class="flex flex-col sm:flex-row gap-6 border-b border-gray-100 pb-6 last:border-0 last:pb-0">
+                                <div
+                                    class="w-24 h-24 rounded-xl bg-gray-50 border border-gray-100 overflow-hidden shrink-0">
                                     <img src="<%= item.image %>" class="w-full h-full object-cover">
                                 </div>
 
                                 <div class="flex-1">
-                                    <h3 class="font-bold text-gray-900 line-clamp-2 mb-1"><%= item.productName %></h3>
-                                    <p class="text-sm text-gray-500 mb-2">Qty: <%= item.quantity %> × ₹<%= item.price %></p>
+                                    <h3 class="font-bold text-gray-900 line-clamp-2 mb-1">
+                                        <%= item.productName %>
+                                    </h3>
+                                    <p class="text-sm text-gray-500 mb-2">Qty: <%= item.quantity %> × ₹<%= item.price %>
+                                    </p>
 
-                                    <% let itemStatusColor='text-yellow-600 bg-yellow-50 border-yellow-200' ; 
-                                       if (item.status === 'Delivered') itemStatusColor='text-green-600 bg-green-50 border-green-200' ;
-                                       if (item.status === 'Cancelled' || item.status === 'Returned') itemStatusColor='text-gray-600 bg-gray-100 border-gray-200' ;
-                                       if (item.status === 'Return Requested') itemStatusColor='text-blue-600 bg-blue-50 border-blue-200' ;
-                                       if (item.status === 'Return Rejected') itemStatusColor='text-red-600 bg-red-50 border-red-200' ;
-                                    %>
-                                        <span class="inline-block px-2 py-1 rounded text-xs font-bold <%= itemStatusColor %>"><%= item.status %></span>
-                                    
-                                    <% if (item.status === 'Return Rejected' && item.adminRejectReason) { %>
-                                        <div class="mt-2 bg-red-50 p-2 rounded-lg border border-red-100">
-                                            <p class="text-xs text-red-600"><span class="font-bold uppercase tracking-wider text-[10px]">Return Rejected:</span> <br><%= item.adminRejectReason %></p>
-                                        </div>
-                                    <% } %>
+                                    <% let itemStatusColor='text-yellow-600 bg-yellow-50 border-yellow-200' ; if
+                                        (item.status==='Delivered' )
+                                        itemStatusColor='text-green-600 bg-green-50 border-green-200' ; if
+                                        (item.status==='Cancelled' || item.status==='Returned' )
+                                        itemStatusColor='text-gray-600 bg-gray-100 border-gray-200' ; if
+                                        (item.status==='Return Requested' )
+                                        itemStatusColor='text-blue-600 bg-blue-50 border-blue-200' ; if
+                                        (item.status==='Return Rejected' )
+                                        itemStatusColor='text-red-600 bg-red-50 border-red-200' ; %>
+                                        <span
+                                            class="inline-block px-2 py-1 rounded text-xs font-bold <%= itemStatusColor %>">
+                                            <%= item.status %>
+                                        </span>
+
+                                        <% if (item.status==='Return Rejected' && item.adminRejectReason) { %>
+                                            <div class="mt-2 bg-red-50 p-2 rounded-lg border border-red-100">
+                                                <p class="text-xs text-red-600"><span
+                                                        class="font-bold uppercase tracking-wider text-[10px]">Return
+                                                        Rejected:</span> <br>
+                                                    <%= item.adminRejectReason %>
+                                                </p>
+                                            </div>
+                                            <% } %>
                                 </div>
 
                                 <div class="text-left sm:text-right flex flex-col justify-between">
-                                    <p class="font-bold text-lg text-gray-900">₹<%= item.itemTotal %></p>
+                                    <p class="font-bold text-lg text-gray-900">₹<%= item.itemTotal %>
+                                    </p>
 
-                                    <% if ((order.orderStatus === 'Pending' || order.orderStatus === 'Processing') && item.status !== 'Cancelled') { %>
+                                    <% if ((order.orderStatus==='Pending' || order.orderStatus==='Processing' ) &&
+                                        item.status !=='Cancelled' ) { %>
                                         <button onclick="cancelItem('<%= order._id %>', '<%= item._id %>')"
                                             class="text-sm text-red-500 hover:text-red-700 font-medium transition mt-2">
                                             Cancel Item
                                         </button>
-                                    <% } %>
+                                        <% } %>
 
-                                    <% if ((order.orderStatus === 'Delivered' || order.orderStatus === 'Returned') && item.status === 'Delivered') { %>
-                                        <button onclick="returnItem('<%= order._id %>', '<%= item._id %>')"
-                                            class="text-sm text-orange-500 hover:text-orange-700 font-medium transition mt-2">
-                                            Return Item
-                                        </button>
-                                    <% } %>
+                                            <% if ((order.orderStatus==='Delivered' || order.orderStatus==='Returned' )
+                                                && item.status==='Delivered' ) { %>
+                                                <button onclick="returnItem('<%= order._id %>', '<%= item._id %>')"
+                                                    class="text-sm text-orange-500 hover:text-orange-700 font-medium transition mt-2">
+                                                    Return Item
+                                                </button>
+                                                <% } %>
                                 </div>
                             </div>
-                        <% }) %>
+                            <% }) %>
                     </div>
                 </div>
             </div>
@@ -100,20 +122,33 @@
                 <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm">
                     <div class="mb-6">
                         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Shipping Address</h3>
-                        <p class="font-bold text-gray-900"><%= order.shippingAddress.fullName %></p>
-                        <p class="text-sm text-gray-600 mt-1"><%= order.shippingAddress.addressLine1 %></p>
+                        <p class="font-bold text-gray-900">
+                            <%= order.shippingAddress.fullName %>
+                        </p>
+                        <p class="text-sm text-gray-600 mt-1">
+                            <%= order.shippingAddress.addressLine1 %>
+                        </p>
                         <% if (order.shippingAddress.addressLine2) { %>
-                            <p class="text-sm text-gray-600"><%= order.shippingAddress.addressLine2 %></p>
-                        <% } %>
-                        <p class="text-sm text-gray-600"><%= order.shippingAddress.city %>, <%= order.shippingAddress.state %> <%= order.shippingAddress.postalCode %></p>
-                        <p class="text-sm text-gray-600 mt-2">Phone: <%= order.shippingAddress.phone %></p>
+                            <p class="text-sm text-gray-600">
+                                <%= order.shippingAddress.addressLine2 %>
+                            </p>
+                            <% } %>
+                                <p class="text-sm text-gray-600">
+                                    <%= order.shippingAddress.city %>, <%= order.shippingAddress.state %>
+                                            <%= order.shippingAddress.postalCode %>
+                                </p>
+                                <p class="text-sm text-gray-600 mt-2">Phone: <%= order.shippingAddress.phone %>
+                                </p>
                     </div>
 
                     <div class="border-t border-gray-200 pt-6">
                         <h3 class="text-sm font-bold text-gray-400 uppercase tracking-wider mb-3">Payment Method</h3>
                         <div class="flex justify-between items-center">
-                            <p class="font-bold text-gray-900"><%= order.payment.method %></p>
-                            <span class="px-2 py-1 rounded text-xs font-bold <%= order.payment.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
+                            <p class="font-bold text-gray-900">
+                                <%= order.payment.method %>
+                            </p>
+                            <span
+                                class="px-2 py-1 rounded text-xs font-bold <%= order.payment.status === 'Paid' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800' %>">
                                 <%= order.payment.status %>
                             </span>
                         </div>
@@ -131,16 +166,19 @@
                             <span>Tax (GST)</span>
                             <span class="font-medium text-gray-900">₹<%= order.summary.tax %></span>
                         </div>
-                        <div class="flex justify-between text-green-600">
+                        <div
+                            class="flex justify-between <%= order.summary.shipping === 0 ? 'text-green-600' : 'text-gray-600' %>">
                             <span>Delivery</span>
-                            <span class="font-medium">Free</span>
+                            <span class="font-medium">
+                                <%= order.summary.shipping===0 ? 'Free' : '+ ₹' + order.summary.shipping.toFixed(2) %>
+                            </span>
                         </div>
                         <% if (order.summary.discount> 0) { %>
                             <div class="flex justify-between text-green-600">
                                 <span>Discount</span>
                                 <span class="font-medium">- ₹<%= order.summary.discount %></span>
                             </div>
-                        <% } %>
+                            <% } %>
                     </div>
                     <div class="flex justify-between items-end mb-6">
                         <span class="font-bold text-gray-900">Total</span>
@@ -152,12 +190,12 @@
                             class="w-full bg-white border-2 border-red-500 text-red-500 hover:bg-red-50 font-bold py-4 rounded-xl transition flex justify-center items-center gap-2">
                             <span class="material-icons-outlined">cancel</span> Cancel Entire Order
                         </button>
-                    <% } else if (order.orderStatus==='Delivered' ) { %>
-                        <button onclick="returnOrder('<%= order._id %>')"
-                            class="w-full bg-white border-2 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold py-4 rounded-xl transition flex justify-center items-center gap-2">
-                            <span class="material-icons-outlined">keyboard_return</span> Request Return
-                        </button>
-                    <% } %>
+                        <% } else if (order.orderStatus==='Delivered' ) { %>
+                            <button onclick="returnOrder('<%= order._id %>')"
+                                class="w-full bg-white border-2 border-orange-500 text-orange-500 hover:bg-orange-50 font-bold py-4 rounded-xl transition flex justify-center items-center gap-2">
+                                <span class="material-icons-outlined">keyboard_return</span> Request Return
+                            </button>
+                            <% } %>
                 </div>
             </div>
         </div>
@@ -229,13 +267,13 @@
                     // 2. Custom Input Validation
                     if (select.value === 'Others') {
                         const reasonText = customInput.value.trim();
-                        
+
                         // Check if empty
                         if (!reasonText) {
                             Swal.showValidationMessage('Please type your custom reason.');
                             return false;
                         }
-                        
+
                         // Check minimum length
                         if (reasonText.length < 10) {
                             Swal.showValidationMessage('Please provide a bit more detail (at least 10 characters).');
