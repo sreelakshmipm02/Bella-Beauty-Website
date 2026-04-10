@@ -1,6 +1,5 @@
 import mongoose from "mongoose";
 
-// Custom Order ID Generator
 const generateOrderId = () => {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     let randomPart = '';
@@ -11,7 +10,6 @@ const generateOrderId = () => {
 };
 
 const orderSchema = new mongoose.Schema({
-
     orderId: {
         type: String,
         unique: true,
@@ -22,7 +20,6 @@ const orderSchema = new mongoose.Schema({
         ref: "User",
         required: true
     },
-    
     items: [{
         productVariantId: {
             type: mongoose.Schema.Types.ObjectId,
@@ -34,17 +31,15 @@ const orderSchema = new mongoose.Schema({
         price: { type: Number, required: true }, 
         quantity: { type: Number, required: true },
         itemTotal: { type: Number, required: true },
-        
-        // Individual item status (Updated for Return Approvals)
         status: {
             type: String,
-            enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned", "Return Requested", "Return Rejected"],
+            // Added "Return Approved"
+            enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned", "Return Requested", "Return Approved", "Return Rejected"],
             default: "Pending"
         },
         cancelReason: { type: String },
         adminRejectReason: { type: String } 
     }],
-
     shippingAddress: {
         fullName: { type: String, required: true },
         phone: { type: String, required: true },
@@ -55,8 +50,6 @@ const orderSchema = new mongoose.Schema({
         postalCode: { type: String, required: true },
         country: { type: String, default: "India" }
     },
-
-    // 3. PAYMENT DETAILS
     payment: {
         method: {
             type: String,
@@ -70,8 +63,6 @@ const orderSchema = new mongoose.Schema({
         },
         transactionId: { type: String } 
     },
-
-    // 4. PRICE SUMMARY
     summary: {
         subtotal: { type: Number, required: true },
         tax: { type: Number, required: true },
@@ -79,15 +70,12 @@ const orderSchema = new mongoose.Schema({
         discount: { type: Number, default: 0 },
         total: { type: Number, required: true }
     },
-    
-    // Store reasons for whole-order actions
     cancelReason: { type: String },
     returnReason: { type: String },
-    
-    // 5. MASTER ORDER STATUS (Updated for Return Approvals)
     orderStatus: {
         type: String,
-        enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned", "Return Requested", "Return Rejected"],
+        // Added "Return Approved"
+        enum: ["Pending", "Processing", "Shipped", "Delivered", "Cancelled", "Returned", "Return Requested", "Return Approved", "Return Rejected"],
         default: "Pending"
     }
 }, { timestamps: true });
