@@ -100,10 +100,11 @@ export const getCartData = async (userId) => {
     });
 
     if (!cart || !cart.items || cart.items.length === 0) {
-        return { items: [], summary: { subtotal: 0, tax: 0, total: 0, totalItems: 0 } };
+        return { items: [], summary: { subtotal: 0, tax: 0, total: 0, totalItems: 0 }, adjustments: [] };
     }
 
     let formattedItems = [];
+    let adjustments = [];
     let cartModified = false;
 
     for (let item of cart.items) {
@@ -124,6 +125,7 @@ export const getCartData = async (userId) => {
             if (actualQty > variant.stock) {
                 actualQty = variant.stock;
                 item.quantity = actualQty;
+                adjustments.push(`${product.name} reduced from ${item.quantity} to ${variant.stock} (Limited Stock)`);
                 cartModified = true;
             }
 
@@ -142,8 +144,9 @@ export const getCartData = async (userId) => {
                 outOfStock: false,
                 variant: variant // Kept for sub-logic in total calculation
             });
-        } else {
-            // Mark cart for cleaning if any part of the product chain is now inactive
+        } else if (product) {
+            // Item is now unavailable or out of stock
+            adjustments.push(`${product.name} removed (No longer available)`);
             cartModified = true;
         }
     }
@@ -166,7 +169,8 @@ export const getCartData = async (userId) => {
 
     return {
         items: formattedItems.reverse(), // Newest items first
-        summary: calculateCartTotals(formattedItems)
+        summary: calculateCartTotals(formattedItems),
+        adjustments
     };
 };
 
@@ -227,34 +231,59 @@ export const getUserCartVariantIds = async (userId) => {
  * Provides specific error messages for Category/Product/Variant deactivation.
  */
 export const validateCartAvailability = async (userId) => {
+    // Populate the variant so we can check stock and status
     const cart = await Cart.findOne({ userId }).populate('items.productVariantId');
 
     if (!cart || !cart.items || cart.items.length === 0) {
         throw new Error("Your cart is empty.");
     }
 
+    let errors = []; // Array to collect all issues point-wise
+
     for (const item of cart.items) {
         const variant = item.productVariantId;
-        if (!variant) throw new Error("An item in your cart is no longer available.");
+
+        // 1. Check if the variant still exists in the DB
+        if (!variant) {
+            errors.push("An item in your cart is no longer available.");
+            continue; // Skip further checks for this specific item
+        }
 
         const product = await Product.findById(variant.productId).populate('categoryId');
-        if (!product) throw new Error("A product in your cart has been removed.");
+
+        // 2. Check if the product or category still exists/is active
+        if (!product) {
+            errors.push("A product in your cart has been removed.");
+            continue;
+        }
 
         const category = product.categoryId;
 
-        // Hierarchy of status checks
+        // 3. Hierarchy of status and stock checks
         if (!category || category.status === 'inactive') {
-            throw new Error(`The "${category ? category.name : 'selected'}" category has been deactivated.`);
+            errors.push(`The "${category ? category.name : 'selected'}" category is currently deactivated.`);
         }
-        if (product.status !== 'active') {
-            throw new Error(`"${product.name}" is currently unavailable.`);
+        else if (product.status !== 'active') {
+            errors.push(`"${product.name}" is no longer available for purchase.`);
         }
-        if (variant.status !== 'active') {
-            throw new Error(`A specific version of "${product.name}" is no longer available.`);
+        else if (variant.status !== 'active') {
+            errors.push(`The specific variant of "${product.name}" you selected is unavailable.`);
         }
-        if (variant.stock <= 0) {
-            throw new Error(`"${product.name}" just went out of stock.`);
+        // Check for complete stock depletion
+        else if (variant.stock <= 0) {
+            errors.push(`"${product.name}" just went out of stock.`);
+        }
+        // Check for partial stock decrease (e.g., cart has 5, DB has 3)
+        else if (item.quantity > variant.stock) {
+            errors.push(`Stock for "${product.name}" decreased. Only ${variant.stock} units available.`);
         }
     }
+
+    // If any errors were collected, throw them as a single string joined by a separator
+    if (errors.length > 0) {
+        // We use '|' as a separator so the controller can split it into a list
+        throw new Error(errors.join('|'));
+    }
+
     return true;
 };

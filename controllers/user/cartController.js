@@ -1,9 +1,9 @@
-import { 
-    addItemToCart, 
-    getCartData, 
-    updateItemQuantity, 
-    removeCartItem, 
-    validateCartAvailability 
+import {
+    addItemToCart,
+    getCartData,
+    updateItemQuantity,
+    removeCartItem,
+    validateCartAvailability
 } from "../../services/userServices/cartService.js";
 import { addToWishlistSafe } from "../../services/userServices/wishlistService.js";
 
@@ -78,15 +78,16 @@ export const getCartPage = async (req, res) => {
     try {
         const userId = req.session.userId;
         const cartData = await getCartData(userId);
-        
-        const errorMsg = req.query.error === 'stock_issue' 
-            ? "Some items in your cart went out of stock. Please remove them to proceed." 
+
+        const errorMsg = req.query.error === 'stock_issue'
+            ? "Some items in your cart went out of stock. Please remove them to proceed."
             : null;
 
         res.render("user/cart", {
             title: "Your Shopping Cart - Bella Beauty",
             isLoggedIn: true,
             cart: cartData,
+            adjustments: cartData.adjustments || [],
             errorMsg
         });
     } catch (error) {
@@ -103,24 +104,24 @@ export const getCartPage = async (req, res) => {
  * Moves an item from the cart to the wishlist.
  * Ensures the item is safely added to wishlist before removing it from the cart.
  */
-export const moveToWishlistAjax = async (req, res) => {
-    try {
-        const userId = req.session.userId;
-        const { variantId } = req.body;
+// export const moveToWishlistAjax = async (req, res) => {
+//     try {
+//         const userId = req.session.userId;
+//         const { variantId } = req.body;
 
-        // Save to wishlist, then purge from cart
-        await addToWishlistSafe(userId, variantId);
-        await removeCartItem(userId, variantId);
-        
-        // Return latest cart state so the mini-cart or totals update
-        const updatedCart = await getCartData(userId);
+//         // Save to wishlist, then purge from cart
+//         await addToWishlistSafe(userId, variantId);
+//         await removeCartItem(userId, variantId);
 
-        res.json({ success: true, message: "Moved to Wishlist", cart: updatedCart });
-    } catch (error) {
-        console.error("Move to Wishlist Error:", error);
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
+//         // Return latest cart state so the mini-cart or totals update
+//         const updatedCart = await getCartData(userId);
+
+//         res.json({ success: true, message: "Moved to Wishlist", cart: updatedCart });
+//     } catch (error) {
+//         console.error("Move to Wishlist Error:", error);
+//         res.status(400).json({ success: false, message: error.message });
+//     }
+// };
 
 // ---------------------------------------------------------
 //  4. CHECKOUT VALIDATION
@@ -133,7 +134,7 @@ export const moveToWishlistAjax = async (req, res) => {
  */
 export const verifyCheckoutAvailability = async (req, res) => {
     try {
-        const userId = req.user._id;
+        const userId = req.session.userId;
 
         // Perform final stock/availability check
         await validateCartAvailability(userId);
@@ -143,10 +144,13 @@ export const verifyCheckoutAvailability = async (req, res) => {
 
         res.json({ success: true });
     } catch (error) {
+        // Split the joined errors back into an array for the point-wise alert
+        const errorList = error.message.split('|');
         // Returns specific errors like "Rice Water Sunscreen is no longer available"
-        res.status(400).json({ 
-            success: false, 
-            message: error.message 
+        res.status(400).json({
+            success: false,
+            errors: errorList, // This must be an array for the frontend
+            message: errorList[0]
         });
     }
 };

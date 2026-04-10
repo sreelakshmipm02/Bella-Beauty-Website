@@ -303,12 +303,14 @@
                         wishlistIcon.innerText = 'favorite';
                         wishlistIcon.classList.add('text-red-500');
                         Swal.fire({ icon: 'success', title: 'Added to Wishlist!', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
+                        setTimeout(() => window.location.reload(), 1000);
                     } else {
                         const index = wishlistVariantIds.indexOf(selectedVariant._id.toString());
                         if (index > -1) wishlistVariantIds.splice(index, 1);
                         wishlistIcon.innerText = 'favorite_border';
                         wishlistIcon.classList.remove('text-red-500');
                         Swal.fire({ icon: 'info', title: 'Removed from Wishlist', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
+                        setTimeout(() => window.location.reload(), 1000);
                     }
                 } else {
                     if (data.redirect) window.location.href = data.redirect;

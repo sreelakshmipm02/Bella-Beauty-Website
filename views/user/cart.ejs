@@ -56,11 +56,7 @@
                                                 </div>
 
                                                 <div class="flex items-center gap-3">
-                                                    <button onclick="moveToWishlist('<%= item.variantId %>')"
-                                                        class="text-primary hover:text-pink-700 transition"
-                                                        title="Move to Wishlist">
-                                                        <span class="material-icons-outlined">favorite_border</span>
-                                                    </button>
+
                                                     <button onclick="removeItem('<%= item.variantId %>')"
                                                         class="text-gray-400 hover:text-red-500 transition"
                                                         title="Remove from Cart">
@@ -154,71 +150,96 @@
                         </div>
                         <% } %>
     </main>
+    <%- include("../partials/footer") %>
 
     <script>
+    // 1. Point-wise Inventory Adjustment Alert
+    document.addEventListener('DOMContentLoaded', () => {
+        try {
+            // FIX: No space between < and % and -
+            const adjustments = <%- locals.adjustments ? JSON.stringify(adjustments) : '[]' %>;
 
-        // Detect when the page is loaded from the "Back" button (Cache)
-        window.addEventListener('pageshow', function (event) {
-            // event.persisted is true if the page was loaded from the BFcache (back-forward cache)
-            if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
-                // Force close any lingering SweetAlert loading modals
-                if (Swal.isVisible()) {
-                    Swal.close();
-                }
+            if (adjustments && adjustments.length > 0) {
+                let messageHtml = '<ul style="text-align: left; list-style-type: disc; padding-left: 20px; font-size: 14px; color: #4B5563;">';
+                adjustments.forEach(item => {
+                    messageHtml += `<li style="margin-bottom: 8px;">${item}</li>`;
+                });
+                messageHtml += '</ul>';
+
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Cart Updated',
+                    html: messageHtml,
+                    confirmButtonText: 'Understood',
+                    confirmButtonColor: '#E91E63'
+                });
             }
+        } catch (e) {
+            console.error("Adjustment Alert Error:", e);
+        }
+    });
+
+    // 2. BFcache Handler
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+            if (typeof Swal !== 'undefined' && Swal.isVisible()) {
+                Swal.close();
+            }
+        }
+    });
+
+    // 3. Update Item Quantity AJAX
+    async function updateQty(variantId, change) {
+        const itemRow = document.querySelector(`.cart-item[data-variant-id="${variantId}"]`);
+        if (!itemRow) return;
+
+        const qtyInput = itemRow.querySelector('.item-qty');
+        const currentQty = parseInt(qtyInput.value);
+        const newQty = currentQty + change;
+        if (newQty < 1) return;
+
+        try {
+            const response = await fetch('/cart/items', {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variantId, quantity: newQty })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                qtyInput.value = newQty;
+                updateSummaryUI(data.cart);
+            } else {
+                Swal.fire('Limit Reached', data.message, 'warning');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to update quantity', 'error');
+        }
+    }
+
+    // 4. Remove Item AJAX
+    async function removeItem(variantId) {
+        const result = await Swal.fire({
+            title: 'Remove item?',
+            text: "Are you sure you want to remove this from your cart?",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#e11d48',
+            confirmButtonText: 'Yes, remove it'
         });
 
-        // 1. Update Quantity
-        async function updateQty(variantId, change) {
-            const itemRow = document.querySelector(`.cart-item[data-variant-id="${variantId}"]`);
-            const qtyInput = itemRow.querySelector('.item-qty');
-            const currentQty = parseInt(qtyInput.value);
-            const newQty = currentQty + change;
-            if (newQty < 1) return;
-
+        if (result.isConfirmed) {
             try {
-                // RESTful update
                 const response = await fetch('/cart/items', {
-                    method: 'PATCH',
+                    method: 'DELETE',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ variantId, quantity: newQty })
+                    body: JSON.stringify({ variantId })
                 });
                 const data = await response.json();
 
                 if (data.success) {
-                    qtyInput.value = newQty;
-                    updateSummaryUI(data.cart);
-                } else {
-                    Swal.fire('Limit Reached', data.message, 'warning');
-                }
-            } catch (error) {
-                console.error("Cart Update UI Error:", error);
-                Swal.fire('Error', 'Failed to update quantity', 'error');
-            }
-        }
-
-        // 2. Remove Item
-        async function removeItem(variantId) {
-            const result = await Swal.fire({
-                title: 'Remove item?',
-                text: "Are you sure you want to remove this from your cart?",
-                icon: 'warning',
-                showCancelButton: true,
-                confirmButtonColor: '#e11d48',
-                confirmButtonText: 'Yes, remove it'
-            });
-            if (result.isConfirmed) {
-                try {
-                    // RESTful update
-                    const response = await fetch('/cart/items', {
-                        method: 'DELETE',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ variantId })
-                    });
-                    const data = await response.json();
-
-                    if (data.success) {
-                        const itemRow = document.querySelector(`.cart-item[data-variant-id="${variantId}"]`);
+                    const itemRow = document.querySelector(`.cart-item[data-variant-id="${variantId}"]`);
+                    if (itemRow) {
                         itemRow.style.transition = "all 0.3s";
                         itemRow.style.opacity = "0";
                         itemRow.style.transform = "translateX(-20px)";
@@ -228,121 +249,89 @@
                             if (data.cart.items.length === 0) window.location.reload();
                         }, 300);
                     }
-                } catch (error) {
-                    console.error("Cart Remove UI Error:", error);
-                    Swal.fire('Error', 'Failed to remove item', 'error');
-                }
-            }
-        }
-
-        // 3. Move Item to Wishlist AJAX
-        async function moveToWishlist(variantId) {
-            try {
-                // RESTful update
-                const response = await fetch('/cart/items/move-to-wishlist', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ variantId })
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    Swal.fire({ icon: 'success', title: 'Moved to Wishlist!', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
-                    const itemRow = document.querySelector(`.cart-item[data-variant-id="${variantId}"]`);
-                    itemRow.style.transition = "all 0.3s";
-                    itemRow.style.opacity = "0";
-                    itemRow.style.transform = "translateX(20px)";
-                    setTimeout(() => {
-                        itemRow.remove();
-                        updateSummaryUI(data.cart);
-                        if (data.cart.items.length === 0) window.location.reload();
-                    }, 300);
-                } else {
-                    Swal.fire('Error', data.message, 'error');
                 }
             } catch (error) {
-                console.error("Move to Wishlist UI Error:", error);
-                Swal.fire('Error', 'Failed to move item', 'error');
+                Swal.fire('Error', 'Failed to remove item', 'error');
             }
         }
+    }
 
-        function updateSummaryUI(cart) {
-            const subtotalEl = document.getElementById('summarySubtotal');
-            if (subtotalEl) subtotalEl.innerText = `₹${cart.summary.subtotal}`;
+    // 5. Update UI Totals
+    function updateSummaryUI(cart) {
+        const subtotalEl = document.getElementById('summarySubtotal');
+        const taxEl = document.getElementById('summaryTax');
+        const totalEl = document.getElementById('summaryTotal');
+        
+        if (subtotalEl) subtotalEl.innerText = `₹${cart.summary.subtotal}`;
+        if (taxEl) taxEl.innerText = `₹${cart.summary.tax}`;
+        if (totalEl) totalEl.innerText = `₹${cart.summary.total}`;
 
-            const taxEl = document.getElementById('summaryTax');
-            if (taxEl) taxEl.innerText = `₹${cart.summary.tax}`;
+        const badge = document.getElementById('cartBadge');
+        if (badge) {
+            badge.innerText = cart.summary.totalItems;
+            cart.summary.totalItems === 0 ? badge.classList.add('hidden') : badge.classList.remove('hidden');
+        }
 
-            const totalEl = document.getElementById('summaryTotal');
-            if (totalEl) totalEl.innerText = `₹${cart.summary.total}`;
-
-            const badge = document.getElementById('cartBadge');
-            if (badge) {
-                badge.innerText = cart.summary.totalItems;
-                if (cart.summary.totalItems === 0) {
-                    badge.classList.add('hidden');
-                } else {
-                    badge.classList.remove('hidden');
-                }
-            }
-
-            const summaryItemsList = document.getElementById('summaryItemsList');
-            if (summaryItemsList) {
-                summaryItemsList.innerHTML = '';
-                cart.items.forEach(item => {
-                    if (!item.outOfStock) {
-                        summaryItemsList.innerHTML += `
+        const summaryItemsList = document.getElementById('summaryItemsList');
+        if (summaryItemsList) {
+            summaryItemsList.innerHTML = '';
+            cart.items.forEach(item => {
+                if (!item.outOfStock) {
+                    summaryItemsList.innerHTML += `
                         <div class="flex justify-between text-sm mb-3">
                             <span class="text-gray-600 truncate pr-4 flex-1">
                                 ${item.productName} <span class="text-gray-400 text-xs">(x${item.quantity})</span>
                             </span>
                             <span class="font-medium text-gray-900">₹${item.itemTotal}</span>
-                        </div>
-                    `;
-                    }
-                });
-            }
-        }
-
-        async function proceedToCheckout() {
-            try {
-                // 1. Show the loading state
-                Swal.fire({
-                    title: 'Verifying items...',
-                    allowOutsideClick: false,
-                    showConfirmButton: false, // Ensure no buttons are visible
-                    didOpen: () => {
-                        Swal.showLoading();
-                    }
-                });
-
-                const response = await fetch('/cart/verify-checkout', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' }
-                });
-
-                const data = await response.json();
-
-                // 2. ONLY redirect if the server gives the green light
-                if (data.success) {
-                    Swal.close();
-                    window.location.href = '/checkout';
-                } else {
-                    // 3. STOP HERE and show the error
-                    Swal.fire({
-                        icon: 'warning',
-                        title: 'Availability Issue',
-                        text: data.message,
-                        confirmButtonText: 'Update Cart',
-                        confirmButtonColor: '#E91E63'
-                    }).then(() => {
-                        window.location.reload();
-                    });
+                        </div>`;
                 }
-            } catch (error) {
-                Swal.fire('Error', 'Verification failed. Please try again.', 'error');
-            }
+            });
         }
-    </script>
+    }
 
-    <%- include("../partials/footer") %>
+    // 6. Pre-Checkout Verification
+    async function proceedToCheckout() {
+        try {
+            Swal.fire({
+                title: 'Verifying items...',
+                allowOutsideClick: false,
+                showConfirmButton: false,
+                didOpen: () => { Swal.showLoading(); }
+            });
+
+            const response = await fetch('/cart/verify-checkout', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                Swal.close();
+                window.location.href = '/checkout';
+            } else {
+                let alertHtml = data.message || "An error occurred during verification.";
+
+                if (data.errors && Array.isArray(data.errors) && data.errors.length > 0) {
+                    alertHtml = '<ul style="text-align: left; list-style-type: disc; padding-left: 20px; font-size: 14px; color: #4B5563;">';
+                    data.errors.forEach(err => {
+                        alertHtml += `<li style="margin-bottom: 8px;">${err}</li>`;
+                    });
+                    alertHtml += '</ul>';
+                }
+
+                Swal.fire({
+                    icon: 'warning',
+                    title: 'Stock Availability Issues',
+                    html: alertHtml,
+                    confirmButtonText: 'Update Cart',
+                    confirmButtonColor: '#E91E63'
+                }).then(() => {
+                    window.location.reload();
+                });
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Verification failed.', 'error');
+        }
+    }
+</script>

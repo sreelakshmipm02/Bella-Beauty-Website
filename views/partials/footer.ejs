@@ -87,3 +87,13 @@
 </body>
 
 </html>
+
+<script>
+    window.addEventListener('pageshow', function (event) {
+        // If the page was loaded from the browser cache (Back/Forward button)
+        if (event.persisted || (window.performance && window.performance.navigation.type === 2)) {
+            // Force a reload to get fresh 'locals' data from the server
+            window.location.reload();
+        }
+    });
+</script>

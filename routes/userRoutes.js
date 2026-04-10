@@ -14,7 +14,7 @@ import {
 import { googleAuthCallback } from "../controllers/user/authController.js";
 import { getHomePage } from "../controllers/user/homeController.js";
 import { getShopPage, getProductDetails } from "../controllers/user/userProductController.js";
-import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, moveToWishlistAjax, verifyCheckoutAvailability } from "../controllers/user/cartController.js";
+import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, verifyCheckoutAvailability } from "../controllers/user/cartController.js";
 import { getWishlistPage, toggleWishlistAjax, moveToCartAjax } from "../controllers/user/wishlistController.js";
 import { getCheckoutPage, placeOrderAjax } from "../controllers/user/checkoutController.js";
 import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage, cancelOrderAjax, cancelItemAjax, returnOrderAjax, returnItemAjax, downloadInvoice } from "../controllers/user/orderController.js";
@@ -91,7 +91,6 @@ router.post('/cart/verify-checkout', checkUserSessionAjax, verifyCheckoutAvailab
 router.post('/cart/items', checkUserSessionAjax, addToCart);
 router.patch('/cart/items', checkUserSessionAjax, updateCartAjax);
 router.delete('/cart/items', checkUserSessionAjax, removeFromCartAjax);
-router.post('/cart/items/move-to-wishlist', checkUserSessionAjax, moveToWishlistAjax);
 
 // Wishlist management
 router.get('/wishlist', checkUserSession, preventCache, getWishlistPage);
