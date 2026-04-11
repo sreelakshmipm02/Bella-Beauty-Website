@@ -1,22 +1,21 @@
 import Wishlist from "../../models/wishlist.js";
-import ProductVariant from "../../models/productVariant.js";
 
-// ---------------------------------------------------------
-//  1. WISHLIST CORE ACTIONS
-// ---------------------------------------------------------
+// -------------------------------
+// 1. MAIN WISHLIST ACTIONS
+// -------------------------------
 
-/**
- * Handles the "Heart" button logic. 
- * If the item exists, it's removed; if not, it's added. 
- * This prevents the need for two separate 'add' and 'remove' endpoints.
- */
+// This function handles add/remove using one button (like a heart icon)
 export const toggleWishlistItem = async (userId, variantId) => {
+
+    // Find user's wishlist
     let wishlist = await Wishlist.findOne({ userId });
     
+    // Create wishlist if not exists
     if (!wishlist) {
         wishlist = new Wishlist({ userId, items: [] });
     }
 
+    // Check if item already exists
     const itemIndex = wishlist.items.findIndex(
         item => item.productVariantId.toString() === variantId.toString()
     );
@@ -24,40 +23,39 @@ export const toggleWishlistItem = async (userId, variantId) => {
     let isAdded = false;
 
     if (itemIndex > -1) {
-        // Item found: User wants to unlike/remove it
+        // If found → remove item
         wishlist.items.splice(itemIndex, 1); 
     } else {
-        // Item not found: User wants to save it
+        // If not found → add item
         wishlist.items.push({ productVariantId: variantId });
         isAdded = true;
     }
 
     await wishlist.save();
+
     return { isAdded, totalItems: wishlist.items.length };
 };
 
-/**
- * A direct removal function.
- * Primarily used as a cleanup step when an item is moved from Wishlist to Cart.
- */
+// Remove item directly from wishlist
 export const removeWishlistItem = async (userId, variantId) => {
+
     await Wishlist.updateOne(
         { userId },
         { $pull: { items: { productVariantId: variantId } } }
     );
 };
 
-/**
- * Saves an item to the wishlist only if it doesn't already exist.
- * Used during the "Move from Cart" flow to prevent duplicate entries.
- */
+// Add item only if not already in wishlist
 export const addToWishlistSafe = async (userId, variantId) => {
+
     let wishlist = await Wishlist.findOne({ userId });
     
+    // Create if not exists
     if (!wishlist) {
         wishlist = new Wishlist({ userId, items: [] });
     }
 
+    // Check duplicate
     const alreadyInWishlist = wishlist.items.some(
         item => item.productVariantId.toString() === variantId.toString()
     );
@@ -68,35 +66,38 @@ export const addToWishlistSafe = async (userId, variantId) => {
         return true; 
     }
     
-    return false; // Already saved, no action needed
+    return false; // Already exists
 };
 
-// ---------------------------------------------------------
-//  2. DATA RETRIEVAL & SILENT CLEANUP
-// ---------------------------------------------------------
+// -------------------------------
+// 2. GET WISHLIST DATA
+// -------------------------------
 
-/**
- * Fetches full product details for the wishlist page.
- * Includes a 'Self-Healing' loop that silently removes items from the user's 
- * wishlist if the admin has deactivated the product or the variant.
- */
+// Get wishlist items with product details
 export const getWishlistData = async (userId) => {
+
     const wishlist = await Wishlist.findOne({ userId }).populate({
         path: 'items.productVariantId',
         populate: { path: 'productId' }
     });
 
+    // If empty
     if (!wishlist || wishlist.items.length === 0) return [];
 
     let formattedItems = [];
     let wishlistModified = false;
 
+    // Loop through items
     for (let item of wishlist.items) {
+
         const variant = item.productVariantId;
         const product = variant?.productId;
         
-        // Only show items where both the variant and the parent product are active
-        if (variant && variant.status === 'active' && product && product.status === 'active') {
+        // Only include active products
+        if (
+            variant && variant.status === 'active' &&
+            product && product.status === 'active'
+        ) {
             formattedItems.push({
                 variantId: variant._id,
                 productName: product.name,
@@ -109,32 +110,35 @@ export const getWishlistData = async (userId) => {
                 addedAt: item.addedAt
             });
         } else {
-            // Cleanup: The product is no longer "live", so we remove it from the DB
-            wishlist.items = wishlist.items.filter(i => i._id.toString() !== item._id.toString());
+            // Remove invalid items automatically
+            wishlist.items = wishlist.items.filter(
+                i => i._id.toString() !== item._id.toString()
+            );
             wishlistModified = true;
         }
     }
 
-    // Sync the database if any broken items were purged
+    // Save if any items were removed
     if (wishlistModified) await wishlist.save();
 
-    // Reverse the array so the most recently added items appear at the top
+    // Show latest items first
     return formattedItems.reverse(); 
 };
 
-// ---------------------------------------------------------
-//  3. UI STATE UTILITIES
-// ---------------------------------------------------------
+// -------------------------------
+// 3. HELPER FOR UI
+// -------------------------------
 
-/**
- * Returns a simple array of variant IDs (strings).
- * Essential for the frontend to know which heart icons should be 'filled' on the shop page.
- */
+// Get all variant IDs for frontend (to show filled heart icon)
 export const getUserWishlistVariantIds = async (userId) => {
+
     if (!userId) return [];
     
     const wishlist = await Wishlist.findOne({ userId });
+
     if (!wishlist) return [];
     
-    return wishlist.items.map(item => item.productVariantId.toString());
+    return wishlist.items.map(
+        item => item.productVariantId.toString()
+    );
 };

@@ -8,19 +8,19 @@ import {
 import { addToWishlistSafe } from "../../services/userServices/wishlistService.js";
 
 // ---------------------------------------------------------
-//  1. CART CORE ACTIONS (Add, Update, Remove)
+//  1. CART ACTIONS (Add, Update, Remove)
 // ---------------------------------------------------------
 
 /**
- * Handles adding a product variant to the user's cart.
- * Defaults to quantity 1 if not specified in the request.
+ * Add a product to the cart.
+ * If quantity is not given, it will default to 1.
  */
 export const addToCart = async (req, res) => {
     try {
         const userId = req.session.userId;
         const { variantId, quantity } = req.body;
 
-        // Service layer handles stock validation and price calculations
+        // Add item using service (handles stock and price)
         const cart = await addItemToCart(userId, variantId, parseInt(quantity) || 1);
 
         res.status(200).json({
@@ -37,13 +37,18 @@ export const addToCart = async (req, res) => {
 };
 
 /**
- * AJAX: Updates the quantity of a specific item already in the cart.
- * Returns the fresh cart data to update totals in the UI instantly.
+ * Update item quantity in cart using AJAX.
+ * Returns updated cart data for UI changes.
  */
 export const updateCartAjax = async (req, res) => {
     try {
         const { variantId, quantity } = req.body;
-        const newCartData = await updateItemQuantity(req.session.userId, variantId, parseInt(quantity));
+
+        const newCartData = await updateItemQuantity(
+            req.session.userId,
+            variantId,
+            parseInt(quantity)
+        );
 
         res.json({ success: true, cart: newCartData });
     } catch (error) {
@@ -52,12 +57,16 @@ export const updateCartAjax = async (req, res) => {
 };
 
 /**
- * AJAX: Removes an item from the cart entirely.
+ * Remove an item from the cart using AJAX.
  */
 export const removeFromCartAjax = async (req, res) => {
     try {
         const { variantId } = req.body;
-        const newCartData = await removeCartItem(req.session.userId, variantId);
+
+        const newCartData = await removeCartItem(
+            req.session.userId,
+            variantId
+        );
 
         res.json({ success: true, cart: newCartData });
     } catch (error) {
@@ -66,13 +75,12 @@ export const removeFromCartAjax = async (req, res) => {
 };
 
 // ---------------------------------------------------------
-//  2. VIEW RENDERING
+//  2. CART PAGE
 // ---------------------------------------------------------
 
 /**
- * Renders the main shopping cart page.
- * Checks for a 'stock_issue' query param to show a friendly warning if 
- * items became unavailable while sitting in the cart.
+ * Show the cart page.
+ * If there is a stock issue, display a warning message.
  */
 export const getCartPage = async (req, res) => {
     try {
@@ -80,7 +88,7 @@ export const getCartPage = async (req, res) => {
         const cartData = await getCartData(userId);
 
         const errorMsg = req.query.error === 'stock_issue'
-            ? "Some items in your cart went out of stock. Please remove them to proceed."
+            ? "Some items in your cart are out of stock. Please remove them to continue."
             : null;
 
         res.render("user/cart", {
@@ -97,23 +105,21 @@ export const getCartPage = async (req, res) => {
 };
 
 // ---------------------------------------------------------
-//  3. CROSS-FEATURE LOGIC (Cart to Wishlist)
+//  3. CART TO WISHLIST (OPTIONAL)
 // ---------------------------------------------------------
 
 /**
- * Moves an item from the cart to the wishlist.
- * Ensures the item is safely added to wishlist before removing it from the cart.
+ * Move item from cart to wishlist.
+ * First add to wishlist, then remove from cart.
  */
 // export const moveToWishlistAjax = async (req, res) => {
 //     try {
 //         const userId = req.session.userId;
 //         const { variantId } = req.body;
 
-//         // Save to wishlist, then purge from cart
 //         await addToWishlistSafe(userId, variantId);
 //         await removeCartItem(userId, variantId);
 
-//         // Return latest cart state so the mini-cart or totals update
 //         const updatedCart = await getCartData(userId);
 
 //         res.json({ success: true, message: "Moved to Wishlist", cart: updatedCart });
@@ -128,28 +134,26 @@ export const getCartPage = async (req, res) => {
 // ---------------------------------------------------------
 
 /**
- * Pre-checkout gatekeeper.
- * Verifies that all items in the cart are still in stock and available 
- * before letting the user proceed to the checkout screen.
+ * Check if all items are still available before checkout.
  */
 export const verifyCheckoutAvailability = async (req, res) => {
     try {
         const userId = req.session.userId;
 
-        // Perform final stock/availability check
+        // Final stock check
         await validateCartAvailability(userId);
 
-        // Sync totals one last time before the user sees the final bill
+        // Refresh cart totals
         await getCartData(userId);
 
         res.json({ success: true });
     } catch (error) {
-        // Split the joined errors back into an array for the point-wise alert
+        // Convert error string into array for frontend
         const errorList = error.message.split('|');
-        // Returns specific errors like "Rice Water Sunscreen is no longer available"
+
         res.status(400).json({
             success: false,
-            errors: errorList, // This must be an array for the frontend
+            errors: errorList,
             message: errorList[0]
         });
     }

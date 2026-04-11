@@ -1,56 +1,58 @@
 import ProductVariant from "../../models/productVariant.js";
 
 // ---------------------------------------------------------
-//  1. INVENTORY DATA RETRIEVAL
+//  1. GET INVENTORY DATA
 // ---------------------------------------------------------
 
 /**
- * Fetches a paginated list of product variants.
- * Includes built-in support for SKU searching and low-stock filtering.
+ * Get product variants with pagination.
+ * You can also search by SKU and filter low stock items.
  */
 export const getInventoryList = async (page = 1, limit = 10, search = '', lowStockOnly = false) => {
     let query = {};
 
-    // Filter by SKU if a search term is provided
+    // If user searches something, match it with SKU (not case-sensitive)
     if (search) {
         query.sku = { $regex: search, $options: 'i' };
     }
 
-    // Quick filter for the 'Alerts' dashboard (Stock < 10)
+    // If low stock filter is enabled, show items with stock less than 10
     if (lowStockOnly === 'true') {
         query.stock = { $lt: 10 }; 
     }
 
-    // Standard pagination math: skip the items from previous pages
+    // Calculate how many items to skip for pagination
     const skip = (page - 1) * limit;
 
-    // We populate 'productId' to grab the parent product name for the table display
+    // Get variants from DB
+    // Also get product name using populate
     const variants = await ProductVariant.find(query)
         .populate('productId', 'name') 
-        .sort({ stock: 1 }) // Show items needing attention (lowest stock) first
+        .sort({ stock: 1 }) // show low stock items first
         .skip(skip)
         .limit(limit);
 
+    // Get total count for pagination
     const totalVariants = await ProductVariant.countDocuments(query);
 
     return { variants, totalVariants };
 };
 
 // ---------------------------------------------------------
-//  2. STOCK LEVEL MANAGEMENT
+//  2. UPDATE STOCK
 // ---------------------------------------------------------
 
 /**
- * Updates the physical stock count for a specific variant.
- * Includes a basic safety check to prevent negative inventory.
+ * Update stock of a specific product variant.
+ * Make sure stock is not negative.
  */
 export const updateStockService = async (variantId, newStock) => {
-    // Basic business logic validation
+    // Do not allow negative stock
     if (newStock < 0) {
         throw new Error("Stock cannot be negative.");
     }
 
-    // Return the updated document so the controller can confirm the change
+    // Update stock and return updated data
     return await ProductVariant.findByIdAndUpdate(
         variantId, 
         { stock: newStock }, 

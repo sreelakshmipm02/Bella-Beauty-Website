@@ -1,32 +1,45 @@
 import Order from "../../models/order.js";
 import ProductVariant from "../../models/productVariant.js";
 
-// Define the strict linear order for manual updates
+// Order status should follow this step-by-step flow
 const MANUAL_STATUS_FLOW = ['Pending', 'Processing', 'Shipped', 'Delivered'];
 
 export const getAdminOrdersList = async (page = 1, limit = 6, search = '', statusFilter = 'all', sortOption = 'newest') => {
     let query = {};
+
+    // Search order using orderId
     if (search) query.orderId = { $regex: search, $options: 'i' };
+
+    // Filter by order status (if selected)
     if (statusFilter && statusFilter !== 'all') query.orderStatus = statusFilter;
 
+    // Default sorting: newest orders first
     let sortQuery = { createdAt: -1 }; 
+
     if (sortOption === 'oldest') sortQuery = { createdAt: 1 };
+
+    // Sort by total amount
     if (sortOption === 'amount_desc') sortQuery = { 'summary.total': -1 }; 
     if (sortOption === 'amount_asc') sortQuery = { 'summary.total': 1 };   
 
+    // Pagination logic
     const skip = (page - 1) * limit;
 
+    // Get orders with user details
     const orders = await Order.find(query)
         .populate('userId', 'name email')
         .sort(sortQuery)
         .skip(skip)
         .limit(limit);
 
+    // Total count for pagination
     const totalOrders = await Order.countDocuments(query);
+
     return { orders, totalOrders };
 };
 
 export const getAdminOrderById = async (orderId) => {
+    // Get full order details with user and product info
     return await Order.findById(orderId)
         .populate('userId', 'name email phone')
         .populate('items.productVariantId');
@@ -39,27 +52,32 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
     const currentIdx = MANUAL_STATUS_FLOW.indexOf(order.orderStatus);
     const newIdx = MANUAL_STATUS_FLOW.indexOf(newStatus);
 
-    // 1. Prevent reverting (e.g., Shipped -> Processing)
+    // Do not allow moving backwards in status (like Shipped -> Processing)
     if (currentIdx !== -1 && newIdx !== -1 && newIdx <= currentIdx && newStatus !== order.orderStatus) {
         throw new Error(`Cannot revert status from ${order.orderStatus} to ${newStatus}`);
     }
 
-    // 2. Logic for "Returned": Admin can only set 'Returned' if a return was approved
+    // If setting status to Returned, make sure return is approved
     if (newStatus === 'Returned') {
         const hasApprovedReturn = order.items.some(item => item.status === 'Return Approved');
+
         if (!hasApprovedReturn) {
             throw new Error("Cannot set to Returned unless a return request has been approved.");
         }
 
-        // Restore stock ONLY when physically marked as "Returned"
+        // Add stock back only for approved return items
         for (let item of order.items) {
             if (item.status === 'Return Approved') {
                 item.status = 'Returned';
-                await ProductVariant.findByIdAndUpdate(item.productVariantId, { $inc: { stock: item.quantity } });
+
+                await ProductVariant.findByIdAndUpdate(
+                    item.productVariantId,
+                    { $inc: { stock: item.quantity } }
+                );
             }
         }
     } else {
-        // Sync items that aren't locked in a terminal/return state
+        // Update item status only if it's not already in a final state
         order.items.forEach(item => {
             if (!['Cancelled', 'Returned', 'Return Requested', 'Return Approved', 'Return Rejected'].includes(item.status)) {
                 item.status = newStatus;
@@ -67,12 +85,13 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
         });
     }
 
-    // 3. Auto-update payment to Paid if Delivered
+    // If delivered, mark payment as paid (if still pending)
     if (newStatus === 'Delivered' && order.payment.status === 'Pending') {
         order.payment.status = 'Paid';
     }
 
     order.orderStatus = newStatus;
+
     await order.save();
     return order;
 };
@@ -81,11 +100,13 @@ export const updatePaymentStatusService = async (orderId, newStatus) => {
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
 
+    // Do not allow changes if already refunded
     if (order.payment.status === 'Refunded') {
         throw new Error("Cannot change status of a refunded payment.");
     }
 
     order.payment.status = newStatus;
+
     await order.save();
     return order;
 };
@@ -94,18 +115,26 @@ export const processReturnRequestService = async (orderId, itemId, action, rejec
     const order = await Order.findById(orderId);
     if (!order) throw new Error("Order not found");
 
+    // Find the specific item inside the order
     const item = order.items.id(itemId);
+
+    // Check if item is actually waiting for return approval
     if (!item || item.status !== 'Return Requested') {
         throw new Error("Item is not pending a return request.");
     }
 
     if (action === 'Approve') {
         item.status = 'Return Approved';
-        order.orderStatus = 'Return Approved'; // Lock master status to Approved
+
+        // Lock order status as return approved
+        order.orderStatus = 'Return Approved';
+
     } else if (action === 'Reject') {
         item.status = 'Return Rejected';
         item.adminRejectReason = rejectReason;
-        order.orderStatus = 'Delivered'; // Revert back to delivered if rejected
+
+        // If rejected, keep order as delivered
+        order.orderStatus = 'Delivered';
     }
 
     await order.save();

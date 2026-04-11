@@ -3,23 +3,22 @@ import { getUserAddresses } from "../../services/userServices/userAddress.js";
 import { processCheckout } from "../../services/userServices/orderService.js";
 
 // ---------------------------------------------------------
-//  1. CHECKOUT VIEW RENDERING
+//  1. CHECKOUT PAGE
 // ---------------------------------------------------------
 
 /**
- * Renders the checkout screen with the user's current cart and saved addresses.
- * Includes a safety redirect to prevent users from accessing checkout with an empty cart.
+ * Show checkout page with cart items and user addresses.
+ * If cart is empty, redirect back to cart page.
  */
 export const getCheckoutPage = async (req, res) => {
     try {
         const userId = req.session.userId;
         
-        // Parallel data fetching could be done here, but sequential is fine for now
+        // Get cart and address data
         const cartData = await getCartData(userId);
         const addresses = await getUserAddresses(userId);
 
-        // Fail-safe: If the cart is empty (e.g., they hit 'back' after an order), 
-        // we bounce them to the cart page instead of showing a blank checkout.
+        // If cart is empty, don't allow checkout
         if (!cartData || cartData.items.length === 0) {
             return res.redirect("/cart");
         }
@@ -31,27 +30,26 @@ export const getCheckoutPage = async (req, res) => {
             addresses: addresses || []
         });
     } catch (error) {
-        // Log the error for server-side debugging and exit to a safe page
+        // Log error and redirect safely
         console.error("Checkout Page Error:", error);
         res.redirect("/cart");
     }
 };
 
 // ---------------------------------------------------------
-//  2. ORDER PROCESSING (AJAX)
+//  2. PLACE ORDER (AJAX)
 // ---------------------------------------------------------
 
 /**
- * Finalizes the purchase when the "Place Order" button is clicked.
- * Since this is an AJAX call, we return a redirectUrl instead of 
- * using res.redirect() directly.
+ * Handle "Place Order" button click.
+ * Returns a redirect URL instead of redirecting directly.
  */
 export const placeOrderAjax = async (req, res) => {
     try {
         const userId = req.session.userId;
         const { addressId, paymentMethod } = req.body;
 
-        // Basic validation before hitting the service layer
+        // Check required fields
         if (!addressId || !paymentMethod) {
             return res.status(400).json({ 
                 success: false, 
@@ -59,11 +57,10 @@ export const placeOrderAjax = async (req, res) => {
             });
         }
 
-        // The service layer handles inventory deduction and order creation
+        // Create order using service
         const order = await processCheckout(userId, addressId, paymentMethod);
 
-        // We send a success flag so the frontend can handle the final redirect 
-        // or show a success animation.
+        // Send success response with redirect URL
         res.json({ 
             success: true, 
             message: "Order placed successfully!",
@@ -71,7 +68,7 @@ export const placeOrderAjax = async (req, res) => {
         });
 
     } catch (error) {
-        // We pass the specific error (e.g., "Out of Stock") back to the user
+        // Send error to frontend
         console.error("Place Order Error:", error);
         res.status(400).json({ 
             success: false, 

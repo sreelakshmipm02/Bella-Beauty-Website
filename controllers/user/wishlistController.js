@@ -2,12 +2,11 @@ import { toggleWishlistItem, getWishlistData, removeWishlistItem } from "../../s
 import { addItemToCart } from "../../services/userServices/cartService.js";
 
 // ---------------------------------------------------------
-//  1. VIEW RENDERING
+//  1. WISHLIST PAGE
 // ---------------------------------------------------------
 
 /**
- * Renders the user's personal wishlist page.
- * Fetches all saved product variants to display them in the EJS template.
+ * Show user's wishlist items.
  */
 export const getWishlistPage = async (req, res) => {
     try {
@@ -20,7 +19,7 @@ export const getWishlistPage = async (req, res) => {
             wishlistItems
         });
     } catch (error) {
-        // If the database fetch fails, we send the user back to the shop to avoid a broken page
+        // If something goes wrong, redirect safely
         console.error("Wishlist Page Error:", error);
         res.redirect("/shop");
     }
@@ -31,15 +30,13 @@ export const getWishlistPage = async (req, res) => {
 // ---------------------------------------------------------
 
 /**
- * AJAX: Handles the 'Heart' icon functionality.
- * This is a "toggle" action: it adds the item if it’s missing, or removes it if it’s present.
- * The 'isAdded' flag tells the frontend whether to fill or outline the heart icon.
+ * Add or remove item from wishlist (toggle).
  */
 export const toggleWishlistAjax = async (req, res) => {
     try {
         const { variantId } = req.body;
         
-        // The service returns whether the final state was 'added' or 'removed'
+        // Toggle item (add/remove)
         const result = await toggleWishlistItem(req.session.userId, variantId);
         
         res.json({ 
@@ -55,19 +52,17 @@ export const toggleWishlistAjax = async (req, res) => {
 };
 
 /**
- * AJAX: Transfers an item from the Wishlist to the Shopping Cart.
- * This involves two sequential operations: adding to the cart first, 
- * then purging it from the wishlist to keep the list clean.
+ * Move item from wishlist to cart.
  */
 export const moveToCartAjax = async (req, res) => {
     try {
         const userId = req.session.userId;
         const { variantId } = req.body;
 
-        // 1. Add to cart with a default quantity of 1
+        // Add item to cart
         const cart = await addItemToCart(userId, variantId, 1);
         
-        // 2. Remove the item from wishlist since it's now an active cart item
+        // Remove from wishlist
         await removeWishlistItem(userId, variantId);
 
         res.json({ 
@@ -76,7 +71,7 @@ export const moveToCartAjax = async (req, res) => {
             cartCount: cart.items.length 
         });
     } catch (error) {
-        // If the item is out of stock, the cart service will throw an error here
+        // Handle errors (like out of stock)
         res.status(400).json({ 
             success: false, 
             message: error.message || "Failed to move item to cart." 
