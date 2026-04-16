@@ -14,20 +14,20 @@
                 </div>
             </div>
 
-            <form id="addressForm" onsubmit="handleAddressSubmit(event)" novalidate>
+            <form id="addressForm" novalidate>
                 <input type="hidden" id="addressId" name="addressId" value="">
                 
                 <div class="px-6 py-6 space-y-4 max-h-[70vh] overflow-y-auto">
                     <div>
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Full Name</label>
-                        <input type="text" id="fullName" name="fullName" required
+                        <input type="text" id="fullName" name="fullName" 
                             class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary"
                             placeholder="e.g. Sarah Jenkins">
                     </div>
 
                     <div>
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Phone Number</label>
-                        <input type="tel" id="phone" name="phone" required pattern="[0-9]{10}"
+                        <input type="tel" id="phone" name="phone"  pattern="[0-9]{10}"
                             class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary"
                             placeholder="10-digit mobile number">
                         <p class="text-xs text-slate-400 mt-1">Format: 9876543210</p>
@@ -35,7 +35,7 @@
 
                     <div>
                         <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Address Line 1</label>
-                        <input type="text" id="addressLine1" name="addressLine1" required
+                        <input type="text" id="addressLine1" name="addressLine1" 
                             class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary"
                             placeholder="House No, Building, Street Area">
                     </div>
@@ -50,12 +50,12 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">City</label>
-                            <input type="text" id="city" name="city" required
+                            <input type="text" id="city" name="city" 
                                 class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
                         </div>
                         <div>
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">State</label>
-                            <input type="text" id="state" name="state" required
+                            <input type="text" id="state" name="state" 
                                 class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary">
                         </div>
                     </div>
@@ -63,7 +63,7 @@
                     <div class="grid grid-cols-2 gap-4">
                         <div>
                             <label class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Pincode</label>
-                            <input type="text" id="postalCode" name="postalCode" required pattern="[0-9]{6}"
+                            <input type="text" id="postalCode" name="postalCode"  pattern="[0-9]{6}"
                                 class="w-full rounded-xl border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-sm focus:ring-primary focus:border-primary"
                                 placeholder="6-digit code">
                         </div>

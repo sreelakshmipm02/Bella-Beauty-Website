@@ -1,5 +1,12 @@
 let autocomplete;
 
+const form = document.getElementById("addressForm");
+
+form.addEventListener("submit", function(event) {
+    event.preventDefault();
+
+    handleAddressSubmit(event);
+});
 // 1. Initialize Google Autocomplete
 function initAutocomplete() {
     const input = document.getElementById("addressLine1");
