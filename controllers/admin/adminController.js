@@ -1,6 +1,7 @@
 import { authenticateAdmin } from "../../services/adminServices/adminAuth.js";
 import { generateAdminResetToken, resetAdminPassword } from "../../services/adminServices/adminPassword.js";
 import { toggleUserBlockStatus, fetchUsersWithFilter } from "../../services/adminServices/userManagement.js";
+import { asyncHandler } from "../../middlewares/asyncHandler.js";
 
 // Render Login Page
 export const adminLoginPage = (req, res) => {
@@ -77,47 +78,34 @@ export const adminResetPasswordSubmit = async (req, res) => {
 };
 
 // Render user management page
-export const userManagementPage = async (req, res) => {
-    try {
-        const page = parseInt(req.query.page) || 1;
-        const limit = 5; // Users per page
-        const { status, search } = req.query;
+export const userManagementPage = asyncHandler(async (req, res) => {
+    const page = parseInt(req.query.page) || 1;
+    const limit = 5;
+    const { status, search } = req.query;
+    const { users, totalUsers } = await fetchUsersWithFilter(status, search, page, limit);
+    const totalPages = Math.ceil(totalUsers / limit);
 
-        const { users, totalUsers } = await fetchUsersWithFilter(status, search, page, limit);
-        const totalPages = Math.ceil(totalUsers / limit);
-
-        res.render('admin/user', {
-            users,
-            currentStatus: status || 'all',
-            searchQuery: search || '', // Pass search text back to EJS 
-            currentPage: page,
-            totalPages,
-            totalUsers,
-            limit
-        });
-    } catch (error) {
-        console.error("User Management Error:", error);
-        res.status(500).send("Error fetching users");
-    }
-};
+    res.render('admin/user', {
+        users,
+        currentStatus: status || 'all',
+        searchQuery: search || '',
+        currentPage: page,
+        totalPages,
+        totalUsers,
+        limit
+    });
+});
 
 // Toggle user status (Block/Unblock)
-export const toggleUserStatus = async (req, res) => {
-    try {
-        const { userId } = req.params;
-        const newStatus = await toggleUserBlockStatus(userId);
+export const toggleUserStatus = asyncHandler(async (req, res) => {
+    const { userId } = req.params;
+    const newStatus = await toggleUserBlockStatus(userId);
 
-        res.json({
-            success: true,
-            newStatus: newStatus
-        });
-    } catch (error) {
-        res.status(500).json({
-            success: false,
-            message: error.message
-        });
-    }
-};
+    res.status(200).json({
+        success: true,
+        newStatus: newStatus
+    });
+});
 
 
 // Logout process 

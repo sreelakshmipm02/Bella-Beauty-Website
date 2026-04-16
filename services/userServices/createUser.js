@@ -1,4 +1,5 @@
 import User from "../../models/user.js";
+import AppError from "../../utils/AppError.js";
 
 // create user
 export const createUser = async (userData) => {
@@ -14,7 +15,7 @@ export const createUser = async (userData) => {
   // check existing user
   const existingUser = await User.findOne({ email });
   if (existingUser) {
-    throw new Error("Email already exists");
+    throw new AppError("Email already exists", 409);
   }
 
   // generate username
@@ -42,4 +43,3 @@ export const createUser = async (userData) => {
 
   return await user.save();
 };
-

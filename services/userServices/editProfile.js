@@ -1,6 +1,7 @@
 import User from "../../models/user.js";
 import Otp from "../../models/otp.js";
 import { generateOtp, sendOtpEmail } from "../../utils/otpService.js";
+import AppError from "../../utils/AppError.js";
 
 // 1. Update Profile Logic
 export const updateUserProfile = async (userId, userData, filePath) => {
@@ -35,7 +36,7 @@ export const requestEmailUpdateOtp = async (newEmail) => {
     // Check if email is already taken by ANOTHER user
     const existingUser = await User.findOne({ email: newEmail });
     if (existingUser) {
-        throw new Error("Email already in use.");
+        throw new AppError("Email already in use.", 409);
     }
 
     // Generate OTP
@@ -57,7 +58,7 @@ export const completeEmailUpdate = async (userId, newEmail, otp) => {
     const record = await Otp.findOne({ email: newEmail, otp });
 
     if (!record) {
-        throw new Error("Invalid or Expired OTP");
+        throw new AppError("Invalid or Expired OTP", 400);
     }
 
     // Update User Email

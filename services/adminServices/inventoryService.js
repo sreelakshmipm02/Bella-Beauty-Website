@@ -1,4 +1,5 @@
 import ProductVariant from "../../models/productVariant.js";
+import AppError from "../../utils/AppError.js";
 
 // ---------------------------------------------------------
 //  1. GET INVENTORY DATA
@@ -49,15 +50,21 @@ export const getInventoryList = async (page = 1, limit = 10, search = '', lowSto
 export const updateStockService = async (variantId, newStock) => {
     // Do not allow negative stock
     if (newStock < 0) {
-        throw new Error("Stock cannot be negative.");
+        throw new AppError("Stock cannot be negative.", 400);
     }
 
     // Update stock and return updated data
-    return await ProductVariant.findByIdAndUpdate(
+    const updatedVariant = await ProductVariant.findByIdAndUpdate(
         variantId, 
         { stock: newStock }, 
         { returnDocument: 'after' }
     );
+
+    if (!updatedVariant) {
+        throw new AppError("Variant not found.", 404);
+    }
+
+    return updatedVariant;
 };
 
 /**
@@ -65,18 +72,18 @@ export const updateStockService = async (variantId, newStock) => {
  */
 export const updateBulkStockService = async (updates = []) => {
     if (!Array.isArray(updates) || updates.length === 0) {
-        throw new Error("No stock updates were provided.");
+        throw new AppError("No stock updates were provided.", 400);
     }
 
     const operations = updates.map(({ variantId, stock }) => {
         const parsedStock = Number(stock);
 
         if (!variantId) {
-            throw new Error("Each stock update must include a variant ID.");
+            throw new AppError("Each stock update must include a variant ID.", 400);
         }
 
         if (!Number.isInteger(parsedStock) || parsedStock < 0) {
-            throw new Error("Stock must be a non-negative whole number.");
+            throw new AppError("Stock must be a non-negative whole number.", 400);
         }
 
         return {
@@ -87,5 +94,11 @@ export const updateBulkStockService = async (updates = []) => {
         };
     });
 
-    return await ProductVariant.bulkWrite(operations);
+    const result = await ProductVariant.bulkWrite(operations);
+
+    if (result.matchedCount === 0) {
+        throw new AppError("No matching variants were found.", 404);
+    }
+
+    return result;
 };

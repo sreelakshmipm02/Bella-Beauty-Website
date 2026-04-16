@@ -3,6 +3,7 @@ import Otp from "../../models/otp.js";
 import TempUser from "../../models/tempUser.js";
 import bcrypt from "bcrypt";
 import { generateOtp, sendOtpEmail } from "../../utils/otpService.js";
+import AppError from "../../utils/AppError.js";
 
 
 //SIGNUP SERVICE
@@ -16,12 +17,13 @@ export const sendSignupOtp = async (email, payload) => {
       existingUser.authProviders?.local !== true;
 
     if (isGoogleOnlyUser) {
-      throw new Error(
+      throw new AppError(
         "This email is already registered using Google. Please sign in with Google or set a password."
+        ,409
       );
     }
 
-    throw new Error("Email already registered. Please login.");
+    throw new AppError("Email already registered. Please login.", 409);
   }
 
   // ii. Send OTP
@@ -34,7 +36,7 @@ export const sendSignupOtp = async (email, payload) => {
 export const sendSignupOtpService = async (userData) => {
   const { firstName, lastName, email, phone, password } = userData;
   if (!email) {
-    throw new Error("Email is required!");
+    throw new AppError("Email is required!", 400);
   }
 
   //i.generate OTP
@@ -74,13 +76,13 @@ export const verifySignupOtpService = async (email, otp) => {
   const record = await Otp.findOne({ email, otp });
 
   if (!record) {
-    throw new Error("Invalid or expired OTP");
+    throw new AppError("Invalid or expired OTP", 400);
   }
 
   const userData = await TempUser.findOne({ email });
 
   if (!userData) {
-    throw new Error("Session expired! Signup again.");
+    throw new AppError("Session expired! Signup again.", 410);
   }
   // cleanup
   await Otp.deleteMany({ email });
@@ -93,7 +95,7 @@ export const resendOtpService = async (email) => {
   // 1. Check if TempUser still exists (if not, the session is truly dead)
   const userData = await TempUser.findOne({ email });
   if (!userData) {
-    throw new Error("Signup session expired. Please sign up again.");
+    throw new AppError("Signup session expired. Please sign up again.", 410);
   }
 
   // 2. Generate new OTP

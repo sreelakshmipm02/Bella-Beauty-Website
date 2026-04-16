@@ -1,6 +1,7 @@
 import Admin from "../../models/admin.js";
 import bcrypt from "bcrypt";
 import dotenv from "dotenv";
+import AppError from "../../utils/AppError.js";
 
 dotenv.config();
 
@@ -34,13 +35,13 @@ export const authenticateAdmin = async (email, password) => {
     const admin = await Admin.findOne({ email: email });
 
     if (!admin) {
-        throw new Error("Invalid email or password");
+        throw new AppError("Invalid email or password", 401);
     }
 
     const isMatch = await bcrypt.compare(password, admin.password);
 
     if (!isMatch) {
-        throw new Error("Invalid email or password");
+        throw new AppError("Invalid email or password", 401);
     }
 
     return admin;

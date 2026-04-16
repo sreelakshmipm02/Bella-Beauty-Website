@@ -13,6 +13,7 @@ import configurePassport from "./config/passport.js";
 import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
+import { errorHandler, notFound } from "./middlewares/errorMiddleware.js";
 import ProductVariant from "./models/productVariant.js"; 
 
 // Since we are using ES Modules, we need to manually reconstruct __dirname 
@@ -78,9 +79,7 @@ app.use("/", userRoutes);
 app.use("/admin", adminRoutes);
 
 // --- Error Handling ---
-// Catch-all for any routes not defined above
-app.use((req, res) => {
-    res.status(404).send("Page Not Found!");
-});
+app.use(notFound);
+app.use(errorHandler);
 
 export default app;

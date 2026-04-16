@@ -1,5 +1,6 @@
 import Category from "../../models/category.js";
 import Attribute from "../../models/attribute.js";
+import AppError from "../../utils/AppError.js";
 
 // Pulls every single attribute (like Size, Color, Scent) from the database.
 // The frontend uses this to generate the list of checkboxes so admins can choose 
@@ -21,7 +22,7 @@ export const createNewCategory = async (categoryData) => {
     });
 
     if (existingCategory) {
-        throw new Error(`A category named "${name}" already exists.`);
+        throw new AppError(`A category named "${name}" already exists.`, 409);
     }
 
     // Assemble the new category object
@@ -74,7 +75,7 @@ export const toggleCategoryStatus = async (categoryId) => {
     const category = await Category.findById(categoryId);
 
     if (!category) {
-        throw new Error("Category not found");
+        throw new AppError("Category not found", 404);
     }
 
     category.status = category.status === "active" ? "inactive" : "active";
@@ -88,7 +89,7 @@ export const toggleCategoryStatus = async (categoryId) => {
 export const fetchCategoryById = async (categoryId) => {
     const category = await Category.findById(categoryId);
     if (!category) {
-        throw new Error("Category not found");
+        throw new AppError("Category not found", 404);
     }
     return category;
 };
@@ -113,7 +114,7 @@ export const updateCategoryById = async (categoryId, bodyData, fileData) => {
     });
 
     if (existingCategory) {
-        throw new Error(`A different category named "${name.trim()}" already exists.`);
+        throw new AppError(`A different category named "${name.trim()}" already exists.`, 409);
     }
 
     const updateData = {
@@ -133,7 +134,7 @@ export const updateCategoryById = async (categoryId, bodyData, fileData) => {
     const updatedCategory = await Category.findByIdAndUpdate(categoryId, updateData, { new: true });
     
     if (!updatedCategory) {
-        throw new Error("Failed to update category in the database.");
+        throw new AppError("Failed to update category in the database.", 404);
     }
     
     return updatedCategory;

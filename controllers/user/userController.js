@@ -30,6 +30,8 @@ import {
     resetUserPassword,
     changeUserPassword
 } from "../../services/userServices/userPassword.js";
+import { asyncHandler } from "../../middlewares/asyncHandler.js";
+import AppError from "../../utils/AppError.js";
 
 //----------------------------------------------------------------------
 //get signup page
@@ -38,53 +40,26 @@ export const signupPage = (req, res) => {
 };
 
 //send signup otp
-export const sendSignupOtpController = async (req, res) => {
-    try {
-        const { email } = req.body;
-
-        await sendSignupOtp(email, req.body);
-
-        res.json({
-            success: true,
-            message: "OTP sent to email"
-        });
-    } catch (error) {
-        console.error("OTP ERROR:", error.message);
-
-        res.json({
-            success: false,
-            message: error.message
-        });
-    }
-};
+export const sendSignupOtpController = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    await sendSignupOtp(email, req.body);
+    res.status(200).json({ success: true, message: "OTP sent to email" });
+});
 
 // verify otp
-export const verifySignupOtp = async (req, res) => {
-    try {
-        const { email, otp } = req.body;
-
-        const userData = await verifySignupOtpService(email, otp);
-
-        await createUser(userData);
-
-        res.json({ success: true });
-
-    } catch (error) {
-        console.error("SIGNUP ERROR:", error);
-        res.json({ success: false, message: error.message });
-    }
-};
+export const verifySignupOtp = asyncHandler(async (req, res) => {
+    const { email, otp } = req.body;
+    const userData = await verifySignupOtpService(email, otp);
+    await createUser(userData);
+    res.status(201).json({ success: true });
+});
 
 //resend signup otp
-export const resendSignupOtp = async (req, res) => {
-    try {
-        const { email } = req.body;
-        await resendOtpService(email);
-        res.json({ success: true, message: "OTP resent successfully" });
-    } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
+export const resendSignupOtp = asyncHandler(async (req, res) => {
+    const { email } = req.body;
+    await resendOtpService(email);
+    res.status(200).json({ success: true, message: "OTP resent successfully" });
+});
 
 //----------------------------------------------------------------------
 //get login page
@@ -120,172 +95,107 @@ export const loginSubmit = async (req, res) => {
 
 //----------------------------------------------------------------------
 //render user account page
-export const userAccount = async (req, res) => {
-    try {
-        const userId = req.session.userId;
-        const user = await getUserData(userId);
-        res.render("user/account", {
-            title: "My Account",
-            user: user
-        });
-    } catch (error) {
-        console.error("Account Page Error:", error);
-        res.redirect("/login");
-    }
-};
+export const userAccount = asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const user = await getUserData(userId);
+    res.render("user/account", {
+        title: "My Account",
+        user: user
+    });
+});
 
 // 1. Update profile
-export const updateProfile = async (req, res) => {
-    try {
-        console.log("File received:", req.file); // <--- Add this debug line
-        console.log("Body received:", req.body);
-
-        const userId = req.session.userId;
-
-        // Cloudinary puts the link in 'secure_url', not always in 'path'
-        let filePath = undefined;
-        if (req.file) {
-            filePath = req.file.path || req.file.secure_url;
-        }
-        await updateUserProfile(userId, req.body, filePath);
-
-        res.json({ success: true, message: "Profile updated successfully!" });
-    } catch (error) {
-        console.error("Update Profile Error:", error);
-        res.status(500).json({ success: false, message: "Server Error" });
+export const updateProfile = asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    let filePath;
+    if (req.file) {
+        filePath = req.file.path || req.file.secure_url;
     }
-};
+
+    await updateUserProfile(userId, req.body, filePath);
+    res.status(200).json({ success: true, message: "Profile updated successfully!" });
+});
 
 // 2. Send otp for email update
-export const sendUpdateEmailOtp = async (req, res) => {
-    try {
-        const { newEmail } = req.body;
-
-        await requestEmailUpdateOtp(newEmail);
-
-        res.json({ success: true, message: "OTP sent to new email." });
-    } catch (error) {
-        console.error("OTP Error:", error.message);
-        res.json({ success: false, message: error.message || "Failed to send OTP." });
-    }
-};
+export const sendUpdateEmailOtp = asyncHandler(async (req, res) => {
+    const { newEmail } = req.body;
+    await requestEmailUpdateOtp(newEmail);
+    res.status(200).json({ success: true, message: "OTP sent to new email." });
+});
 
 // 3. Verify otp and update email
-export const verifyEmailUpdate = async (req, res) => {
-    try {
-        const { newEmail, otp } = req.body;
-        const userId = req.session.userId;
-
-        await completeEmailUpdate(userId, newEmail, otp);
-
-        res.json({ success: true, message: "Email updated successfully!" });
-    } catch (error) {
-        res.json({ success: false, message: error.message || "Verification failed." });
-    }
-};
+export const verifyEmailUpdate = asyncHandler(async (req, res) => {
+    const { newEmail, otp } = req.body;
+    const userId = req.session.userId;
+    await completeEmailUpdate(userId, newEmail, otp);
+    res.status(200).json({ success: true, message: "Email updated successfully!" });
+});
 //----------------------------------------------------------------------
 //user address page
-export const addressPage = async (req, res) => {
-    try {
-        const userId = req.session.userId;
-        const user = await getUserData(userId);
-        const addresses = await getUserAddresses(userId);
+export const addressPage = asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const user = await getUserData(userId);
+    const addresses = await getUserAddresses(userId);
 
-        res.render("user/address", {
-            title: "Manage Addresses",
-            addresses: addresses || [], // Ensures addresses is never undefined
-            user
-        });
-    } catch (error) {
-        console.error("Address Page Error:", error);
-        res.redirect("/account");
-    }
-}
+    res.render("user/address", {
+        title: "Manage Addresses",
+        addresses: addresses || [],
+        user
+    });
+});
 
 // Add Address
-export const addAddress = async (req, res) => {
-    try {
-        console.log("Received Data:", req.body); // Debugging line
-        await addNewAddress(req.session.userId, req.body);
-        res.json({ success: true, message: "Address added successfully" });
-    } catch (error) {
-        console.error("Add Address Error:", error); // See this in VS Code terminal
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
+export const addAddress = asyncHandler(async (req, res) => {
+    await addNewAddress(req.session.userId, req.body);
+    res.status(201).json({ success: true, message: "Address added successfully" });
+});
 // Fetch single address (API)
-export const getSingleAddress = async (req, res) => {
-    try {
-        const address = await getAddressById(req.params.addressId, req.session.userId);
-        res.json({ success: true, address });
-    } catch (error) {
-        res.status(404).json({ success: false, message: "Address not found" });
+export const getSingleAddress = asyncHandler(async (req, res) => {
+    const address = await getAddressById(req.params.addressId, req.session.userId);
+    if (!address) {
+        throw new AppError("Address not found", 404);
     }
-};
+    res.status(200).json({ success: true, address });
+});
 
 // Edit Address
-export const editAddress = async (req, res) => {
-    try {
-        await updateAddress(req.params.addressId, req.session.userId, req.body);
-        res.json({ success: true, message: "Address updated successfully" });
-    } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
+export const editAddress = asyncHandler(async (req, res) => {
+    await updateAddress(req.params.addressId, req.session.userId, req.body);
+    res.status(200).json({ success: true, message: "Address updated successfully" });
+});
 
 // Delete Address
-export const adressDelete = async (req, res) => {
-    try {
-        await deleteAddress(req.params.addressId, req.session.userId);
-        res.json({ success: true, message: "Address deleted successfully" });
-    } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
+export const adressDelete = asyncHandler(async (req, res) => {
+    await deleteAddress(req.params.addressId, req.session.userId);
+    res.status(200).json({ success: true, message: "Address deleted successfully" });
+});
 
 // Set Default
-export const setAsDefault = async (req, res) => {
-    try {
-        await setAddressAsDefault(req.params.addressId, req.session.userId);
-        res.json({ success: true });
-    } catch (error) {
-        res.status(400).json({ success: false, message: error.message });
-    }
-};
+export const setAsDefault = asyncHandler(async (req, res) => {
+    await setAddressAsDefault(req.params.addressId, req.session.userId);
+    res.status(200).json({ success: true });
+});
 
 //----------------------------------------------------------------------
 //render password management page
-export const passwordPage = async (req, res) => {
-    try {
-        const userId = req.session.userId;
-        const user = await getUserData(userId);
-        res.render('user/password', {
-            title: "Manage Password",
-            user: user
-        });
-    } catch (error) {
-        console.error("Password Page Error : ", error);
-        res.redirect("/account");
-    }
-};
+export const passwordPage = asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const user = await getUserData(userId);
+    res.render('user/password', {
+        title: "Manage Password",
+        user: user
+    });
+});
 
 //handle password update submission
-export const updatePassword = async (req, res) => {
-    try {
-        const { currentPassword, newPassword } = req.body;
-        await changeUserPassword(req.session.userId, currentPassword, newPassword);
-
-        res.json({
-            success: true,
-            message: "Password updated successfully!"
-        });
-    } catch (error) {
-        res.status(400).json({
-            success: false,
-            message: error.message
-        });
-    }
-};
+export const updatePassword = asyncHandler(async (req, res) => {
+    const { currentPassword, newPassword } = req.body;
+    await changeUserPassword(req.session.userId, currentPassword, newPassword);
+    res.status(200).json({
+        success: true,
+        message: "Password updated successfully!"
+    });
+});
 
 // Handle Forgot Password for Logged-In Users
 export const forgotPasswordLoggedIn = async (req, res) => {

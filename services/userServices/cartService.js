@@ -2,6 +2,7 @@ import Cart from "../../models/cart.js";
 import ProductVariant from "../../models/productVariant.js";
 import Product from "../../models/product.js";
 import Category from "../../models/category.js";
+import AppError from "../../utils/AppError.js";
 
 // Some basic limits and tax
 const MAX_QTY_PER_ITEM = 5;
@@ -64,10 +65,10 @@ export const addItemToCart = async (userId, variantId, quantity = 1) => {
     const variant = await ProductVariant.findById(variantId).populate('productId');
 
     // Basic checks before adding
-    if (!await variantIsActive(variant)) throw new Error("This product is currently unavailable.");
-    if (variant.stock <= 0) throw new Error("This item is out of stock.");
-    if (quantity > variant.stock) throw new Error(`Only ${variant.stock} left in stock.`);
-    if (quantity > MAX_QTY_PER_ITEM) throw new Error(`Maximum limit is ${MAX_QTY_PER_ITEM} per item.`);
+    if (!await variantIsActive(variant)) throw new AppError("This product is currently unavailable.", 404);
+    if (variant.stock <= 0) throw new AppError("This item is out of stock.", 409);
+    if (quantity > variant.stock) throw new AppError(`Only ${variant.stock} left in stock.`, 409);
+    if (quantity > MAX_QTY_PER_ITEM) throw new AppError(`Maximum limit is ${MAX_QTY_PER_ITEM} per item.`, 400);
 
     // Find user cart
     let cart = await Cart.findOne({ userId });
@@ -84,8 +85,8 @@ export const addItemToCart = async (userId, variantId, quantity = 1) => {
         // If exists, increase quantity
         const newQty = cart.items[existingItemIndex].quantity + quantity;
 
-        if (newQty > variant.stock) throw new Error(`Cannot add more. Only ${variant.stock} left.`);
-        if (newQty > MAX_QTY_PER_ITEM) throw new Error(`Limit of ${MAX_QTY_PER_ITEM} reached.`);
+        if (newQty > variant.stock) throw new AppError(`Cannot add more. Only ${variant.stock} left.`, 409);
+        if (newQty > MAX_QTY_PER_ITEM) throw new AppError(`Limit of ${MAX_QTY_PER_ITEM} reached.`, 400);
 
         cart.items[existingItemIndex].quantity = newQty;
     } else {
@@ -197,10 +198,10 @@ export const updateItemQuantity = async (userId, variantId, newQuantity) => {
     const variant = await ProductVariant.findById(variantId);
 
     // Validation
-    if (!variant || variant.status !== 'active') throw new Error("Item unavailable.");
-    if (newQuantity > variant.stock) throw new Error(`Only ${variant.stock} left.`);
-    if (newQuantity > MAX_QTY_PER_ITEM) throw new Error(`Limit is ${MAX_QTY_PER_ITEM}.`);
-    if (newQuantity < 1) throw new Error("Quantity cannot be less than 1.");
+    if (!variant || variant.status !== 'active') throw new AppError("Item unavailable.", 404);
+    if (newQuantity > variant.stock) throw new AppError(`Only ${variant.stock} left.`, 409);
+    if (newQuantity > MAX_QTY_PER_ITEM) throw new AppError(`Limit is ${MAX_QTY_PER_ITEM}.`, 400);
+    if (newQuantity < 1) throw new AppError("Quantity cannot be less than 1.", 400);
 
     const cart = await Cart.findOne({ userId });
 
@@ -208,7 +209,7 @@ export const updateItemQuantity = async (userId, variantId, newQuantity) => {
         item => item.productVariantId.toString() === variantId.toString()
     );
 
-    if (itemIndex === -1) throw new Error("Item not found.");
+    if (itemIndex === -1) throw new AppError("Item not found.", 404);
 
     cart.items[itemIndex].quantity = newQuantity;
 
@@ -249,7 +250,7 @@ export const validateCartAvailability = async (userId) => {
     const cart = await Cart.findOne({ userId }).populate('items.productVariantId');
 
     if (!cart || !cart.items || cart.items.length === 0) {
-        throw new Error("Your cart is empty.");
+        throw new AppError("Your cart is empty.", 400);
     }
 
     let errors = [];
@@ -294,7 +295,7 @@ export const validateCartAvailability = async (userId) => {
 
     // If any problem found, show all errors
     if (errors.length > 0) {
-        throw new Error(errors.join('|'));
+        throw new AppError(errors.join('|'), 409);
     }
 
     return true;

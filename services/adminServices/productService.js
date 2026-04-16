@@ -2,6 +2,7 @@ import Product from "../../models/product.js";
 import Category from "../../models/category.js";
 import ProductVariant from "../../models/productVariant.js";
 import mongoose from "mongoose";
+import AppError from "../../utils/AppError.js";
 
 // Acts as the engine for the Admin Product Dashboard table.
 // It builds a powerful MongoDB aggregation pipeline to simultaneously apply search filters, 
@@ -66,7 +67,7 @@ export const getActiveCategories = async () => {
 // We just flip the status back and forth to hide or show it on the storefront.
 export const toggleProductStatusById = async (productId) => {
     const product = await Product.findById(productId);
-    if (!product) throw new Error("Product not found");
+    if (!product) throw new AppError("Product not found", 404);
 
     product.status = product.status === 'active' ? 'inactive' : 'active';
     await product.save();
@@ -113,7 +114,7 @@ export const createNewProduct = async (productData, variantsData, files) => {
 // so the frontend can perfectly reconstruct the product in the Edit UI.
 export const getProductDataForEdit = async (productId) => {
     const product = await Product.findById(productId);
-    if (!product) throw new Error("Product not found");
+    if (!product) throw new AppError("Product not found", 404);
     
     const variants = await ProductVariant.find({ productId: product._id });
     return { product, variants };
@@ -157,7 +158,7 @@ export const updateExistingProduct = async (productId, productData, variantsData
 
         // Safety Catch: Prevent saving if the final image count falls below your store's requirement
         if (finalImages.length < 3) {
-            throw new Error(`Variant ${variant.sku || i} requires at least 3 images.`);
+            throw new AppError(`Variant ${variant.sku || i} requires at least 3 images.`, 422);
         }
 
         if (variant._id) {

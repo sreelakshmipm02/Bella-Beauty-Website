@@ -1,4 +1,5 @@
 import User from "../../models/user.js";
+import AppError from "../../utils/AppError.js";
 
 // Fetches all users from the database sorted by newest first.
 // export const getAllUsers = async () => {
@@ -10,7 +11,7 @@ import User from "../../models/user.js";
 export const toggleUserBlockStatus = async (userId) => {
     const user = await User.findById(userId);
     if (!user) {
-        throw new Error("User not found");
+        throw new AppError("User not found", 404);
     }
 
     // Toggle logic using the enum defined in your schema

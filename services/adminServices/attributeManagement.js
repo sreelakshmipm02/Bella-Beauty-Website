@@ -1,4 +1,5 @@
 import Attribute from "../../models/attribute.js";
+import AppError from "../../utils/AppError.js";
 
 // Handles the core business logic for creating a brand new dynamic attribute (like Size or Color).
 // This function acts as a gatekeeper to ensure we don't create duplicate attributes 
@@ -10,7 +11,7 @@ export const createNewAttribute = async (data) => {
     // to avoid confusing the database or the frontend when linking them to products.
     const existingAttr = await Attribute.findOne({ internalName: internalName.trim() });
     if (existingAttr) {
-        throw new Error(`An attribute with the internal name "${internalName}" already exists.`);
+        throw new AppError(`An attribute with the internal name "${internalName}" already exists.`, 409);
     }
 
     // If the attribute requires specific options (like Red, Blue, Green for an "enum"), 
@@ -37,7 +38,7 @@ export const createNewAttribute = async (data) => {
 export const deleteAttributeById = async (attributeId) => {
     const result = await Attribute.findByIdAndDelete(attributeId);
     if (!result) {
-        throw new Error("Attribute not found");
+        throw new AppError("Attribute not found", 404);
     }
     return result;
 };
@@ -46,7 +47,7 @@ export const deleteAttributeById = async (attributeId) => {
 // The controller usually calls this so the frontend can pre-fill an "Edit Attribute" modal.
 export const fetchAttributeById = async (attributeId) => {
     const attribute = await Attribute.findById(attributeId);
-    if (!attribute) throw new Error("Attribute not found");
+    if (!attribute) throw new AppError("Attribute not found", 404);
     return attribute;
 };
 
@@ -63,7 +64,7 @@ export const updateAttributeById = async (attributeId, data) => {
     });
     
     if (existingAttr) {
-        throw new Error(`An attribute with the internal name "${internalName}" already exists.`);
+        throw new AppError(`An attribute with the internal name "${internalName}" already exists.`, 409);
     }
 
     // Re-process the possible values into a clean array, just in case the admin added or removed options
@@ -79,6 +80,10 @@ export const updateAttributeById = async (attributeId, data) => {
         dataType,
         possibleValues: valuesArray
     }, { new: true });
+
+    if (!updatedAttribute) {
+        throw new AppError("Attribute not found", 404);
+    }
 
     return updatedAttribute;
 };

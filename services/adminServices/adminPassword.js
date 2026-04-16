@@ -2,11 +2,12 @@ import Admin from "../../models/admin.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
 import { sendResetEmail } from "../../utils/otpService.js"; 
+import AppError from "../../utils/AppError.js";
 
 // 1. Generate Token & Send Email
 export const generateAdminResetToken = async (email) => {
     const admin = await Admin.findOne({ email });
-    if (!admin) throw new Error("Admin with this email does not exist.");
+    if (!admin) throw new AppError("Admin with this email does not exist.", 404);
 
     // Generate Token
     const token = crypto.randomBytes(32).toString("hex");
@@ -30,7 +31,7 @@ export const resetAdminPassword = async (token, newPassword) => {
         resetPasswordExpires: { $gt: Date.now() } // Check if not expired
     });
 
-    if (!admin) throw new Error("Token is invalid or has expired.");
+    if (!admin) throw new AppError("Token is invalid or has expired.", 400);
 
     // Hash new password
     admin.password = await bcrypt.hash(newPassword, 10);

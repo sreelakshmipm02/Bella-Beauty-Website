@@ -1,5 +1,6 @@
 import Order from "../../models/order.js";
 import ProductVariant from "../../models/productVariant.js";
+import AppError from "../../utils/AppError.js";
 
 // Order status should follow this step-by-step flow
 const MANUAL_STATUS_FLOW = ['Pending', 'Processing', 'Shipped', 'Delivered'];
@@ -47,14 +48,14 @@ export const getAdminOrderById = async (orderId) => {
 
 export const updateOrderStatusService = async (orderId, newStatus) => {
     const order = await Order.findById(orderId);
-    if (!order) throw new Error("Order not found");
+    if (!order) throw new AppError("Order not found", 404);
 
     const currentIdx = MANUAL_STATUS_FLOW.indexOf(order.orderStatus);
     const newIdx = MANUAL_STATUS_FLOW.indexOf(newStatus);
 
     // Do not allow moving backwards in status (like Shipped -> Processing)
     if (currentIdx !== -1 && newIdx !== -1 && newIdx <= currentIdx && newStatus !== order.orderStatus) {
-        throw new Error(`Cannot revert status from ${order.orderStatus} to ${newStatus}`);
+        throw new AppError(`Cannot revert status from ${order.orderStatus} to ${newStatus}`, 400);
     }
 
     // If setting status to Returned, make sure return is approved
@@ -62,7 +63,7 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
         const hasApprovedReturn = order.items.some(item => item.status === 'Return Approved');
 
         if (!hasApprovedReturn) {
-            throw new Error("Cannot set to Returned unless a return request has been approved.");
+            throw new AppError("Cannot set to Returned unless a return request has been approved.", 400);
         }
 
         // Add stock back only for approved return items
@@ -98,11 +99,11 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
 
 export const updatePaymentStatusService = async (orderId, newStatus) => {
     const order = await Order.findById(orderId);
-    if (!order) throw new Error("Order not found");
+    if (!order) throw new AppError("Order not found", 404);
 
     // Do not allow changes if already refunded
     if (order.payment.status === 'Refunded') {
-        throw new Error("Cannot change status of a refunded payment.");
+        throw new AppError("Cannot change status of a refunded payment.", 400);
     }
 
     order.payment.status = newStatus;
@@ -113,14 +114,14 @@ export const updatePaymentStatusService = async (orderId, newStatus) => {
 
 export const processReturnRequestService = async (orderId, itemId, action, rejectReason) => {
     const order = await Order.findById(orderId);
-    if (!order) throw new Error("Order not found");
+    if (!order) throw new AppError("Order not found", 404);
 
     // Find the specific item inside the order
     const item = order.items.id(itemId);
 
     // Check if item is actually waiting for return approval
     if (!item || item.status !== 'Return Requested') {
-        throw new Error("Item is not pending a return request.");
+        throw new AppError("Item is not pending a return request.", 400);
     }
 
     if (action === 'Approve') {

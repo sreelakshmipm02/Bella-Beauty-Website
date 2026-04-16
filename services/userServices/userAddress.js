@@ -1,4 +1,5 @@
 import Address from "../../models/address.js";
+import AppError from "../../utils/AppError.js";
 
 // Fetch all addresses for a user
 export const getUserAddresses = async (userId) => {
@@ -32,11 +33,19 @@ export const updateAddress = async (addressId, userId, data) => {
     if (data.isDefault) {
         await Address.updateMany({ userId }, { $set: { isDefault: false } });
     }
-    return await Address.findOneAndUpdate({ _id: addressId, userId }, data, { new: true });
+    const updatedAddress = await Address.findOneAndUpdate({ _id: addressId, userId }, data, { new: true });
+    if (!updatedAddress) {
+        throw new AppError("Address not found", 404);
+    }
+    return updatedAddress;
 };
 
 export const deleteAddress = async (addressId, userId) => {
-    return await Address.findOneAndDelete({ _id: addressId, userId });
+    const deletedAddress = await Address.findOneAndDelete({ _id: addressId, userId });
+    if (!deletedAddress) {
+        throw new AppError("Address not found", 404);
+    }
+    return deletedAddress;
 };
 
 export const setAddressAsDefault = async (addressId, userId) => {
@@ -44,9 +53,13 @@ export const setAddressAsDefault = async (addressId, userId) => {
     await Address.updateMany({ userId }, { $set: { isDefault: false } });
 
     // 2. Set the selected address to true
-    return await Address.findOneAndUpdate(
+    const defaultAddress = await Address.findOneAndUpdate(
         { _id: addressId, userId },
         { $set: { isDefault: true } },
         { new: true }
     );
+    if (!defaultAddress) {
+        throw new AppError("Address not found", 404);
+    }
+    return defaultAddress;
 };

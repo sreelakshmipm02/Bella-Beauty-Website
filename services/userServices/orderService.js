@@ -3,6 +3,7 @@ import Cart from "../../models/cart.js";
 import ProductVariant from "../../models/productVariant.js";
 import { getCartData } from "./cartService.js";
 import { getAddressById } from "./userAddress.js";
+import AppError from "../../utils/AppError.js";
 
 // This function decides the overall order status based on item statuses
 const recalculateMasterStatus = (items) => {
@@ -46,14 +47,14 @@ export const processCheckout = async (userId, addressId, paymentMethod) => {
     const cartData = await getCartData(userId);
 
     if (!cartData || cartData.items.length === 0) {
-        throw new Error("Your cart is empty.");
+        throw new AppError("Your cart is empty.", 400);
     }
 
     // Get selected address
     const address = await getAddressById(addressId, userId);
 
     if (!address) {
-        throw new Error("Shipping address not found.");
+        throw new AppError("Shipping address not found.", 404);
     }
 
     // Prepare items for order
@@ -143,11 +144,11 @@ export const cancelMultipleItemsService = async (orderId, itemIds, userId, reaso
 
     const order = await Order.findOne({ _id: orderId, userId });
 
-    if (!order) throw new Error("Order not found");
+    if (!order) throw new AppError("Order not found", 404);
     
     // Cannot cancel after shipping
     if (order.orderStatus === 'Shipped' || order.orderStatus === 'Delivered') {
-        throw new Error("Cannot cancel items after shipping.");
+        throw new AppError("Cannot cancel items after shipping.", 400);
     }
 
     // Process each item
@@ -190,11 +191,11 @@ export const returnMultipleItemsService = async (orderId, itemIds, userId, reaso
 
     const order = await Order.findOne({ _id: orderId, userId });
 
-    if (!order) throw new Error("Order not found");
+    if (!order) throw new AppError("Order not found", 404);
     
     // Only delivered orders can be returned
     if (order.orderStatus !== 'Delivered' && order.orderStatus !== 'Returned') {
-        throw new Error("Only delivered orders can be returned.");
+        throw new AppError("Only delivered orders can be returned.", 400);
     }
 
     // Check 10-day return policy
@@ -203,7 +204,7 @@ export const returnMultipleItemsService = async (orderId, itemIds, userId, reaso
     const diffInDays = (new Date() - deliveryDate) / (1000 * 3600 * 24);
 
     if (diffInDays > 10) {
-        throw new Error("Return allowed only within 10 days.");
+        throw new AppError("Return allowed only within 10 days.", 400);
     }
 
     // Update item status
