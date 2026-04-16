@@ -10,6 +10,10 @@
                 </div>
                 <span class="ml-3 text-sm font-medium text-gray-700">Low Stock Only (< 10)</span>
             </label>
+            <button id="updateAllBtn" type="button" disabled
+                class="px-4 py-2 rounded-xl bg-primary text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm">
+                Update All
+            </button>
         </div>
     </div>
 
@@ -19,12 +23,13 @@
                 <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b">
                     <th class="p-4">Product / SKU</th>
                     <th class="p-4">Current Stock</th>
-                    <th class="p-4">Quick Update</th>
+                    <th class="p-4">Update Stock</th>
                     </tr>
             </thead>
             <tbody class="divide-y divide-gray-100">
                 <% variants.forEach(variant=> { %>
-                    <tr class="<%= variant.stock < 10 ? 'bg-red-50/30' : '' %> transition">
+                    <tr id="row_<%= variant._id %>" data-variant-id="<%= variant._id %>" data-original-stock="<%= variant.stock %>"
+                        class="<%= variant.stock < 10 ? 'bg-red-50/30' : '' %> transition">
                         <td class="p-4">
                             <div class="flex flex-col">
                                 <p class="font-bold text-gray-900 text-sm mb-0.5">
@@ -38,17 +43,16 @@
                             </div>
                         </td>
                         <td class="p-4">
-                            <span class="px-3 py-1 rounded-full text-xs font-bold <%= variant.stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' %>">
+                            <span id="badge_<%= variant._id %>" class="px-3 py-1 rounded-full text-xs font-bold <%= variant.stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' %>">
                                 <%= variant.stock %> units
                             </span>
                         </td>
                         <td class="p-4">
-                            <div class="flex items-center gap-2">
+                            <div class="flex items-center gap-3">
                                 <input type="number" id="input_<%= variant._id %>" value="<%= variant.stock %>"
                                     min="0"
-                                    class="w-20 px-2 py-1 border rounded-lg text-sm focus:ring-primary outline-none">
-                                <button onclick="quickUpdateStock('<%= variant._id %>')"
-                                    class="text-primary hover:text-pink-700 font-bold text-xs uppercase">Save</button>
+                                    class="w-24 px-2 py-1 border rounded-lg text-sm focus:ring-primary outline-none">
+                                <span id="status_<%= variant._id %>" class="text-xs font-semibold text-gray-400 uppercase tracking-wide">No changes</span>
                             </div>
                         </td>
                         </tr>
@@ -59,31 +63,113 @@
 </main>
 
 <script>
+    const changedStocks = new Map();
+
     document.getElementById('lowStockToggle').addEventListener('change', function () {
         window.location.href = `/admin/inventory?lowStock=${this.checked}`;
     });
 
-    async function quickUpdateStock(variantId) {
-        const newStock = document.getElementById(`input_${variantId}`).value;
+    const updateAllBtn = document.getElementById('updateAllBtn');
+
+    function refreshUpdateButtonState() {
+        updateAllBtn.disabled = changedStocks.size === 0;
+    }
+
+    function getStockBadgeClasses(stock) {
+        return stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+    }
+
+    function updateRowState(variantId) {
+        const row = document.getElementById(`row_${variantId}`);
+        const input = document.getElementById(`input_${variantId}`);
+        const status = document.getElementById(`status_${variantId}`);
+        const originalStock = Number(row.dataset.originalStock);
+        const currentStock = Number(input.value);
+
+        if (!Number.isInteger(currentStock) || currentStock < 0) {
+            input.classList.add('border-red-500');
+            status.textContent = 'Invalid stock';
+            status.className = 'text-xs font-semibold text-red-500 uppercase tracking-wide';
+            changedStocks.delete(variantId);
+            refreshUpdateButtonState();
+            return;
+        }
+
+        input.classList.remove('border-red-500');
+
+        if (currentStock === originalStock) {
+            changedStocks.delete(variantId);
+            status.textContent = 'No changes';
+            status.className = 'text-xs font-semibold text-gray-400 uppercase tracking-wide';
+        } else {
+            changedStocks.set(variantId, currentStock);
+            status.textContent = 'Pending update';
+            status.className = 'text-xs font-semibold text-amber-600 uppercase tracking-wide';
+        }
+
+        refreshUpdateButtonState();
+    }
+
+    document.querySelectorAll('tr[data-variant-id]').forEach((row) => {
+        const variantId = row.dataset.variantId;
+        const input = document.getElementById(`input_${variantId}`);
+
+        input.addEventListener('input', () => updateRowState(variantId));
+    });
+
+    updateAllBtn.addEventListener('click', async () => {
+        if (changedStocks.size === 0) return;
+
+        const updates = Array.from(changedStocks.entries()).map(([variantId, stock]) => ({ variantId, stock }));
+        const originalText = updateAllBtn.textContent;
 
         try {
+            updateAllBtn.disabled = true;
+            updateAllBtn.textContent = 'Updating...';
+
             const response = await fetch('/admin/inventory/stock', {
                 method: 'PATCH',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ variantId, stock: parseInt(newStock) })
+                body: JSON.stringify({ updates })
             });
+
             const data = await response.json();
 
-            if (data.success) {
-                Swal.fire({ icon: 'success', title: 'Updated!', toast: true, position: 'top-end', timer: 1500, showConfirmButton: false });
-                setTimeout(() => window.location.reload(), 1500);
-            } else {
-                Swal.fire('Error', data.message, 'error');
+            if (!data.success) {
+                throw new Error(data.message || 'Failed to update stock.');
             }
+
+            updates.forEach(({ variantId, stock }) => {
+                const row = document.getElementById(`row_${variantId}`);
+                const badge = document.getElementById(`badge_${variantId}`);
+                const status = document.getElementById(`status_${variantId}`);
+
+                row.dataset.originalStock = stock;
+                badge.textContent = `${stock} units`;
+                badge.className = `px-3 py-1 rounded-full text-xs font-bold ${getStockBadgeClasses(stock)}`;
+                status.textContent = 'Saved';
+                status.className = 'text-xs font-semibold text-green-600 uppercase tracking-wide';
+                changedStocks.delete(variantId);
+            });
+
+            refreshUpdateButtonState();
+
+            Swal.fire({
+                icon: 'success',
+                title: 'Stock Updated',
+                text: data.message,
+                toast: true,
+                position: 'top-end',
+                timer: 1800,
+                showConfirmButton: false
+            });
         } catch (error) {
-            Swal.fire('Error', 'Network Error', 'error');
+            Swal.fire('Error', error.message || 'Network Error', 'error');
+            refreshUpdateButtonState();
+        } finally {
+            updateAllBtn.textContent = originalText;
         }
-    }
+    });
 </script>
 
 <%- include("../partials/adminFooter") %>

@@ -59,3 +59,33 @@ export const updateStockService = async (variantId, newStock) => {
         { returnDocument: 'after' }
     );
 };
+
+/**
+ * Update stock for multiple variants in one request.
+ */
+export const updateBulkStockService = async (updates = []) => {
+    if (!Array.isArray(updates) || updates.length === 0) {
+        throw new Error("No stock updates were provided.");
+    }
+
+    const operations = updates.map(({ variantId, stock }) => {
+        const parsedStock = Number(stock);
+
+        if (!variantId) {
+            throw new Error("Each stock update must include a variant ID.");
+        }
+
+        if (!Number.isInteger(parsedStock) || parsedStock < 0) {
+            throw new Error("Stock must be a non-negative whole number.");
+        }
+
+        return {
+            updateOne: {
+                filter: { _id: variantId },
+                update: { $set: { stock: parsedStock } }
+            }
+        };
+    });
+
+    return await ProductVariant.bulkWrite(operations);
+};

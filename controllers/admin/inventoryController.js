@@ -1,4 +1,4 @@
-import { getInventoryList, updateStockService } from "../../services/adminServices/inventoryService.js";
+import { getInventoryList, updateBulkStockService, updateStockService } from "../../services/adminServices/inventoryService.js";
 
 /**
  * Show the inventory page with pagination and filters.
@@ -36,9 +36,16 @@ export const getInventoryPage = async (req, res) => {
  */
 export const updateStockAjax = async (req, res) => {
     try {
-        const { variantId, stock } = req.body;
-        
-        // Update stock in DB
+        const { variantId, stock, updates } = req.body;
+
+        if (Array.isArray(updates)) {
+            await updateBulkStockService(updates);
+            return res.json({
+                success: true,
+                message: "All stock changes were updated successfully."
+            });
+        }
+
         await updateStockService(variantId, stock);
         
         res.json({ 
