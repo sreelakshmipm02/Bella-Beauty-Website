@@ -29,6 +29,12 @@ export const getShopPage = asyncHandler(async (req, res) => {
     const productTypes = await getActiveProductTypes();
     const totalPages = Math.ceil(totalProducts / limit);
 
+    //Fetch Wishlist IDs if the user is logged in
+    let wishlistVariantIds = [];
+    if (req.session.userId) {
+        wishlistVariantIds = await getUserWishlistVariantIds(req.session.userId);
+    }
+
     res.render("user/shop", {
         title: "Shop - Bella Beauty",
         isLoggedIn: !!req.session.userId,
@@ -39,7 +45,9 @@ export const getShopPage = asyncHandler(async (req, res) => {
         currentPage: page,
         totalPages,
         totalProducts,
-        query: req.query
+        query: req.query,
+        wishlistVariantIds, 
+        wishlistVariantIdsJSON: JSON.stringify(wishlistVariantIds)
     });
 });
 

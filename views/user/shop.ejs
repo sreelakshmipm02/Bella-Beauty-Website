@@ -117,13 +117,27 @@
                             onclick="window.location.href='/product/<%= product.slug %>'">
 
                             <div class="relative h-64 bg-gray-50 overflow-hidden">
-                                <% if (product.totalStock<=0) { %>
-                                    <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase px-2 py-1 rounded z-10">Out of Stock</span>
-                                <% } %>
-                                <img src="<%= product.defaultImage || '/images/placeholder.jpg' %>"
-                                    alt="<%= product.name %>"
-                                    class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 <%= product.totalStock <= 0 ? 'opacity-50 grayscale' : '' %>" />
-                            </div>
+    <% if (product.totalStock<=0) { %>
+        <span class="absolute top-3 left-3 bg-red-600 text-white text-[10px] font-bold uppercase px-2 py-1 rounded z-10">Out of Stock</span>
+    <% } %>
+
+    <% 
+        let defaultVariantId = product.activeVariants && product.activeVariants[0] ? product.activeVariants[0]._id.toString() : null;
+        let isInWishlist = defaultVariantId && typeof wishlistVariantIds !== 'undefined' && wishlistVariantIds.includes(defaultVariantId);
+    %>
+    <% if (defaultVariantId) { %>
+        <button type="button" 
+            class="shop-wishlist-btn absolute top-3 right-3 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all z-20" 
+            data-variant-id="<%= defaultVariantId %>">
+            <span class="material-icons-outlined text-[20px] transition-colors <%= isInWishlist ? 'text-red-500' : 'text-gray-400 hover:text-red-500' %>">
+                <%= isInWishlist ? 'favorite' : 'favorite_border' %>
+            </span>
+        </button>
+    <% } %>
+    <img src="<%= product.defaultImage || '/images/placeholder.jpg' %>"
+        alt="<%= product.name %>"
+        class="w-full h-full object-cover object-center group-hover:scale-105 transition-transform duration-500 <%= product.totalStock <= 0 ? 'opacity-50 grayscale' : '' %>" />
+</div>
 
                             <div class="p-4 flex-1 flex flex-col">
                                 <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">
@@ -213,4 +227,63 @@
     function changePage(page) {
         updateFilters(page);
     }
+
+    // shop.ejs (Bottom of your script section)
+
+// --- NEW: Wishlist AJAX functionality for product cards ---
+const isUserLoggedIn = <%= isLoggedIn %>; 
+
+document.querySelectorAll('.shop-wishlist-btn').forEach(btn => {
+    btn.addEventListener('click', async function (e) {
+        // Prevent the card's onclick redirect from firing
+        e.stopPropagation(); 
+        e.preventDefault();
+
+        // Redirect to login if a guest tries to use the wishlist
+        if (!isUserLoggedIn) {
+            window.location.href = '/login';
+            return;
+        }
+
+        const variantId = this.dataset.variantId;
+        if (!variantId) return;
+
+        const icon = this.querySelector('.material-icons-outlined');
+        
+        // Quick visual feedback animation
+        icon.classList.add('scale-125');
+        setTimeout(() => icon.classList.remove('scale-125'), 200);
+
+        try {
+            const response = await fetch('/wishlist/items/toggle', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ variantId })
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                if (data.isAdded) {
+                    icon.innerText = 'favorite';
+                    icon.classList.remove('text-gray-400', 'hover:text-red-500');
+                    icon.classList.add('text-red-500');
+                    Swal.fire({ icon: 'success', title: 'Added to Wishlist!', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
+                } else {
+                    icon.innerText = 'favorite_border';
+                    icon.classList.remove('text-red-500');
+                    icon.classList.add('text-gray-400', 'hover:text-red-500');
+                    Swal.fire({ icon: 'info', title: 'Removed from Wishlist', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
+                }
+                window.location.reload();
+            } else {
+                if (data.redirect) window.location.href = data.redirect;
+                else Swal.fire({ icon: 'error', title: 'Oops...', text: data.message });
+            }
+        } catch (error) {
+            console.error("Wishlist Error:", error);
+            Swal.fire('Error', 'Network error. Please try again.', 'error');
+        }
+    });
+});
 </script>
