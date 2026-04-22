@@ -1,9 +1,45 @@
+import "../../config/env.js";
 import Order from "../../models/order.js";
 import Cart from "../../models/cart.js";
 import ProductVariant from "../../models/productVariant.js";
 import { getCartData } from "./cartService.js";
 import { getAddressById } from "./userAddress.js";
 import AppError from "../../utils/AppError.js";
+import crypto from "crypto";
+import Razorpay from "razorpay";
+
+let razorpayInstance;
+
+export const getRazorpayInstance = () => {
+    const { RAZORPAY_KEY_ID, RAZORPAY_KEY_SECRET } = process.env;
+
+    if (!RAZORPAY_KEY_ID || !RAZORPAY_KEY_SECRET) {
+        throw new AppError(
+            "Razorpay is not configured. Please set RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET.",
+            500
+        );
+    }
+
+    if (!razorpayInstance) {
+        razorpayInstance = new Razorpay({
+            key_id: RAZORPAY_KEY_ID,
+            key_secret: RAZORPAY_KEY_SECRET,
+        });
+    }
+
+    return razorpayInstance;
+};
+
+// Securely verify payment signature
+export const verifyPaymentSignature = (razorpayOrderId, razorpayPaymentId, signature) => {
+    const body = razorpayOrderId + "|" + razorpayPaymentId;
+    const expectedSignature = crypto
+        .createHmac("sha256", process.env.RAZORPAY_KEY_SECRET)
+        .update(body.toString())
+        .digest("hex");
+
+    return expectedSignature === signature;
+};
 
 // This function decides the overall order status based on item statuses
 const recalculateMasterStatus = (items) => {
@@ -15,7 +51,7 @@ const recalculateMasterStatus = (items) => {
 
     // If all items are returned or cancelled
     if (statuses.every(s => s === 'Returned' || s === 'Cancelled')) return 'Returned';
-    
+
     // If any item has return request
     if (statuses.includes('Return Requested')) return 'Return Requested';
 
@@ -26,7 +62,7 @@ const recalculateMasterStatus = (items) => {
 
     // If any item is shipped
     if (statuses.includes('Shipped')) return 'Shipped';
-    
+
     // If order is still in progress
     if (statuses.includes('Processing') || statuses.includes('Delivered') || statuses.includes('Return Rejected')) {
         return 'Processing';
@@ -41,7 +77,7 @@ const recalculateMasterStatus = (items) => {
 // -------------------------------
 
 // This function converts cart into an order
-export const processCheckout = async (userId, addressId, paymentMethod) => {
+export const processCheckout = async (userId, addressId, paymentMethod, transactionId = null) => {
 
     // Get cart data
     const cartData = await getCartData(userId);
@@ -84,7 +120,8 @@ export const processCheckout = async (userId, addressId, paymentMethod) => {
         },
         payment: {
             method: paymentMethod,
-            status: paymentMethod === 'COD' ? 'Pending' : 'Paid'
+            status: paymentMethod === 'COD' ? 'Pending' : 'Paid',
+            transactionId: transactionId
         },
         summary: cartData.summary,
         orderStatus: "Pending"
@@ -117,12 +154,12 @@ export const processCheckout = async (userId, addressId, paymentMethod) => {
 export const getUserOrders = async (userId, searchQuery = '') => {
 
     let query = { userId };
-    
+
     // Search by order ID or product name
     if (searchQuery) {
         query.$or = [
-            { orderId: { $regex: searchQuery, $options: 'i' } }, 
-            { "items.productName": { $regex: searchQuery, $options: 'i' } } 
+            { orderId: { $regex: searchQuery, $options: 'i' } },
+            { "items.productName": { $regex: searchQuery, $options: 'i' } }
         ];
     }
 
@@ -145,7 +182,7 @@ export const cancelMultipleItemsService = async (orderId, itemIds, userId, reaso
     const order = await Order.findOne({ _id: orderId, userId });
 
     if (!order) throw new AppError("Order not found", 404);
-    
+
     // Cannot cancel after shipping
     if (order.orderStatus === 'Shipped' || order.orderStatus === 'Delivered') {
         throw new AppError("Cannot cancel items after shipping.", 400);
@@ -171,7 +208,7 @@ export const cancelMultipleItemsService = async (orderId, itemIds, userId, reaso
 
     // Update main order status
     order.orderStatus = recalculateMasterStatus(order.items);
-    
+
     // If full order cancelled
     if (order.orderStatus === 'Cancelled') {
         order.cancelReason = reason || "Cancelled by user";
@@ -192,7 +229,7 @@ export const returnMultipleItemsService = async (orderId, itemIds, userId, reaso
     const order = await Order.findOne({ _id: orderId, userId });
 
     if (!order) throw new AppError("Order not found", 404);
-    
+
     // Only delivered orders can be returned
     if (order.orderStatus !== 'Delivered' && order.orderStatus !== 'Returned') {
         throw new AppError("Only delivered orders can be returned.", 400);

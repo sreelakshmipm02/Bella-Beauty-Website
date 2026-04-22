@@ -1,6 +1,6 @@
 import { getCartData } from "../../services/userServices/cartService.js";
 import { getUserAddresses } from "../../services/userServices/userAddress.js";
-import { processCheckout } from "../../services/userServices/orderService.js";
+import { getRazorpayInstance, processCheckout, verifyPaymentSignature } from "../../services/userServices/orderService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
 import AppError from "../../utils/AppError.js";
 
@@ -26,7 +26,8 @@ export const getCheckoutPage = asyncHandler(async (req, res) => {
         title: "Checkout - Bella Beauty",
         isLoggedIn: true,
         cart: cartData,
-        addresses: addresses || []
+        addresses: addresses || [],
+        razorpayEnabled: Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
     });
 });
 
@@ -46,11 +47,53 @@ export const placeOrderAjax = asyncHandler(async (req, res) => {
         throw new AppError("Please select an address and payment method.", 400);
     }
 
+    if (paymentMethod === 'Online') {
+        const cartData = await getCartData(userId);
+        if (!cartData || cartData.items.length === 0) throw new AppError("Your cart is empty.", 400);
+
+        // Create the Gateway Order (Amount must be in Paise, so multiply by 100)
+        const options = {
+            amount: Math.round(cartData.summary.total * 100), 
+            currency: "INR",
+            receipt: `receipt_${Date.now()}`
+        };
+        const razorpayOrder = await getRazorpayInstance().orders.create(options);
+
+        // Send this back to the frontend to trigger the popup
+        return res.status(200).json({
+            success: true,
+            isOnline: true,
+            razorpayOrderId: razorpayOrder.id,
+            amount: options.amount,
+            key: process.env.RAZORPAY_KEY_ID
+        });
+    }
+
+    // If COD, proceed exactly as you did before
     const order = await processCheckout(userId, addressId, paymentMethod);
 
     res.status(201).json({ 
         success: true, 
         message: "Order placed successfully!",
-        redirectUrl: `/order-success/${order._id}`
+        orderId: order._id 
+    });
+});
+
+//Verify the signature and save the order to MongoDB
+export const verifyOnlinePayment = asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const { razorpay_order_id, razorpay_payment_id, razorpay_signature, addressId } = req.body;
+
+    const isValid = verifyPaymentSignature(razorpay_order_id, razorpay_payment_id, razorpay_signature);
+    
+    if (!isValid) throw new AppError("Invalid payment signature. Payment failed.", 400);
+
+    // Payment is verified! Now it is safe to clear the cart and reduce stock.
+    const order = await processCheckout(userId, addressId, "Online", razorpay_payment_id);
+
+    res.status(200).json({
+        success: true,
+        message: "Payment verified and order placed!",
+        orderId: order._id
     });
 });

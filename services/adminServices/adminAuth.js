@@ -1,9 +1,7 @@
 import Admin from "../../models/admin.js";
 import bcrypt from "bcrypt";
-import dotenv from "dotenv";
+import "../../config/env.js";
 import AppError from "../../utils/AppError.js";
-
-dotenv.config();
 
 export const authenticateAdmin = async (email, password) => {
     

@@ -1,5 +1,5 @@
 import multer from "multer";
-import dotenv from "dotenv";
+import "../config/env.js";
 import { createRequire } from "module";
 
 // Initialize 'require' to load CommonJS modules safely
@@ -13,8 +13,6 @@ const multerStorageCloudinary = require("multer-storage-cloudinary");
 const CloudinaryStorage = multerStorageCloudinary.CloudinaryStorage ||
     multerStorageCloudinary.default ||
     multerStorageCloudinary;
-
-dotenv.config();
 
 // 3. Configure Cloudinary (using v2 explicitly)
 cloudinary.v2.config({

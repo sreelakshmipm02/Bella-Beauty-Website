@@ -59,6 +59,19 @@
                     </h2>
 
                     <div class="grid gap-4">
+                        <% if (razorpayEnabled) { %>
+                            <label class="cursor-pointer relative">
+                                <input type="radio" name="paymentMethod" value="Online" class="peer sr-only">
+                                <div class="p-4 bg-white rounded-xl border-2 border-gray-200 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-gray-300 transition flex items-center gap-4">
+                                    <span class="material-icons-outlined text-gray-400 peer-checked:text-primary">credit_card</span>
+                                    <div>
+                                        <p class="font-bold text-gray-900">Online Payment</p>
+                                        <p class="text-sm text-gray-500">Pay securely with Razorpay using UPI, cards, net banking, or wallets.</p>
+                                    </div>
+                                </div>
+                            </label>
+                        <% } %>
+
                         <label class="cursor-pointer relative">
                             <input type="radio" name="paymentMethod" value="COD" class="peer sr-only" checked>
                             <div class="p-4 bg-white rounded-xl border-2 border-gray-200 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-gray-300 transition flex items-center gap-4">
@@ -70,6 +83,10 @@
                             </div>
                         </label>
                     </div>
+
+                    <% if (!razorpayEnabled) { %>
+                        <p class="mt-3 text-sm text-amber-600">Online payment is temporarily unavailable because Razorpay is not configured.</p>
+                    <% } %>
                 </div>
             </div>
 
@@ -178,7 +195,7 @@
             </form>
         </div>
     </div>
-
+    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         const savedAddresses = <%- JSON.stringify(addresses || []) %>;
         function openAddModal(e) {
@@ -278,51 +295,94 @@
         });
 
         document.getElementById('placeOrderBtn').addEventListener('click', async function () {
-            const addressInput = document.querySelector('input[name="selectedAddress"]:checked');
-            const paymentInput = document.querySelector('input[name="paymentMethod"]:checked');
+    const addressInput = document.querySelector('input[name="selectedAddress"]:checked');
+    const paymentInput = document.querySelector('input[name="paymentMethod"]:checked');
 
-            if (!addressInput) {
-                return Swal.fire('Address Required', 'Please select a delivery address to continue.', 'warning');
-            }
+    if (!addressInput) {
+        return Swal.fire('Address Required', 'Please select a delivery address to continue.', 'warning');
+    }
 
-            const originalText = this.innerHTML;
-            this.innerHTML = '<span class="material-icons-outlined animate-spin text-sm">refresh</span> Processing...';
-            this.disabled = true;
+    const btn = this;
+    const originalText = btn.innerHTML;
+    btn.innerHTML = '<span class="material-icons-outlined animate-spin text-sm">refresh</span> Processing...';
+    btn.disabled = true;
 
-            try {
-                const response = await fetch('/orders', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        addressId: addressInput.value,
-                        paymentMethod: paymentInput.value
-                    })
-                });
-                const data = await response.json();
-
-                if (data.success) {
-                    // 1. Check if backend sends the orderId directly
-                    let finalOrderId = data.orderId;
-
-                    // 2. If it sends the old redirectUrl ('/order-success/12345'), extract the ID from it
-                    if (!finalOrderId && data.redirectUrl) {
-                        finalOrderId = data.redirectUrl.split('/').pop();
-                    }
-
-                    // 3. Force the strict RESTful URL format
-                    window.location.href = `/orders/${finalOrderId}/success`;
-                    
-                } else {
-                    Swal.fire('Checkout Failed', data.message, 'error');
-                    this.innerHTML = originalText;
-                    this.disabled = false;
-                }
-            } catch (error) {
-                Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
-                this.innerHTML = originalText;
-                this.disabled = false;
-            }
+    try {
+        const response = await fetch('/orders', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                addressId: addressInput.value,
+                paymentMethod: paymentInput.value
+            })
         });
+
+        const data = await response.json();
+
+        if (data.success) {
+            if (data.isOnline) {
+                // Launch Razorpay
+                const options = {
+                    key: data.key,
+                    amount: data.amount,
+                    currency: "INR",
+                    name: "Bella",
+                    description: "Order Checkout",
+                    order_id: data.razorpayOrderId,
+                    theme: { color: "#ec4899" }, // Matches your primary pink Tailwind class!
+                    handler: async function (response) {
+                        // Payment Successful! Send proof to backend for DB saving
+                        try {
+                            btn.innerHTML = '<span class="material-icons-outlined animate-spin text-sm">refresh</span> Verifying...';
+                            const verifyRes = await fetch('/orders/verify-payment', {
+                                method: 'POST',
+                                headers: { 'Content-Type': 'application/json' },
+                                body: JSON.stringify({
+                                    razorpay_payment_id: response.razorpay_payment_id,
+                                    razorpay_order_id: response.razorpay_order_id,
+                                    razorpay_signature: response.razorpay_signature,
+                                    addressId: addressInput.value
+                                })
+                            });
+                            const verifyData = await verifyRes.json();
+                            if (verifyData.success) {
+                                window.location.href = `/orders/${verifyData.orderId}/success`;
+                            } else {
+                                Swal.fire('Verification Failed', verifyData.message, 'error');
+                                btn.innerHTML = originalText;
+                                btn.disabled = false;
+                            }
+                        } catch (err) {
+                            Swal.fire('Error', 'Failed to verify payment', 'error');
+                            btn.innerHTML = originalText;
+                            btn.disabled = false;
+                        }
+                    }
+                };
+                
+                const rzp = new Razorpay(options);
+                rzp.on('payment.failed', function (response) {
+                    Swal.fire('Payment Failed', 'You cancelled the payment or it failed.', 'error');
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
+                });
+                rzp.open();
+
+            } else {
+                // Standard COD flow redirect
+                window.location.href = `/orders/${data.orderId}/success`;
+            }
+        } else {
+            Swal.fire('Checkout Failed', data.message, 'error');
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+        }
+    } catch (error) {
+        Swal.fire('Error', 'Something went wrong. Please try again.', 'error');
+        btn.innerHTML = originalText;
+        btn.disabled = false;
+    }
+});
     </script>
 
     <%- include("../partials/footer") %>

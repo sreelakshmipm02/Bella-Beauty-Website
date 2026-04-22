@@ -16,7 +16,7 @@ import { getHomePage } from "../controllers/user/homeController.js";
 import { getShopPage, getProductDetails } from "../controllers/user/userProductController.js";
 import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, verifyCheckoutAvailability } from "../controllers/user/cartController.js";
 import { getWishlistPage, toggleWishlistAjax, moveToCartAjax } from "../controllers/user/wishlistController.js";
-import { getCheckoutPage, placeOrderAjax } from "../controllers/user/checkoutController.js";
+import { getCheckoutPage, placeOrderAjax, verifyOnlinePayment } from "../controllers/user/checkoutController.js";
 import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage, cancelOrderAjax, cancelItemAjax, returnOrderAjax, returnItemAjax, downloadInvoice } from "../controllers/user/orderController.js";
 
 // Middleware imports
@@ -103,6 +103,7 @@ router.post('/wishlist/items/move-to-cart', checkUserSessionAjax, moveToCartAjax
 // Make sure stock is still available before allowing the user to view checkout
 router.get('/checkout', checkUserSession, verifyCartStockBeforeCheckout, preventCache, getCheckoutPage);
 router.post('/orders', checkUserSessionAjax, placeOrderAjax); 
+router.post('/orders/verify-payment', checkUserSessionAjax, verifyOnlinePayment);
 
 // Tracking and History
 router.get('/orders/:orderId/success', checkUserSession, preventCache, getOrderSuccessPage);
