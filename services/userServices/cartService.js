@@ -140,6 +140,49 @@ const formatCouponForClient = (appliedCoupon) => {
     };
 };
 
+const buildAvailableCouponsForClient = async (grossSubtotal, appliedCouponCode = null) => {
+    const coupons = await Coupon.find({
+        isActive: true,
+        $or: [
+            { expiresAt: { $exists: false } },
+            { expiresAt: null },
+            { expiresAt: { $gte: new Date() } }
+        ]
+    })
+        .sort({ createdAt: -1 })
+        .lean();
+
+    return coupons.map((coupon) => {
+        const discountAmount = getEligibleCouponDiscount(coupon, grossSubtotal);
+        const isEligible = discountAmount > 0;
+        const discountLabel = coupon.discountType === "percentage"
+            ? `${coupon.discountValue}% off`
+            : `Flat ₹${Number(coupon.discountValue).toFixed(2)} off`;
+
+        let message = "Apply this coupon";
+        if (!isEligible) {
+            message = grossSubtotal < (coupon.minOrderAmount || 0)
+                ? `Minimum purchase ₹${Number(coupon.minOrderAmount || 0).toFixed(2)} required`
+                : "Not eligible for this cart";
+        }
+
+        return {
+            code: coupon.code,
+            discountType: coupon.discountType,
+            discountValue: coupon.discountValue,
+            minOrderAmount: coupon.minOrderAmount || 0,
+            maxDiscount: coupon.maxDiscount || null,
+            expiresAt: coupon.expiresAt || null,
+            usageLimit: coupon.usageLimit || null,
+            discountLabel,
+            potentialDiscount: Number(discountAmount).toFixed(2),
+            isEligible,
+            isApplied: appliedCouponCode === coupon.code,
+            message
+        };
+    });
+};
+
 // Get cart data and clean invalid items
 export const getCartData = async (userId) => {
 
@@ -158,7 +201,8 @@ export const getCartData = async (userId) => {
             items: [],
             summary: { subtotal: 0, tax: 0, shipping: 0, discount: 0, total: 0, totalItems: 0, grossSubtotal: 0 },
             adjustments: [],
-            appliedCoupon: null
+            appliedCoupon: null,
+            availableCoupons: []
         };
     }
 
@@ -259,11 +303,17 @@ export const getCartData = async (userId) => {
         await cart.save();
     }
 
+    const availableCoupons = await buildAvailableCouponsForClient(
+        Number(totalsWithoutDiscount.grossSubtotal),
+        appliedCoupon?.code || null
+    );
+
     return {
         items: formattedItems.reverse(),
         summary: calculateCartTotals(formattedItems, discountAmount),
         adjustments,
-        appliedCoupon
+        appliedCoupon,
+        availableCoupons
     };
 };
 

@@ -100,6 +100,67 @@
                                 <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200 sticky top-24">
                                     <h3 class="text-lg font-bold text-gray-900 mb-6">Order Summary</h3>
 
+                                    <div class="mb-6 rounded-2xl bg-white border border-gray-200 p-4">
+                                        <div class="flex items-center justify-between gap-3 mb-3">
+                                            <div>
+                                                <p class="font-semibold text-gray-900">Coupon</p>
+                                                <p class="text-xs text-gray-500">Apply one coupon at a time.</p>
+                                            </div>
+                                            <span id="couponBadge" class="<%= cart.appliedCoupon ? '' : 'hidden' %> inline-flex items-center gap-1 bg-green-50 text-green-700 text-xs font-bold px-3 py-1 rounded-full">
+                                                <span class="material-icons-outlined text-sm">sell</span>
+                                                <span id="couponBadgeCode"><%= cart.appliedCoupon?.code || '' %></span>
+                                            </span>
+                                        </div>
+
+                                        <div class="flex gap-2 mb-4">
+                                            <input
+                                                id="couponCodeInput"
+                                                type="text"
+                                                placeholder="Enter coupon code"
+                                                value="<%= cart.appliedCoupon?.code || '' %>"
+                                                <%= cart.appliedCoupon ? 'disabled' : '' %>
+                                                class="flex-1 rounded-xl border border-gray-200 px-4 py-3 text-sm uppercase focus:border-primary focus:ring-primary disabled:bg-gray-100 disabled:text-gray-500">
+                                            <button
+                                                id="applyCouponBtn"
+                                                type="button"
+                                                onclick="<%= cart.appliedCoupon ? 'removeCoupon()' : 'applyCoupon()' %>"
+                                                class="<%= cart.appliedCoupon ? 'rounded-xl border border-red-200 bg-red-50 text-red-600 px-4 py-3 text-sm font-bold hover:bg-red-100 transition' : 'rounded-xl bg-gray-900 text-white px-4 py-3 text-sm font-bold hover:bg-primary transition' %>">
+                                                <%= cart.appliedCoupon ? 'Remove' : 'Apply' %>
+                                            </button>
+                                        </div>
+
+                                        <div>
+                                            <div class="flex items-center justify-between mb-2">
+                                                <p class="text-sm font-semibold text-gray-900">Available Coupons</p>
+                                                <span class="text-xs text-gray-400"><%= cart.availableCoupons?.length || 0 %> available</span>
+                                            </div>
+                                            <div id="availableCouponsList" class="space-y-3 max-h-60 overflow-y-auto pr-1">
+                                                <% if (cart.availableCoupons?.length) { %>
+                                                    <% cart.availableCoupons.forEach((coupon) => { %>
+                                                        <div class="rounded-xl border <%= coupon.isApplied ? 'border-green-200 bg-green-50/70' : coupon.isEligible ? 'border-pink-100 bg-pink-50/50' : 'border-gray-200 bg-gray-50' %> p-3">
+                                                            <div class="flex items-start justify-between gap-3">
+                                                                <div>
+                                                                    <p class="font-bold text-gray-900"><%= coupon.code %></p>
+                                                                    <p class="text-sm text-gray-600"><%= coupon.discountLabel %></p>
+                                                                    <p class="text-xs <%= coupon.isEligible ? 'text-green-600' : 'text-amber-600' %> mt-1"><%= coupon.message %></p>
+                                                                </div>
+                                                                <button
+                                                                    type="button"
+                                                                    <%= coupon.isEligible && !coupon.isApplied && !cart.appliedCoupon ? '' : 'disabled' %>
+                                                                    onclick="applySuggestedCoupon('<%= coupon.code %>')"
+                                                                    class="shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition <%= coupon.isApplied ? 'bg-green-600 text-white cursor-default' : coupon.isEligible && !cart.appliedCoupon ? 'bg-gray-900 text-white hover:bg-primary' : 'bg-gray-200 text-gray-400 cursor-not-allowed' %>">
+                                                                    <%= coupon.isApplied ? 'Applied' : 'Apply' %>
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    <% }) %>
+                                                <% } else { %>
+                                                    <p class="text-sm text-gray-500">No coupons available right now.</p>
+                                                <% } %>
+                                            </div>
+                                        </div>
+                                    </div>
+
                                     <div class="border-b border-gray-200 pb-4 mb-4 max-h-48 overflow-y-auto custom-scrollbar pr-2"
                                         id="summaryItemsList">
                                         <% cart.items.forEach(item=> { %>
@@ -130,7 +191,7 @@
                                         </div>
                                         <div class="flex justify-between text-green-600">
                                             <span>Discount</span>
-                                            <span class="font-medium" id="summaryDiscount">- ₹0.00</span>
+                                            <span class="font-medium" id="summaryDiscount">- ₹<%= cart.summary.discount || '0.00' %></span>
                                         </div>
                                         <div class="flex justify-between <%= cart.summary.shipping === 0 ? 'text-green-600' : 'text-gray-600' %>" id="summaryDeliveryContainer">
     <span>Delivery</span>
@@ -266,6 +327,7 @@
     function updateSummaryUI(cart) {
         const subtotalEl = document.getElementById('summarySubtotal');
         const taxEl = document.getElementById('summaryTax');
+        const discountEl = document.getElementById('summaryDiscount');
         const totalEl = document.getElementById('summaryTotal');
         
         // NEW: Get Delivery Elements
@@ -274,6 +336,7 @@
         
         if (subtotalEl) subtotalEl.innerText = `₹${cart.summary.subtotal}`;
         if (taxEl) taxEl.innerText = `₹${cart.summary.tax}`;
+        if (discountEl) discountEl.innerText = `- ₹${cart.summary.discount || '0.00'}`;
         if (totalEl) totalEl.innerText = `₹${cart.summary.total}`;
 
         // NEW: Update Delivery UI dynamically
@@ -307,6 +370,133 @@
                         </div>`;
                 }
             });
+        }
+
+        syncCouponUI(cart);
+    }
+
+    function renderAvailableCoupons(cart) {
+        const list = document.getElementById('availableCouponsList');
+        if (!list) return;
+
+        if (!cart.availableCoupons || cart.availableCoupons.length === 0) {
+            list.innerHTML = '<p class="text-sm text-gray-500">No coupons available right now.</p>';
+            return;
+        }
+
+        list.innerHTML = cart.availableCoupons.map(coupon => `
+            <div class="rounded-xl border ${coupon.isApplied ? 'border-green-200 bg-green-50/70' : coupon.isEligible ? 'border-pink-100 bg-pink-50/50' : 'border-gray-200 bg-gray-50'} p-3">
+                <div class="flex items-start justify-between gap-3">
+                    <div>
+                        <p class="font-bold text-gray-900">${coupon.code}</p>
+                        <p class="text-sm text-gray-600">${coupon.discountLabel}</p>
+                        <p class="text-xs ${coupon.isEligible ? 'text-green-600' : 'text-amber-600'} mt-1">${coupon.message}</p>
+                    </div>
+                    <button
+                        type="button"
+                        ${coupon.isEligible && !coupon.isApplied && !cart.appliedCoupon ? '' : 'disabled'}
+                        onclick="applySuggestedCoupon('${coupon.code}')"
+                        class="shrink-0 rounded-lg px-3 py-2 text-xs font-bold transition ${coupon.isApplied ? 'bg-green-600 text-white cursor-default' : coupon.isEligible && !cart.appliedCoupon ? 'bg-gray-900 text-white hover:bg-primary' : 'bg-gray-200 text-gray-400 cursor-not-allowed'}">
+                        ${coupon.isApplied ? 'Applied' : 'Apply'}
+                    </button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function syncCouponUI(cart) {
+        const input = document.getElementById('couponCodeInput');
+        const button = document.getElementById('applyCouponBtn');
+        const badge = document.getElementById('couponBadge');
+        const badgeCode = document.getElementById('couponBadgeCode');
+
+        if (!input || !button || !badge || !badgeCode) return;
+
+        if (cart.appliedCoupon) {
+            input.value = cart.appliedCoupon.code;
+            input.disabled = true;
+            badge.classList.remove('hidden');
+            badgeCode.textContent = cart.appliedCoupon.code;
+            button.textContent = 'Remove';
+            button.className = 'rounded-xl border border-red-200 bg-red-50 text-red-600 px-4 py-3 text-sm font-bold hover:bg-red-100 transition';
+            button.onclick = removeCoupon;
+        } else {
+            input.value = '';
+            input.disabled = false;
+            badge.classList.add('hidden');
+            badgeCode.textContent = '';
+            button.textContent = 'Apply';
+            button.className = 'rounded-xl bg-gray-900 text-white px-4 py-3 text-sm font-bold hover:bg-primary transition';
+            button.onclick = applyCoupon;
+        }
+
+        renderAvailableCoupons(cart);
+    }
+
+    async function applyCoupon(code = null) {
+        const input = document.getElementById('couponCodeInput');
+        const button = document.getElementById('applyCouponBtn');
+        const couponCode = (code || input.value).trim().toUpperCase();
+
+        if (!couponCode) {
+            return Swal.fire('Coupon Required', 'Please enter or select a coupon code.', 'warning');
+        }
+
+        const originalText = button.textContent;
+        button.textContent = 'Applying...';
+        button.disabled = true;
+
+        try {
+            const response = await fetch('/cart/coupon', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ code: couponCode })
+            });
+            const data = await response.json();
+
+            if (data.success) {
+                updateSummaryUI(data.cart);
+                Swal.fire('Coupon Applied', data.message, 'success').then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire('Coupon Error', data.message, 'warning');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to apply coupon.', 'error');
+        } finally {
+            button.textContent = originalText;
+            button.disabled = false;
+        }
+    }
+
+    function applySuggestedCoupon(code) {
+        applyCoupon(code);
+    }
+
+    async function removeCoupon() {
+        const button = document.getElementById('applyCouponBtn');
+        const originalText = button.textContent;
+        button.textContent = 'Removing...';
+        button.disabled = true;
+
+        try {
+            const response = await fetch('/cart/coupon', { method: 'DELETE' });
+            const data = await response.json();
+
+            if (data.success) {
+                updateSummaryUI(data.cart);
+                Swal.fire('Coupon Removed', data.message, 'success').then(() => {
+                    window.location.reload();
+                });
+            } else {
+                Swal.fire('Coupon Error', data.message, 'warning');
+            }
+        } catch (error) {
+            Swal.fire('Error', 'Failed to remove coupon.', 'error');
+        } finally {
+            button.textContent = originalText;
+            button.disabled = false;
         }
     }
 

@@ -59,6 +59,13 @@ import {
     getInventoryPage, 
     updateStockAjax 
 } from "../controllers/admin/inventoryController.js";
+import {
+    getCouponsPage,
+    createCoupon,
+    getCouponDetails,
+    updateCoupon,
+    toggleCouponStatus
+} from "../controllers/admin/couponController.js";
 
 const router = express.Router();
 
@@ -130,5 +137,14 @@ router.post('/orders/:orderId/items/:itemId/process-return', checkAdminSession, 
 // ---------------------------------------------------------
 router.get('/inventory', checkAdminSession, preventCache, getInventoryPage);
 router.patch('/inventory/stock', checkAdminSession, updateStockAjax);
+
+// ---------------------------------------------------------
+//  COUPON MANAGEMENT
+// ---------------------------------------------------------
+router.get('/coupons', checkAdminSession, preventCache, getCouponsPage);
+router.post('/coupons', checkAdminSession, createCoupon);
+router.get('/coupons/:id', checkAdminSession, getCouponDetails);
+router.put('/coupons/:id', checkAdminSession, updateCoupon);
+router.patch('/coupons/:id/status', checkAdminSession, toggleCouponStatus);
 
 export default router;
