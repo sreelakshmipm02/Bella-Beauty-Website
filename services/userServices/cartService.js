@@ -1,4 +1,5 @@
 import Cart from "../../models/cart.js";
+import Coupon from "../../models/coupon.js";
 import ProductVariant from "../../models/productVariant.js";
 import Product from "../../models/product.js";
 import Category from "../../models/category.js";
@@ -9,19 +10,25 @@ const MAX_QTY_PER_ITEM = 5;
 const GST_RATE = 0.18; // 18% tax
 
 // This function calculates total price, tax, and shipping
-const calculateCartTotals = (items) => {
-    let subtotal = 0;
+const EMPTY_COUPON = {
+    couponId: null,
+    code: null,
+    discountAmount: 0
+};
+
+const calculateCartTotals = (items, discountAmount = 0) => {
+    let grossSubtotal = 0;
 
     // Add price only if item is available
     items.forEach(item => {
         if (!item.outOfStock) {
-            subtotal += (item.price * item.quantity);
+            grossSubtotal += (item.price * item.quantity);
         }
     });
 
     // Split tax from total
-    const preTaxAmount = subtotal / (1 + GST_RATE);
-    const taxAmount = subtotal - preTaxAmount;
+    const preTaxAmount = grossSubtotal / (1 + GST_RATE);
+    const taxAmount = grossSubtotal - preTaxAmount;
 
     // Shipping rules
     const FREE_SHIPPING_THRESHOLD = 500;
@@ -30,19 +37,45 @@ const calculateCartTotals = (items) => {
     let shippingCost = 0;
 
     // Apply shipping charge only if below 500
-    if (subtotal > 0 && subtotal < FREE_SHIPPING_THRESHOLD) {
+    if (grossSubtotal > 0 && grossSubtotal < FREE_SHIPPING_THRESHOLD) {
         shippingCost = STANDARD_DELIVERY_CHARGE;
     }
 
-    const finalTotal = subtotal + shippingCost;
+    const safeDiscount = Math.min(Number(discountAmount) || 0, grossSubtotal + shippingCost);
+    const finalTotal = Math.max(grossSubtotal + shippingCost - safeDiscount, 0);
 
     return {
         subtotal: preTaxAmount.toFixed(2),
         tax: taxAmount.toFixed(2),
         shipping: shippingCost,
+        discount: safeDiscount.toFixed(2),
         total: finalTotal.toFixed(2),
-        totalItems: items.length
+        totalItems: items.length,
+        grossSubtotal: grossSubtotal.toFixed(2)
     };
+};
+
+const clearAppliedCoupon = (cart) => {
+    cart.appliedCoupon = { ...EMPTY_COUPON };
+};
+
+const getEligibleCouponDiscount = (coupon, grossSubtotal) => {
+    if (!coupon || !coupon.isActive) return 0;
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) return 0;
+    if (grossSubtotal < (coupon.minOrderAmount || 0)) return 0;
+
+    let discount = 0;
+
+    if (coupon.discountType === "percentage") {
+        discount = (grossSubtotal * coupon.discountValue) / 100;
+        if (coupon.maxDiscount) {
+            discount = Math.min(discount, coupon.maxDiscount);
+        }
+    } else {
+        discount = coupon.discountValue;
+    }
+
+    return Math.max(Math.min(discount, grossSubtotal), 0);
 };
 
 // Check if product, variant, and category are active
@@ -98,6 +131,15 @@ export const addItemToCart = async (userId, variantId, quantity = 1) => {
     return cart;
 };
 
+const formatCouponForClient = (appliedCoupon) => {
+    if (!appliedCoupon?.code || !appliedCoupon?.discountAmount) return null;
+
+    return {
+        code: appliedCoupon.code,
+        discountAmount: Number(appliedCoupon.discountAmount).toFixed(2)
+    };
+};
+
 // Get cart data and clean invalid items
 export const getCartData = async (userId) => {
 
@@ -112,7 +154,12 @@ export const getCartData = async (userId) => {
 
     // If cart is empty
     if (!cart || !cart.items || cart.items.length === 0) {
-        return { items: [], summary: { subtotal: 0, tax: 0, total: 0, totalItems: 0 }, adjustments: [] };
+        return {
+            items: [],
+            summary: { subtotal: 0, tax: 0, shipping: 0, discount: 0, total: 0, totalItems: 0, grossSubtotal: 0 },
+            adjustments: [],
+            appliedCoupon: null
+        };
     }
 
     let formattedItems = [];
@@ -185,10 +232,38 @@ export const getCartData = async (userId) => {
         await cart.save();
     }
 
+    const totalsWithoutDiscount = calculateCartTotals(formattedItems, 0);
+    let appliedCoupon = null;
+    let discountAmount = 0;
+    let couponChanged = false;
+
+    if (cart.appliedCoupon?.couponId) {
+        const coupon = await Coupon.findById(cart.appliedCoupon.couponId);
+        discountAmount = getEligibleCouponDiscount(coupon, Number(totalsWithoutDiscount.grossSubtotal));
+
+        if (coupon && discountAmount > 0) {
+            cart.appliedCoupon = {
+                couponId: coupon._id,
+                code: coupon.code,
+                discountAmount
+            };
+            appliedCoupon = formatCouponForClient(cart.appliedCoupon);
+        } else {
+            clearAppliedCoupon(cart);
+            couponChanged = true;
+            adjustments.push("Applied coupon was removed because it is no longer valid for this cart");
+        }
+    }
+
+    if (couponChanged) {
+        await cart.save();
+    }
+
     return {
         items: formattedItems.reverse(),
-        summary: calculateCartTotals(formattedItems),
-        adjustments
+        summary: calculateCartTotals(formattedItems, discountAmount),
+        adjustments,
+        appliedCoupon
     };
 };
 
@@ -229,6 +304,72 @@ export const removeCartItem = async (userId, variantId) => {
         item => item.productVariantId.toString() !== variantId.toString()
     );
 
+    await cart.save();
+
+    return await getCartData(userId);
+};
+
+export const applyCouponToCart = async (userId, couponCode) => {
+    if (!couponCode || !couponCode.trim()) {
+        throw new AppError("Please enter a coupon code.", 400);
+    }
+
+    const normalizedCode = couponCode.trim().toUpperCase();
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart || !cart.items?.length) {
+        throw new AppError("Your cart is empty.", 400);
+    }
+
+    if (cart.appliedCoupon?.code) {
+        if (cart.appliedCoupon.code === normalizedCode) {
+            throw new AppError("This coupon is already applied.", 409);
+        }
+
+        throw new AppError("A coupon is already applied. Remove it before applying another one.", 409);
+    }
+
+    const coupon = await Coupon.findOne({ code: normalizedCode });
+
+    if (!coupon || !coupon.isActive) {
+        throw new AppError("Invalid or inactive coupon code.", 404);
+    }
+
+    if (coupon.expiresAt && coupon.expiresAt < new Date()) {
+        throw new AppError("This coupon has expired.", 400);
+    }
+
+    const cartData = await getCartData(userId);
+    const grossSubtotal = Number(cartData.summary.grossSubtotal || 0);
+    const discountAmount = getEligibleCouponDiscount(coupon, grossSubtotal);
+
+    if (!discountAmount) {
+        if (grossSubtotal < (coupon.minOrderAmount || 0)) {
+            throw new AppError(`Minimum order amount for this coupon is ₹${coupon.minOrderAmount.toFixed(2)}.`, 400);
+        }
+
+        throw new AppError("This coupon cannot be applied to your cart.", 400);
+    }
+
+    cart.appliedCoupon = {
+        couponId: coupon._id,
+        code: coupon.code,
+        discountAmount
+    };
+
+    await cart.save();
+
+    return await getCartData(userId);
+};
+
+export const removeCouponFromCart = async (userId) => {
+    const cart = await Cart.findOne({ userId });
+
+    if (!cart || !cart.appliedCoupon?.code) {
+        throw new AppError("No coupon is currently applied.", 404);
+    }
+
+    clearAppliedCoupon(cart);
     await cart.save();
 
     return await getCartData(userId);

@@ -1,0 +1,62 @@
+<%- include("../partials/header") %>
+
+<main class="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-12 min-h-[75vh]">
+    <section class="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-rose-50 via-white to-amber-50 border border-rose-100 shadow-sm">
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute -top-10 right-4 w-44 h-44 rounded-full bg-rose-100/70 blur-3xl"></div>
+            <div class="absolute bottom-0 left-0 w-56 h-56 rounded-full bg-amber-100/80 blur-3xl"></div>
+        </div>
+
+        <div class="relative grid lg:grid-cols-[0.95fr_1.05fr] gap-10 px-6 sm:px-10 py-12 items-center">
+            <div class="flex justify-center">
+                <div class="relative w-72 h-72">
+                    <div class="absolute inset-0 rounded-full bg-gradient-to-br from-rose-100 to-amber-100"></div>
+                    <div class="absolute inset-6 rounded-full border-2 border-dashed border-rose-200"></div>
+                    <div class="absolute inset-0 flex items-center justify-center">
+                        <div class="w-28 h-28 rounded-full bg-rose-500 text-white flex items-center justify-center shadow-lg">
+                            <span class="material-icons-outlined text-6xl">close</span>
+                        </div>
+                    </div>
+                    <div class="absolute top-8 left-6 w-14 h-14 rounded-2xl bg-white text-amber-500 flex items-center justify-center shadow-md rotate-[-10deg]">
+                        <span class="material-icons-outlined">sync_problem</span>
+                    </div>
+                    <div class="absolute bottom-10 right-4 w-12 h-12 rounded-full bg-white text-rose-400 flex items-center justify-center shadow-md">
+                        <span class="material-icons-outlined">error_outline</span>
+                    </div>
+                </div>
+            </div>
+
+            <div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-rose-100 text-rose-700 text-sm font-semibold mb-6">
+                    <span class="material-icons-outlined text-[18px]">report_gmailerrorred</span>
+                    <span>Payment could not be completed</span>
+                </div>
+
+                <h1 class="text-4xl sm:text-5xl font-display font-bold text-gray-900 mb-4">Your payment did not go through.</h1>
+                <p class="text-gray-600 text-lg leading-relaxed mb-6">
+                    <%= message %>
+                </p>
+
+                <% if (code) { %>
+                    <div class="inline-flex items-center gap-2 rounded-xl bg-white/80 border border-rose-100 px-4 py-3 mb-8">
+                        <span class="text-sm text-gray-500">Reference Code</span>
+                        <span class="text-sm font-semibold text-gray-900"><%= code %></span>
+                    </div>
+                <% } %>
+
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a href="/checkout" class="bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 px-7 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                        <span class="material-icons-outlined text-sm">restart_alt</span>
+                        <span>Retry Payment</span>
+                    </a>
+                    <a href="/shop" class="bg-primary/10 text-primary hover:bg-primary/20 font-bold py-4 px-7 rounded-xl transition border border-primary/20 flex items-center justify-center gap-2">
+                        <span class="material-icons-outlined text-sm">shopping_bag</span>
+                        <span>Continue Shopping</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</main>
+
+<%- include("../partials/footer") %>

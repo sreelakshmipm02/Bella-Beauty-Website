@@ -29,7 +29,28 @@ export const getOrderSuccessPage = asyncHandler(async (req, res) => {
     res.render("user/orderSuccess", {
         title: "Order Successful - Bella Beauty",
         isLoggedIn: true,
-        order
+        order,
+        paymentStatement: [
+            { label: "Order ID", value: order.orderId },
+            { label: "Payment Method", value: order.payment.method === "Online" ? "Razorpay" : order.payment.method },
+            { label: "Payment Status", value: order.payment.status },
+            { label: "Amount Paid", value: `₹${order.summary.total.toFixed(2)}` }
+        ]
+    });
+});
+
+/**
+ * Show payment failure page for unsuccessful online checkout attempts.
+ */
+export const getPaymentFailurePage = asyncHandler(async (req, res) => {
+    const message = req.query.message || "We couldn't complete your payment.";
+    const code = req.query.code || "";
+
+    res.render("user/paymentFailure", {
+        title: "Payment Failed - Bella Beauty",
+        isLoggedIn: true,
+        message,
+        code
     });
 });
 

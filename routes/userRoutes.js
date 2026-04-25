@@ -14,10 +14,10 @@ import {
 import { googleAuthCallback } from "../controllers/user/authController.js";
 import { getHomePage } from "../controllers/user/homeController.js";
 import { getShopPage, getProductDetails } from "../controllers/user/userProductController.js";
-import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, verifyCheckoutAvailability } from "../controllers/user/cartController.js";
+import { addToCart, getCartPage, updateCartAjax, removeFromCartAjax, verifyCheckoutAvailability, applyCouponAjax, removeCouponAjax } from "../controllers/user/cartController.js";
 import { getWishlistPage, toggleWishlistAjax, moveToCartAjax } from "../controllers/user/wishlistController.js";
 import { getCheckoutPage, placeOrderAjax, verifyOnlinePayment } from "../controllers/user/checkoutController.js";
-import { getOrderSuccessPage, getOrderHistoryPage, getOrderDetailPage, cancelOrderAjax, cancelItemAjax, returnOrderAjax, returnItemAjax, downloadInvoice } from "../controllers/user/orderController.js";
+import { getOrderSuccessPage, getPaymentFailurePage, getOrderHistoryPage, getOrderDetailPage, cancelOrderAjax, cancelItemAjax, returnOrderAjax, returnItemAjax, downloadInvoice } from "../controllers/user/orderController.js";
 
 // Middleware imports
 import { verifyCartStockBeforeCheckout } from "../middlewares/cartMiddleware.js";
@@ -91,6 +91,8 @@ router.post('/cart/verify-checkout', checkUserSessionAjax, verifyCheckoutAvailab
 router.post('/cart/items', checkUserSessionAjax, addToCart);
 router.patch('/cart/items', checkUserSessionAjax, updateCartAjax);
 router.delete('/cart/items', checkUserSessionAjax, removeFromCartAjax);
+router.post('/cart/coupon', checkUserSessionAjax, applyCouponAjax);
+router.delete('/cart/coupon', checkUserSessionAjax, removeCouponAjax);
 
 // Wishlist management
 router.get('/wishlist', checkUserSession, preventCache, getWishlistPage);
@@ -104,6 +106,7 @@ router.post('/wishlist/items/move-to-cart', checkUserSessionAjax, moveToCartAjax
 router.get('/checkout', checkUserSession, verifyCartStockBeforeCheckout, preventCache, getCheckoutPage);
 router.post('/orders', checkUserSessionAjax, placeOrderAjax); 
 router.post('/orders/verify-payment', checkUserSessionAjax, verifyOnlinePayment);
+router.get('/payments/failure', checkUserSession, preventCache, getPaymentFailurePage);
 
 // Tracking and History
 router.get('/orders/:orderId/success', checkUserSession, preventCache, getOrderSuccessPage);

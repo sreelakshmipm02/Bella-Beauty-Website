@@ -3,7 +3,9 @@ import {
     getCartData,
     updateItemQuantity,
     removeCartItem,
-    validateCartAvailability
+    validateCartAvailability,
+    applyCouponToCart,
+    removeCouponFromCart
 } from "../../services/userServices/cartService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
 
@@ -44,6 +46,27 @@ export const removeFromCartAjax = asyncHandler(async (req, res) => {
     const { variantId } = req.body;
     const newCartData = await removeCartItem(req.session.userId, variantId);
     res.status(200).json({ success: true, cart: newCartData });
+});
+
+export const applyCouponAjax = asyncHandler(async (req, res) => {
+    const { code } = req.body;
+    const cartData = await applyCouponToCart(req.session.userId, code);
+
+    res.status(200).json({
+        success: true,
+        message: `Coupon ${cartData.appliedCoupon.code} applied successfully.`,
+        cart: cartData
+    });
+});
+
+export const removeCouponAjax = asyncHandler(async (req, res) => {
+    const cartData = await removeCouponFromCart(req.session.userId);
+
+    res.status(200).json({
+        success: true,
+        message: "Coupon removed successfully.",
+        cart: cartData
+    });
 });
 
 // ---------------------------------------------------------

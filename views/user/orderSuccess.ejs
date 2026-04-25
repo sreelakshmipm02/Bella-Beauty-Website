@@ -1,48 +1,97 @@
 <%- include("../partials/header") %>
 
-    <main class="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-20 min-h-[75vh] flex flex-col items-center justify-center text-center">
-
-        <div class="w-28 h-28 bg-green-50 rounded-full flex items-center justify-center mb-8 shadow-inner border border-green-100 relative">
-            <span class="material-icons-outlined absolute -top-2 -right-2 text-yellow-400 text-xl animate-bounce">auto_awesome</span>
-            <span class="material-icons-outlined absolute -bottom-1 -left-4 text-primary text-2xl animate-pulse">star_border</span>
-            <span class="material-icons-outlined text-7xl text-green-500">check_circle</span>
+<main class="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12 min-h-[75vh]">
+    <section class="relative overflow-hidden rounded-[2rem] bg-gradient-to-br from-rose-50 via-white to-emerald-50 border border-rose-100 shadow-sm">
+        <div class="absolute inset-0 pointer-events-none">
+            <div class="absolute -top-12 -left-10 w-48 h-48 rounded-full bg-rose-100/70 blur-3xl"></div>
+            <div class="absolute bottom-0 right-0 w-56 h-56 rounded-full bg-emerald-100/80 blur-3xl"></div>
         </div>
 
-        <h1 class="text-4xl md:text-5xl font-bold font-display text-gray-900 mb-4 tracking-tight">Thank you for your order!</h1>
+        <div class="relative grid lg:grid-cols-[1.1fr_0.9fr] gap-10 px-6 sm:px-10 py-10 sm:py-14">
+            <div>
+                <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold mb-6">
+                    <span class="material-icons-outlined text-[18px]">verified</span>
+                    <span><%= order.payment.method === "Online" ? "Payment successful" : "Order confirmed" %></span>
+                </div>
 
-        <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 mb-8 w-full max-w-md shadow-sm">
-            <p class="text-gray-600 mb-2 text-lg">Your order ID is</p>
-            <p class="font-bold text-2xl text-primary tracking-wide">
-                <%= order.orderId %>
-            </p>
+                <h1 class="text-4xl sm:text-5xl font-display font-bold text-gray-900 leading-tight mb-4">
+                    <%= order.payment.method === "Online" ? "Your Bella payment went through." : "Your Bella order is confirmed." %>
+                </h1>
+
+                <p class="text-gray-600 text-lg max-w-2xl mb-8 leading-relaxed">
+                    <%= order.payment.method === "Online"
+                        ? "Your payment has been received and your order is now being prepared with care. Keep this statement handy for quick reference."
+                        : "Your order has been placed successfully. We have captured the order details and will keep you updated as it moves through fulfillment." %>
+                </p>
+
+                <div class="grid sm:grid-cols-2 gap-4 mb-8">
+                    <div class="rounded-2xl bg-white/90 border border-white shadow-sm p-5">
+                        <p class="text-sm uppercase tracking-[0.25em] text-gray-400 mb-2">Order Number</p>
+                        <p class="text-2xl font-bold text-primary"><%= order.orderId %></p>
+                    </div>
+                    <div class="rounded-2xl bg-white/90 border border-white shadow-sm p-5">
+                        <p class="text-sm uppercase tracking-[0.25em] text-gray-400 mb-2">Total Amount</p>
+                        <p class="text-2xl font-bold text-gray-900">₹<%= order.summary.total.toFixed(2) %></p>
+                    </div>
+                </div>
+
+                <div class="flex flex-col sm:flex-row gap-4">
+                    <a href="/orders/<%= order._id %>" class="bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 px-7 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                        <span class="material-icons-outlined text-sm">receipt_long</span>
+                        <span>Order Details</span>
+                    </a>
+                    <a href="/shop" class="bg-primary/10 text-primary hover:bg-primary/20 font-bold py-4 px-7 rounded-xl transition border border-primary/20 flex items-center justify-center gap-2">
+                        <span class="material-icons-outlined text-sm">storefront</span>
+                        <span>Continue Shopping</span>
+                    </a>
+                </div>
+            </div>
+
+            <div class="flex items-center justify-center">
+                <div class="w-full max-w-md rounded-[2rem] bg-white/95 border border-white shadow-xl p-8">
+                    <div class="relative mx-auto mb-8 w-48 h-48">
+                        <div class="absolute inset-0 rounded-full bg-gradient-to-br from-emerald-100 to-rose-100"></div>
+                        <div class="absolute inset-5 rounded-full border-2 border-dashed border-emerald-300"></div>
+                        <div class="absolute inset-0 flex items-center justify-center">
+                            <div class="w-24 h-24 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg">
+                                <span class="material-icons-outlined text-5xl">check</span>
+                            </div>
+                        </div>
+                        <div class="absolute top-5 right-3 w-10 h-10 rounded-2xl bg-rose-100 text-primary flex items-center justify-center rotate-12 shadow-sm">
+                            <span class="material-icons-outlined">payments</span>
+                        </div>
+                        <div class="absolute bottom-6 left-0 w-12 h-12 rounded-full bg-white text-emerald-500 flex items-center justify-center shadow-md">
+                            <span class="material-icons-outlined">redeem</span>
+                        </div>
+                    </div>
+
+                    <h2 class="text-xl font-bold text-gray-900 text-center mb-2">Payment Statement</h2>
+                    <p class="text-sm text-gray-500 text-center mb-6">A quick summary of this transaction.</p>
+
+                    <div class="space-y-3">
+                        <% paymentStatement.forEach((item) => { %>
+                            <div class="flex items-start justify-between gap-4 rounded-xl bg-gray-50 border border-gray-100 px-4 py-3">
+                                <span class="text-sm text-gray-500"><%= item.label %></span>
+                                <span class="text-sm font-semibold text-gray-900 text-right break-all"><%= item.value %></span>
+                            </div>
+                        <% }) %>
+                    </div>
+                </div>
+            </div>
         </div>
+    </section>
+</main>
 
-        <p class="text-gray-500 mb-10 max-w-lg">
-            We have received your order and are getting it ready. We will send you an email with shipping details once it leaves our warehouse.
-        </p>
+<script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+<script>
+    window.onload = () => {
+        confetti({
+            particleCount: 120,
+            spread: 75,
+            origin: { y: 0.58 },
+            colors: ['#ec4899', '#fda4af', '#10b981', '#fde68a']
+        });
+    };
+</script>
 
-        <div class="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
-            <a href="/orders/<%= order._id %>" class="bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 px-8 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
-                <span class="material-icons-outlined text-sm">receipt_long</span> View Order Details
-            </a>
-
-            <a href="/shop" class="bg-primary/10 text-primary hover:bg-primary/20 font-bold py-4 px-8 rounded-xl transition flex items-center justify-center gap-2 border border-primary/20">
-                <span class="material-icons-outlined text-sm">shopping_bag</span> Continue Shopping
-            </a>
-        </div>
-
-    </main>
-
-    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
-    <script>
-        window.onload = () => {
-            confetti({
-                particleCount: 100,
-                spread: 70,
-                origin: { y: 0.6 },
-                colors: ['#ec4899', '#fce7f3', '#10b981', '#fbbf24'] 
-            });
-        };
-    </script>
-
-    <%- include("../partials/footer") %>
+<%- include("../partials/footer") %>

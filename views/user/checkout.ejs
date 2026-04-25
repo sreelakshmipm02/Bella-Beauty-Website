@@ -26,7 +26,7 @@
                             <div class="grid gap-4">
                                 <% addresses.forEach((addr, index)=> { %>
                                     <label class="cursor-pointer relative block">
-                                        <input type="radio" name="selectedAddress" value="<%= addr._id %>" class="peer sr-only" <%=addr.isDefault || index===0 ? 'checked' : '' %>>
+                                        <input type="radio" name="selectedAddress" value="<%= addr._id %>" class="peer sr-only">
                                         <div class="p-4 bg-white rounded-xl border-2 border-gray-200 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-gray-300 transition">
                                             <div class="flex justify-between items-start">
                                                 <div>
@@ -73,7 +73,7 @@
                         <% } %>
 
                         <label class="cursor-pointer relative">
-                            <input type="radio" name="paymentMethod" value="COD" class="peer sr-only" checked>
+                            <input type="radio" name="paymentMethod" value="COD" class="peer sr-only">
                             <div class="p-4 bg-white rounded-xl border-2 border-gray-200 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-gray-300 transition flex items-center gap-4">
                                 <span class="material-icons-outlined text-gray-400 peer-checked:text-primary">local_shipping</span>
                                 <div>
@@ -198,6 +198,13 @@
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         const savedAddresses = <%- JSON.stringify(addresses || []) %>;
+        const buildPaymentFailureUrl = (message, code = "") => {
+            const params = new URLSearchParams();
+            if (message) params.set("message", message);
+            if (code) params.set("code", code);
+            return `/payments/failure?${params.toString()}`;
+        };
+
         function openAddModal(e) {
             if (e) e.preventDefault();
             document.getElementById('modalTitle').innerText = 'Add New Address';
@@ -298,8 +305,16 @@
     const addressInput = document.querySelector('input[name="selectedAddress"]:checked');
     const paymentInput = document.querySelector('input[name="paymentMethod"]:checked');
 
+    if (!addressInput && !paymentInput) {
+        return Swal.fire('Selection Required', 'Please select a delivery address and payment method to continue.', 'warning');
+    }
+
     if (!addressInput) {
         return Swal.fire('Address Required', 'Please select a delivery address to continue.', 'warning');
+    }
+
+    if (!paymentInput) {
+        return Swal.fire('Payment Required', 'Please select a payment method to continue.', 'warning');
     }
 
     const btn = this;
@@ -348,23 +363,29 @@
                             if (verifyData.success) {
                                 window.location.href = `/orders/${verifyData.orderId}/success`;
                             } else {
-                                Swal.fire('Verification Failed', verifyData.message, 'error');
-                                btn.innerHTML = originalText;
-                                btn.disabled = false;
+                                window.location.href = buildPaymentFailureUrl(
+                                    verifyData.message || 'Payment verification failed.',
+                                    response.razorpay_payment_id
+                                );
                             }
                         } catch (err) {
-                            Swal.fire('Error', 'Failed to verify payment', 'error');
-                            btn.innerHTML = originalText;
-                            btn.disabled = false;
+                            window.location.href = buildPaymentFailureUrl('Failed to verify your payment. Please try again.');
+                        }
+                    },
+                    modal: {
+                        ondismiss: function () {
+                            window.location.href = buildPaymentFailureUrl('You closed the payment window before completing the transaction.');
                         }
                     }
                 };
                 
                 const rzp = new Razorpay(options);
                 rzp.on('payment.failed', function (response) {
-                    Swal.fire('Payment Failed', 'You cancelled the payment or it failed.', 'error');
-                    btn.innerHTML = originalText;
-                    btn.disabled = false;
+                    const failure = response.error || {};
+                    window.location.href = buildPaymentFailureUrl(
+                        failure.description || 'Your payment failed or was cancelled.',
+                        failure.metadata?.payment_id || failure.code || ''
+                    );
                 });
                 rzp.open();
 

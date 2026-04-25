@@ -21,7 +21,22 @@ const cartSchema = new mongoose.Schema({
         required: true,
         unique: true 
     },
-    items: [cartItemSchema]
+    items: [cartItemSchema],
+    appliedCoupon: {
+        couponId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Coupon"
+        },
+        code: {
+            type: String,
+            trim: true,
+            uppercase: true
+        },
+        discountAmount: {
+            type: Number,
+            default: 0
+        }
+    }
 }, { timestamps: true });
 
 export default mongoose.model("Cart", cartSchema);
