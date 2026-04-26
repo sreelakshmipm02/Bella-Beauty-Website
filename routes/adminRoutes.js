@@ -66,6 +66,13 @@ import {
     updateCoupon,
     toggleCouponStatus
 } from "../controllers/admin/couponController.js";
+import {
+    getOffersPage,
+    createOffer,
+    getOfferDetails,
+    updateOffer,
+    toggleOfferStatus
+} from "../controllers/admin/offerController.js";
 
 const router = express.Router();
 
@@ -146,5 +153,14 @@ router.post('/coupons', checkAdminSession, createCoupon);
 router.get('/coupons/:id', checkAdminSession, getCouponDetails);
 router.put('/coupons/:id', checkAdminSession, updateCoupon);
 router.patch('/coupons/:id/status', checkAdminSession, toggleCouponStatus);
+
+// ---------------------------------------------------------
+//  OFFER MANAGEMENT
+// ---------------------------------------------------------
+router.get('/offers', checkAdminSession, preventCache, getOffersPage);
+router.post('/offers', checkAdminSession, createOffer);
+router.get('/offers/:id', checkAdminSession, getOfferDetails);
+router.put('/offers/:id', checkAdminSession, updateOffer);
+router.patch('/offers/:id/status', checkAdminSession, toggleOfferStatus);
 
 export default router;

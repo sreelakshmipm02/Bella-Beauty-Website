@@ -6,6 +6,7 @@ import {
     getProductBySlug,
     getCategoryById,
     getActiveVariants,
+    enrichVariantsWithOffers,
     getAttributesByIds,
     getRelatedProducts
 } from "../../services/userServices/productService.js";
@@ -67,7 +68,8 @@ export const getProductDetails = asyncHandler(async (req, res) => {
         return res.redirect('/shop');
     }
 
-    const variants = await getActiveVariants(product._id);
+    const rawVariants = await getActiveVariants(product._id);
+    const variants = await enrichVariantsWithOffers(product, rawVariants);
     if (!variants || variants.length === 0) {
         return res.redirect('/shop');
     }

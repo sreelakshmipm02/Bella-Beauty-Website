@@ -3,6 +3,8 @@ import Category from "../../models/category.js";
 import Attribute from "../../models/attribute.js";
 import ProductVariant from "../../models/productVariant.js";
 import mongoose from "mongoose";
+import { getActiveOffers } from "../offerEngine.js";
+import { applyOffersToProductCards, applyOfferToVariantView } from "./offerViewHelpers.js";
 
 // ==========================================
 // SHOP PAGE SERVICES
@@ -128,7 +130,8 @@ export const getShopData = async (queryFilters, skip, limit) => {
     });
 
     const result = await Product.aggregate(pipeline);
-    const products = result[0].data;
+    const offers = await getActiveOffers();
+    const products = applyOffersToProductCards(result[0].data, offers);
     const totalProducts = result[0].metadata[0] ? result[0].metadata[0].total : 0;
     
     return { products, totalProducts };
@@ -169,6 +172,11 @@ export const getActiveVariants = async (productId) => {
     return await ProductVariant.find({ productId, status: 'active' });
 };
 
+export const enrichVariantsWithOffers = async (product, variants) => {
+    const offers = await getActiveOffers();
+    return variants.map((variant) => applyOfferToVariantView(variant.toObject ? variant.toObject() : variant, product, offers));
+};
+
 // Translates the raw attribute IDs saved on the variants into human-readable 
 // labels like "Size" or "Shade" for the UI.
 export const getAttributesByIds = async (attributeIds) => {
@@ -179,7 +187,7 @@ export const getAttributesByIds = async (attributeIds) => {
 // It searches for other active products in the same exact category, specifically 
 // excluding the product the user is currently looking at so it doesn't recommend itself!
 export const getRelatedProducts = async (categoryId, currentProductId, limit = 4) => {
-    return await Product.aggregate([
+    const relatedProducts = await Product.aggregate([
         { $match: { categoryId: categoryId, status: 'active', _id: { $ne: currentProductId } } },
         { $lookup: { from: 'productvariants', localField: '_id', foreignField: 'productId', as: 'variants' } },
         { $addFields: { activeVariants: { $filter: { input: '$variants', as: 'v', cond: { $eq: ['$$v.status', 'active'] } } } } },
@@ -187,4 +195,7 @@ export const getRelatedProducts = async (categoryId, currentProductId, limit = 4
         { $addFields: { startingPrice: { $min: '$activeVariants.price' }, defaultImage: { $arrayElemAt: [{ $arrayElemAt: ['$activeVariants.images', 0] }, 0] } } },
         { $limit: limit }
     ]);
+
+    const offers = await getActiveOffers();
+    return applyOffersToProductCards(relatedProducts, offers);
 };

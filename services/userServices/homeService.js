@@ -1,5 +1,7 @@
 import Category from "../../models/category.js";
 import Product from "../../models/product.js";
+import { getActiveOffers } from "../offerEngine.js";
+import { applyOffersToProductCards } from "./offerViewHelpers.js";
 
 // Pulls a clean list of all currently active categories.
 // This feeds the category navigation bubbles on the homepage, ensuring 
@@ -12,7 +14,7 @@ export const getActiveCategories = async () => {
 // It doesn't just grab random products; it runs a strict series of checks using 
 // a MongoDB aggregation pipeline to ensure we never display broken or unbuyable items to the customer.
 export const getFeaturedProducts = async (limitCount = 4) => {
-    return await Product.aggregate([
+    const products = await Product.aggregate([
         // Check 1: The product itself must be marked 'active' by the admin.
         { $match: { status: 'active' } },
         
@@ -73,4 +75,7 @@ export const getFeaturedProducts = async (limitCount = 4) => {
         { $sort: { createdAt: -1 } },
         { $limit: limitCount }
     ]);
+
+    const offers = await getActiveOffers();
+    return applyOffersToProductCards(products, offers);
 };

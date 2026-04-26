@@ -4,6 +4,7 @@ import ProductVariant from "../../models/productVariant.js";
 import Product from "../../models/product.js";
 import Category from "../../models/category.js";
 import AppError from "../../utils/AppError.js";
+import { getActiveOffers, formatOfferLabel, getBestOfferForTarget } from "../offerEngine.js";
 
 // Some basic limits and tax
 const MAX_QTY_PER_ITEM = 5;
@@ -17,14 +18,18 @@ const EMPTY_COUPON = {
 };
 
 const calculateCartTotals = (items, discountAmount = 0) => {
+    let originalGrossSubtotal = 0;
     let grossSubtotal = 0;
 
     // Add price only if item is available
     items.forEach(item => {
         if (!item.outOfStock) {
+            originalGrossSubtotal += (item.originalPrice * item.quantity);
             grossSubtotal += (item.price * item.quantity);
         }
     });
+
+    const offerSavings = Math.max(originalGrossSubtotal - grossSubtotal, 0);
 
     // Split tax from total
     const preTaxAmount = grossSubtotal / (1 + GST_RATE);
@@ -49,8 +54,11 @@ const calculateCartTotals = (items, discountAmount = 0) => {
         tax: taxAmount.toFixed(2),
         shipping: shippingCost,
         discount: safeDiscount.toFixed(2),
+        offerSavings: offerSavings.toFixed(2),
+        totalDiscount: (offerSavings + safeDiscount).toFixed(2),
         total: finalTotal.toFixed(2),
         totalItems: items.length,
+        originalGrossSubtotal: originalGrossSubtotal.toFixed(2),
         grossSubtotal: grossSubtotal.toFixed(2)
     };
 };
@@ -199,7 +207,18 @@ export const getCartData = async (userId) => {
     if (!cart || !cart.items || cart.items.length === 0) {
         return {
             items: [],
-            summary: { subtotal: 0, tax: 0, shipping: 0, discount: 0, total: 0, totalItems: 0, grossSubtotal: 0 },
+            summary: {
+                subtotal: 0,
+                tax: 0,
+                shipping: 0,
+                discount: 0,
+                offerSavings: 0,
+                totalDiscount: 0,
+                total: 0,
+                totalItems: 0,
+                originalGrossSubtotal: 0,
+                grossSubtotal: 0
+            },
             adjustments: [],
             appliedCoupon: null,
             availableCoupons: []
@@ -209,6 +228,7 @@ export const getCartData = async (userId) => {
     let formattedItems = [];
     let adjustments = [];
     let cartModified = false;
+    const offers = await getActiveOffers();
 
     // Loop through each item
     for (let item of cart.items) {
@@ -235,6 +255,18 @@ export const getCartData = async (userId) => {
                 cartModified = true;
             }
 
+            const offerPricing = getBestOfferForTarget({
+                productId: product._id,
+                categoryId: category?._id,
+                basePrice: Number(variant.price),
+                offers
+            });
+
+            const appliedOffer = offerPricing.appliedOffer ? {
+                ...offerPricing.appliedOffer,
+                label: formatOfferLabel(offerPricing.appliedOffer)
+            } : null;
+
             formattedItems.push({
                 itemId: item._id,
                 variantId: variant._id,
@@ -242,11 +274,15 @@ export const getCartData = async (userId) => {
                 brand: product.brand,
                 slug: product.slug,
                 image: variant.images ? variant.images[0] : null,
-                price: variant.price,
+                price: offerPricing.finalPrice,
+                originalPrice: Number(variant.price),
                 quantity: actualQty,
                 stock: variant.stock,
                 attributes: variant.attributes,
-                itemTotal: (variant.price * actualQty).toFixed(2),
+                itemTotal: (offerPricing.finalPrice * actualQty).toFixed(2),
+                originalItemTotal: (Number(variant.price) * actualQty).toFixed(2),
+                offerDiscount: Number((offerPricing.discountAmount * actualQty).toFixed(2)),
+                appliedOffer,
                 outOfStock: false,
                 variant: variant
             });

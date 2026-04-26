@@ -164,13 +164,29 @@
                                 <div class="flex-1">
                                     <p class="text-sm font-medium text-gray-900 line-clamp-2"><%= item.productName %></p>
                                     <p class="text-xs text-gray-500 mt-1">Qty: <%= item.quantity %></p>
+                                    <% if (item.appliedOffer) { %>
+                                        <p class="text-[11px] text-green-600 font-semibold mt-1"><%= item.appliedOffer.label %> applied</p>
+                                    <% } %>
                                 </div>
-                                <p class="text-sm font-bold text-gray-900">₹<%= item.itemTotal %></p>
+                                <div class="text-right">
+                                    <p class="text-sm font-bold text-gray-900">₹<%= item.itemTotal %></p>
+                                    <% if (item.appliedOffer && item.originalItemTotal !== item.itemTotal) { %>
+                                        <p class="text-xs text-gray-400 line-through">₹<%= item.originalItemTotal %></p>
+                                    <% } %>
+                                </div>
                             </div>
                             <% }) %>
                     </div>
 
                     <div class="space-y-3 text-sm text-gray-600 border-t border-b border-gray-100 py-4 mb-6">
+                        <div class="flex justify-between">
+                            <span>Items Total</span>
+                            <span id="checkoutOriginalSubtotal" class="font-medium text-gray-900">₹<%= cart.summary.originalGrossSubtotal || cart.summary.grossSubtotal %></span>
+                        </div>
+                        <div class="flex justify-between text-green-600">
+                            <span>Offer Savings</span>
+                            <span id="checkoutOfferSavings" class="font-medium">- ₹<%= cart.summary.offerSavings || '0.00' %></span>
+                        </div>
                         <div class="flex justify-between">
                             <span>Subtotal</span>
                             <span id="checkoutSubtotal" class="font-medium text-gray-900">₹<%= cart.summary.subtotal %></span>
@@ -304,6 +320,8 @@
         function renderCheckoutSummary(cart) {
             checkoutCartState = cart;
             const itemsList = document.getElementById('checkoutSummaryItems');
+            const originalSubtotal = document.getElementById('checkoutOriginalSubtotal');
+            const offerSavings = document.getElementById('checkoutOfferSavings');
             const subtotal = document.getElementById('checkoutSubtotal');
             const tax = document.getElementById('checkoutTax');
             const discount = document.getElementById('checkoutDiscount');
@@ -320,12 +338,18 @@
                         <div class="flex-1">
                             <p class="text-sm font-medium text-gray-900 line-clamp-2">${item.productName}</p>
                             <p class="text-xs text-gray-500 mt-1">Qty: ${item.quantity}</p>
+                            ${item.appliedOffer ? `<p class="text-[11px] text-green-600 font-semibold mt-1">${item.appliedOffer.label} applied</p>` : ''}
                         </div>
-                        <p class="text-sm font-bold text-gray-900">₹${item.itemTotal}</p>
+                        <div class="text-right">
+                            <p class="text-sm font-bold text-gray-900">₹${item.itemTotal}</p>
+                            ${item.appliedOffer && item.originalItemTotal !== item.itemTotal ? `<p class="text-xs text-gray-400 line-through">₹${item.originalItemTotal}</p>` : ''}
+                        </div>
                     </div>
                 `).join('');
             }
 
+            if (originalSubtotal) originalSubtotal.innerText = `₹${cart.summary.originalGrossSubtotal || cart.summary.grossSubtotal}`;
+            if (offerSavings) offerSavings.innerText = `- ₹${cart.summary.offerSavings || '0.00'}`;
             if (subtotal) subtotal.innerText = `₹${cart.summary.subtotal}`;
             if (tax) tax.innerText = `₹${cart.summary.tax}`;
             if (discount) discount.innerText = `- ₹${cart.summary.discount || '0.00'}`;

@@ -1,0 +1,366 @@
+<%- include("../partials/adminHeader") %>
+
+<div class="mb-8 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+    <div>
+        <h2 class="text-3xl font-display font-bold text-slate-900 dark:text-white mb-1">Offer Management</h2>
+        <p class="text-slate-500 dark:text-slate-400 text-sm">Manage product and category offers across the storefront.</p>
+    </div>
+
+    <button
+        type="button"
+        onclick="openOfferModal()"
+        class="inline-flex items-center justify-center px-5 py-2.5 bg-[#e83e8c] text-white font-medium text-sm rounded-lg hover:bg-pink-600 transition-colors shadow-sm">
+        <span class="material-symbols-outlined mr-2 text-[18px]">add</span>
+        Create Offer
+    </button>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden">
+    <div class="p-5 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div class="relative flex-1 max-w-md">
+            <span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-[20px]">search</span>
+            <input
+                id="offerSearch"
+                type="text"
+                value="<%= searchQuery || '' %>"
+                class="w-full pl-10 pr-10 py-2 bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 focus:ring-2 focus:ring-[#e83e8c]/20 focus:border-[#e83e8c] rounded-lg text-sm transition-all outline-none"
+                placeholder="Search offers by offer name..." />
+
+            <button
+                id="clearOfferSearchBtn"
+                onclick="clearOfferSearch()"
+                class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-[#e83e8c] flex items-center justify-center <%= searchQuery ? '' : 'hidden' %>">
+                <span class="material-symbols-outlined text-[18px]">close</span>
+            </button>
+        </div>
+    </div>
+
+    <div class="overflow-x-auto">
+        <table class="w-full text-left border-collapse">
+            <thead>
+                <tr class="text-[11px] uppercase tracking-wider text-slate-400 dark:text-slate-500 font-semibold bg-white dark:bg-slate-900 border-b border-slate-100 dark:border-slate-800">
+                    <th class="px-6 py-4">ID</th>
+                    <th class="px-6 py-4">Offer Name</th>
+                    <th class="px-6 py-4">Discount</th>
+                    <th class="px-6 py-4">Save Upto</th>
+                    <th class="px-6 py-4">Ends On</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4 text-right">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
+                <% if (offers.length > 0) { %>
+                    <% offers.forEach((offer) => { %>
+                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                            <td class="px-6 py-4 text-sm font-mono text-slate-500"><%= offer._id.toString().slice(-6).toUpperCase() %></td>
+                            <td class="px-6 py-4">
+                                <div class="flex flex-col gap-1">
+                                    <span class="font-semibold text-slate-900 dark:text-white"><%= offer.offerName %></span>
+                                    <span class="text-xs text-slate-500 capitalize"><%= offer.offerType %> offer</span>
+                                </div>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">
+                                <%= offer.discountType === "percentage" ? `${offer.discountValue}%` : `₹${offer.discountValue.toFixed(2)}` %>
+                            </td>
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300">₹<%= offer.maxDiscountValue.toFixed(2) %></td>
+                            <td class="px-6 py-4 text-sm text-slate-600 dark:text-slate-300"><%= new Date(offer.endDate).toLocaleDateString('en-IN') %></td>
+                            <td class="px-6 py-4">
+                                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-[12px] font-medium <%= offer.status === 'active' ? 'bg-green-50 text-green-600' : 'bg-slate-100 text-slate-500' %>">
+                                    <span class="w-1.5 h-1.5 rounded-full <%= offer.status === 'active' ? 'bg-green-500' : 'bg-slate-400' %> mr-1.5"></span>
+                                    <%= offer.status === 'active' ? 'Active' : 'Inactive' %>
+                                </span>
+                            </td>
+                            <td class="px-6 py-4 text-right">
+                                <div class="flex items-center justify-end space-x-4">
+                                    <button type="button" onclick="openOfferModal('<%= offer._id %>')" class="text-slate-400 hover:text-slate-700 dark:hover:text-slate-300 transition-colors" title="Edit Offer">
+                                        <span class="material-symbols-outlined text-[18px]">edit</span>
+                                    </button>
+                                    <button type="button" onclick="toggleOfferStatus('<%= offer._id %>')" class="<%= offer.status === 'active' ? 'text-green-500 hover:text-green-600' : 'text-slate-400 hover:text-slate-500' %> transition-colors" title="<%= offer.status === 'active' ? 'Soft Delete Offer' : 'Restore Offer' %>">
+                                        <span class="material-symbols-outlined text-[26px]"><%= offer.status === 'active' ? 'toggle_on' : 'toggle_off' %></span>
+                                    </button>
+                                </div>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="7" class="px-6 py-12 text-center text-slate-500">No offers found matching your search.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+
+    <% if (totalPages > 0) { %>
+        <div class="p-4 md:p-5 border-t border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <p class="text-sm text-slate-500 dark:text-slate-400">
+                Showing
+                <span class="font-medium"><%= (currentPage - 1) * limit + 1 %></span>
+                to
+                <span class="font-medium"><%= Math.min(currentPage * limit, totalOffers) %></span>
+                of
+                <span class="font-medium"><%= totalOffers %></span>
+                offers
+            </p>
+
+            <div class="flex items-center space-x-1">
+                <% if (currentPage > 1) { %>
+                    <a href="?page=<%= currentPage - 1 %>&search=<%= searchQuery %>" class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                    </a>
+                <% } else { %>
+                    <button disabled class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-300 cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[18px]">chevron_left</span>
+                    </button>
+                <% } %>
+                <% for (let i = 1; i <= totalPages; i++) { %>
+                    <a href="?page=<%= i %>&search=<%= searchQuery %>" class="flex items-center justify-center w-8 h-8 rounded text-sm transition-colors <%= i === currentPage ? 'bg-[#e83e8c] text-white font-medium border border-[#e83e8c]' : 'border border-slate-200 text-slate-600 hover:bg-slate-50' %>">
+                        <%= i %>
+                    </a>
+                <% } %>
+                <% if (currentPage < totalPages) { %>
+                    <a href="?page=<%= currentPage + 1 %>&search=<%= searchQuery %>" class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-500 hover:bg-slate-50 transition-colors">
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </a>
+                <% } else { %>
+                    <button disabled class="flex items-center justify-center w-8 h-8 rounded border border-slate-200 text-slate-300 cursor-not-allowed">
+                        <span class="material-symbols-outlined text-[18px]">chevron_right</span>
+                    </button>
+                <% } %>
+            </div>
+        </div>
+    <% } %>
+</div>
+
+<div id="offerModal" class="fixed inset-0 z-50 hidden bg-black/40 backdrop-blur-sm px-4 py-8 overflow-y-auto">
+    <div class="min-h-full flex items-center justify-center">
+        <div class="w-full max-w-2xl bg-white dark:bg-slate-900 rounded-2xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden">
+            <div class="px-6 py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
+                <div>
+                    <h3 id="offerModalTitle" class="text-xl font-semibold text-slate-900 dark:text-white">Create Offer</h3>
+                    <p class="text-sm text-slate-500 dark:text-slate-400">Set up a product or category offer.</p>
+                </div>
+                <button type="button" onclick="closeOfferModal()" class="text-slate-400 hover:text-slate-600">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </div>
+
+            <form id="offerForm" class="p-6 space-y-5" novalidate>
+                <input type="hidden" id="offerId">
+
+                <div>
+                    <label for="offerName" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Offer Name</label>
+                    <input id="offerName" type="text" placeholder="Enter offer name" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="offerType" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Offer Type</label>
+                        <select id="offerType" onchange="toggleOfferTargetOptions()" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                            <option value="">Select offer type</option>
+                            <option value="product">Product</option>
+                            <option value="category">Category</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="targetId" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Select Target</label>
+                        <select id="targetId" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                            <option value="">Select product or category</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="offerDiscountType" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Discount Type</label>
+                        <select id="offerDiscountType" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                            <option value="">Select discount type</option>
+                            <option value="flat">Flat</option>
+                            <option value="percentage">Percentage</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label for="offerDiscountValue" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Discount Value</label>
+                        <input id="offerDiscountValue" type="text" inputmode="decimal" placeholder="Enter discount value" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                    </div>
+                </div>
+
+                <div>
+                    <label for="offerMaxDiscountValue" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Maximum Discount Value</label>
+                    <input id="offerMaxDiscountValue" type="text" inputmode="decimal" placeholder="Enter maximum discount value" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                </div>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label for="offerStartDate" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Offer Start Date</label>
+                        <input id="offerStartDate" type="date" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                    </div>
+                    <div>
+                        <label for="offerEndDate" class="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Offer End Date</label>
+                        <input id="offerEndDate" type="date" class="w-full rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 px-4 py-3 text-sm focus:border-primary focus:ring-primary">
+                    </div>
+                </div>
+
+                <div class="flex items-center justify-end gap-3 pt-2">
+                    <button type="button" onclick="closeOfferModal()" class="px-5 py-2.5 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:bg-slate-50 transition">
+                        Cancel
+                    </button>
+                    <button id="saveOfferBtn" type="submit" class="px-5 py-2.5 rounded-xl text-sm font-semibold bg-[#e83e8c] text-white hover:bg-pink-600 transition">
+                        Save Offer
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+    const offerModal = document.getElementById('offerModal');
+    const offerForm = document.getElementById('offerForm');
+    const saveOfferBtn = document.getElementById('saveOfferBtn');
+    const offerProducts = <%- JSON.stringify(products) %>;
+    const offerCategories = <%- JSON.stringify(categories) %>;
+
+    function clearOfferSearch() {
+        window.location.href = '/admin/offers';
+    }
+
+    document.getElementById('offerSearch').addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') {
+            const value = event.target.value.trim();
+            const query = value ? `?search=${encodeURIComponent(value)}` : '';
+            window.location.href = `/admin/offers${query}`;
+        }
+    });
+
+    function buildTargetOptions(type, selectedId = '') {
+        const targetSelect = document.getElementById('targetId');
+        const source = type === 'product' ? offerProducts : type === 'category' ? offerCategories : [];
+
+        targetSelect.innerHTML = `<option value="">Select ${type || 'product or category'}</option>` + source.map(item => `
+            <option value="${item._id}" ${selectedId === item._id ? 'selected' : ''}>${item.name}</option>
+        `).join('');
+    }
+
+    function toggleOfferTargetOptions(selectedId = '') {
+        const type = document.getElementById('offerType').value;
+        buildTargetOptions(type, selectedId);
+    }
+
+    function openOfferModal(offerId = '') {
+        offerForm.reset();
+        document.getElementById('offerId').value = '';
+        document.getElementById('offerModalTitle').innerText = offerId ? 'Edit Offer' : 'Create Offer';
+        buildTargetOptions('');
+        offerModal.classList.remove('hidden');
+
+        if (!offerId) return;
+
+        fetch(`/admin/offers/${offerId}`)
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success) throw new Error(data.message || 'Failed to load offer');
+
+                const offer = data.offer;
+                document.getElementById('offerId').value = offer._id;
+                document.getElementById('offerName').value = offer.offerName || '';
+                document.getElementById('offerType').value = offer.offerType || '';
+                toggleOfferTargetOptions(offer.targetId);
+                document.getElementById('offerDiscountType').value = offer.discountType || '';
+                document.getElementById('offerDiscountValue').value = offer.discountValue ?? '';
+                document.getElementById('offerMaxDiscountValue').value = offer.maxDiscountValue ?? '';
+                document.getElementById('offerStartDate').value = offer.startDate ? new Date(offer.startDate).toISOString().split('T')[0] : '';
+                document.getElementById('offerEndDate').value = offer.endDate ? new Date(offer.endDate).toISOString().split('T')[0] : '';
+            })
+            .catch(err => {
+                closeOfferModal();
+                Swal.fire('Error', err.message || 'Unable to load offer details.', 'error');
+            });
+    }
+
+    function closeOfferModal() {
+        offerModal.classList.add('hidden');
+    }
+
+    offerForm.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const offerId = document.getElementById('offerId').value;
+        const payload = {
+            offerName: document.getElementById('offerName').value.trim(),
+            offerType: document.getElementById('offerType').value,
+            targetId: document.getElementById('targetId').value,
+            discountType: document.getElementById('offerDiscountType').value,
+            discountValue: document.getElementById('offerDiscountValue').value.trim(),
+            maxDiscountValue: document.getElementById('offerMaxDiscountValue').value.trim(),
+            startDate: document.getElementById('offerStartDate').value,
+            endDate: document.getElementById('offerEndDate').value
+        };
+
+        const discountValue = Number(payload.discountValue);
+        const maxDiscountValue = Number(payload.maxDiscountValue);
+
+        if (!payload.offerName || !payload.offerType || !payload.targetId || !payload.discountType || !payload.discountValue || !payload.maxDiscountValue || !payload.startDate || !payload.endDate) {
+            return Swal.fire('Missing Fields', 'Please fill in all offer fields.', 'warning');
+        }
+
+        if (payload.offerName.length < 3) {
+            return Swal.fire('Invalid Offer Name', 'Offer name must be at least 3 characters long.', 'warning');
+        }
+
+        if (Number.isNaN(discountValue) || discountValue <= 0) {
+            return Swal.fire('Invalid Discount', 'Discount value must be greater than 0.', 'warning');
+        }
+
+        if (payload.discountType === 'percentage' && discountValue > 100) {
+            return Swal.fire('Invalid Discount', 'Percentage discount cannot exceed 100.', 'warning');
+        }
+
+        if (Number.isNaN(maxDiscountValue) || maxDiscountValue <= 0) {
+            return Swal.fire('Invalid Maximum Discount', 'Maximum discount value must be greater than 0.', 'warning');
+        }
+
+        if (payload.endDate < payload.startDate) {
+            return Swal.fire('Invalid Validity', 'Offer end date must be on or after the start date.', 'warning');
+        }
+
+        const originalText = saveOfferBtn.innerText;
+        saveOfferBtn.innerText = 'Saving...';
+        saveOfferBtn.disabled = true;
+
+        try {
+            const response = await fetch(offerId ? `/admin/offers/${offerId}` : '/admin/offers', {
+                method: offerId ? 'PUT' : 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+
+            if (!data.success) throw new Error(data.message || 'Failed to save offer');
+
+            await Swal.fire('Saved', data.message, 'success');
+            window.location.reload();
+        } catch (error) {
+            Swal.fire('Error', error.message || 'Failed to save offer.', 'error');
+        } finally {
+            saveOfferBtn.innerText = originalText;
+            saveOfferBtn.disabled = false;
+        }
+    });
+
+    async function toggleOfferStatus(offerId) {
+        try {
+            const response = await fetch(`/admin/offers/${offerId}/status`, { method: 'PATCH' });
+            const data = await response.json();
+
+            if (!data.success) throw new Error(data.message || 'Failed to update offer status');
+
+            await Swal.fire('Updated', data.message, 'success');
+            window.location.reload();
+        } catch (error) {
+            Swal.fire('Error', error.message || 'Failed to update offer status.', 'error');
+        }
+    }
+</script>
+
+<%- include("../partials/adminFooter") %>

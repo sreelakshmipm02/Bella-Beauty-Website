@@ -150,7 +150,15 @@
                                 <div class="mt-auto flex items-center justify-between">
                                     <div class="flex flex-col">
                                         <span class="text-[10px] text-gray-500 uppercase tracking-wider leading-none">Starting at</span>
-                                        <span class="font-bold text-lg text-gray-900">₹<%= product.startingPrice.toFixed(2) %></span>
+                                        <div class="flex items-center gap-2">
+                                            <span class="font-bold text-lg text-gray-900">₹<%= product.startingPrice.toFixed(2) %></span>
+                                            <% if (product.appliedOffer && product.originalStartingPrice > product.startingPrice) { %>
+                                                <span class="text-sm text-gray-400 line-through">₹<%= product.originalStartingPrice.toFixed(2) %></span>
+                                            <% } %>
+                                        </div>
+                                        <% if (product.appliedOffer) { %>
+                                            <span class="text-[10px] text-green-600 font-bold uppercase tracking-wider"><%= product.appliedOffer.label %></span>
+                                        <% } %>
                                     </div>
                                     <button class="bg-gray-900 hover:bg-primary text-white text-xs font-bold px-4 py-2 rounded-full transition uppercase tracking-wider">
                                         View
