@@ -484,11 +484,11 @@
                 return Swal.fire('Missing Fields', 'Please fill in all required fields.', 'warning');
             }
 
-            if (!/^[a-zA-Z\\s]{2,50}$/.test(fullName)) {
+            if (!/^[a-zA-Z\s]{2,50}$/.test(fullName)) {
                 return Swal.fire('Invalid Name', 'Full Name must contain only letters and be at least 2 characters.', 'error');
             }
 
-            if (!/^[6-9]\\d{9}$/.test(phone)) {
+            if (!/^[6-9]\d{9}$/.test(phone)) {
                 return Swal.fire('Invalid Phone', 'Please enter a valid 10-digit Indian mobile number.', 'error');
             }
 
