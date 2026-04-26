@@ -260,6 +260,7 @@
             </form>
         </div>
     </div>
+    <script src="/js/addressValidation.js"></script>
     <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
     <script>
         const savedAddresses = <%- JSON.stringify(addresses || []) %>;
@@ -480,20 +481,17 @@
             const postalCode = document.getElementById('postalCode').value.trim();
             const country = document.getElementById('country').value.trim();
 
-            if (!fullName || !phone || !addressLine1 || !city || !state || !postalCode) {
-                return Swal.fire('Missing Fields', 'Please fill in all required fields.', 'warning');
-            }
+            const validation = window.validateAddressFields({
+                fullName,
+                phone,
+                addressLine1,
+                city,
+                state,
+                postalCode
+            });
 
-            if (!/^[a-zA-Z\s]{2,50}$/.test(fullName)) {
-                return Swal.fire('Invalid Name', 'Full Name must contain only letters and be at least 2 characters.', 'error');
-            }
-
-            if (!/^[6-9]\d{9}$/.test(phone)) {
-                return Swal.fire('Invalid Phone', 'Please enter a valid 10-digit Indian mobile number.', 'error');
-            }
-
-            if (!/^[1-9][0-9]{5}$/.test(postalCode)) {
-                return Swal.fire('Invalid Pincode', 'Please enter a valid 6-digit Pincode.', 'error');
+            if (!validation.isValid) {
+                return Swal.fire(validation.title, validation.message, validation.icon);
             }
 
             const btn = document.getElementById('saveAddressBtn');

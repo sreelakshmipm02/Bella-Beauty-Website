@@ -115,21 +115,17 @@ async function handleAddressSubmit(event) {
         return Swal.fire('Missing Fields', 'Please fill in all required fields.', 'warning');
     }
 
-    // Validate Name (Letters only, min 2 chars)
-    if (!/^[a-zA-Z\s]{2,50}$/.test(fullName)) {
-        return Swal.fire('Invalid Name', 'Full Name must contain only letters and be at least 2 characters.', 'error');
-    }
+    const validation = window.validateAddressFields({
+        fullName,
+        phone,
+        addressLine1,
+        city,
+        state,
+        postalCode
+    });
 
-    // Validate Phone (Indian 10-digit)
-    const phoneRegex = /^[6-9]\d{9}$/;
-    if (!phoneRegex.test(phone)) {
-        return Swal.fire('Invalid Phone', 'Please enter a valid 10-digit Indian mobile number.', 'error');
-    }
-
-    // Validate Pincode (6-digit)
-    const pinRegex = /^[1-9][0-9]{5}$/;
-    if (!pinRegex.test(postalCode)) {
-        return Swal.fire('Invalid Pincode', 'Please enter a valid 6-digit Pincode.', 'error');
+    if (!validation.isValid) {
+        return Swal.fire(validation.title, validation.message, validation.icon);
     }
 
     // 3. Collect Data
