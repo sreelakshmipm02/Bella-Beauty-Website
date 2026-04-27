@@ -10,6 +10,10 @@ const tempUserSchema = new mongoose.Schema(
             unique: true
         },
         phone: String,
+        referredByCode: {
+            type: String,
+            default: null
+        },
         password: {
             type: String,
             required: true

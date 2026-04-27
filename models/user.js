@@ -43,6 +43,12 @@ const userSchema = new mongoose.Schema(
       sparse: true
     },
 
+    referredByCode: {
+      type: String,
+      default: null,
+      trim: true
+    },
+
     googleId: {
       type: String,
       unique: true,

@@ -37,7 +37,8 @@ document.addEventListener("DOMContentLoaded", () => {
                 lastName: document.getElementById("last-name").value.trim(),
                 email: document.getElementById("email").value.trim(),
                 phone: document.getElementById("mobile").value.trim(),
-                password: document.getElementById("password").value
+                password: document.getElementById("password").value,
+                referredByCode: document.getElementById("referral").value.trim()
             };
 
             try {

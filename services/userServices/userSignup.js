@@ -34,7 +34,7 @@ export const sendSignupOtp = async (email, payload) => {
 
 //OTP SENDING SERVICE
 export const sendSignupOtpService = async (userData) => {
-  const { firstName, lastName, email, phone, password } = userData;
+  const { firstName, lastName, email, phone, password, referredByCode } = userData;
   if (!email) {
     throw new AppError("Email is required!", 400);
   }
@@ -63,6 +63,7 @@ export const sendSignupOtpService = async (userData) => {
     lastName,
     email,
     phone,
+    referredByCode: referredByCode ? referredByCode.trim().toUpperCase() : null,
     password: hashedPassword
   });
 

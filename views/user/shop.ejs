@@ -66,6 +66,17 @@
                 </div>
 
                 <div class="mb-6">
+                    <label class="block text-sm font-medium text-gray-900 mb-2">Offer</label>
+                    <select id="offerFilter"
+                        class="w-full bg-white border border-gray-300 rounded-lg p-2.5 text-sm focus:ring-primary">
+                        <option value="">All Products</option>
+                        <option value="any" <%= query.offerFilter==='any' ? 'selected' : '' %>>Active Offers</option>
+                        <option value="product" <%= query.offerFilter==='product' ? 'selected' : '' %>>Product Offers</option>
+                        <option value="category" <%= query.offerFilter==='category' ? 'selected' : '' %>>Category Offers</option>
+                    </select>
+                </div>
+
+                <div class="mb-6">
                     <label class="block text-sm font-medium text-gray-900 mb-2">Product Type</label>
                     <div class="space-y-2 max-h-40 overflow-y-auto custom-scrollbar pr-2">
                         <% productTypes.forEach(type => { %>
@@ -191,6 +202,7 @@
         const search = document.getElementById('searchInput').value.trim();
         const category = document.getElementById('categorySelect').value;
         const brand = document.getElementById('brandSelect').value;
+        const offerFilter = document.getElementById('offerFilter').value;
         const sort = document.getElementById('sortSelect').value;
         const minPrice = document.getElementById('minPrice').value;
         const maxPrice = document.getElementById('maxPrice').value;
@@ -199,6 +211,7 @@
         if (search) params.set('search', search);
         if (category) params.set('category', category);
         if (brand) params.set('brand', brand);
+        if (offerFilter) params.set('offerFilter', offerFilter);
         if (sort && sort !== 'newest') params.set('sort', sort);
         if (minPrice) params.set('minPrice', minPrice);
         if (maxPrice) params.set('maxPrice', maxPrice);

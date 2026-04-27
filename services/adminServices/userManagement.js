@@ -1,5 +1,6 @@
 import User from "../../models/user.js";
 import AppError from "../../utils/AppError.js";
+import { ensureUsersReferralCodes } from "../userServices/referralCode.js";
 
 // Fetches all users from the database sorted by newest first.
 // export const getAllUsers = async () => {
@@ -37,7 +38,8 @@ export const fetchUsersWithFilter = async (status, search, page = 1, limit = 5) 
             { firstName: { $regex: search, $options: "i" } },
             { lastName: { $regex: search, $options: "i" } },
             { email: { $regex: search, $options: "i" } },
-            { userName: { $regex: search, $options: "i" } }
+            { userName: { $regex: search, $options: "i" } },
+            { referralCode: { $regex: search, $options: "i" } }
         ];
     }
     const skip = (page - 1) * limit;
@@ -48,5 +50,5 @@ export const fetchUsersWithFilter = async (status, search, page = 1, limit = 5) 
         User.countDocuments(filter)
     ]);
 
-    return { users, totalUsers };
+    return { users: await ensureUsersReferralCodes(users), totalUsers };
 };

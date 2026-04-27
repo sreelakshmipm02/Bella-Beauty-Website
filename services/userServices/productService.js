@@ -14,8 +14,15 @@ import { applyOffersToProductCards, applyOfferToVariantView } from "./offerViewH
 // Instead of making multiple database calls, we dynamically build a single MongoDB 
 // Aggregation Pipeline based on whatever filters the user clicked on the frontend.
 export const getShopData = async (queryFilters, skip, limit) => {
-    const { search, category, brand, productType, sort, minPrice, maxPrice } = queryFilters;
+    const { search, category, brand, productType, sort, minPrice, maxPrice, offerFilter } = queryFilters;
     let pipeline = [];
+    const offers = await getActiveOffers();
+    const productOfferIds = offers
+        .filter((offer) => offer.offerType === "product")
+        .map((offer) => new mongoose.Types.ObjectId(offer.targetId));
+    const categoryOfferIds = offers
+        .filter((offer) => offer.offerType === "category")
+        .map((offer) => new mongoose.Types.ObjectId(offer.targetId));
 
     // Rule 1: Never show a product if an admin has marked it as 'inactive'.
     pipeline.push({ $match: { status: 'active' } });
@@ -52,15 +59,62 @@ export const getShopData = async (queryFilters, skip, limit) => {
         }
     }
 
-    // If the user typed something into the search bar, look for partial matches 
-    // in both the product's name and its brand.
-    if (search) {
+    if (offerFilter === "product") {
+        pipeline.push({
+            $match: {
+                _id: {
+                    $in: productOfferIds.length ? productOfferIds : [new mongoose.Types.ObjectId()]
+                }
+            }
+        });
+    } else if (offerFilter === "category") {
+        pipeline.push({
+            $match: {
+                "categoryDetails._id": {
+                    $in: categoryOfferIds.length ? categoryOfferIds : [new mongoose.Types.ObjectId()]
+                }
+            }
+        });
+    } else if (offerFilter === "any") {
+        const unmatchedId = new mongoose.Types.ObjectId();
         pipeline.push({
             $match: {
                 $or: [
-                    { name: { $regex: search, $options: 'i' } },
-                    { brand: { $regex: search, $options: 'i' } }
+                    { _id: { $in: productOfferIds.length ? productOfferIds : [unmatchedId] } },
+                    { "categoryDetails._id": { $in: categoryOfferIds.length ? categoryOfferIds : [unmatchedId] } }
                 ]
+            }
+        });
+    }
+
+    // If the user typed something into the search bar, look for partial matches 
+    // in both the product's name and its brand.
+    if (search) {
+        const matchingOffers = offers.filter((offer) =>
+            offer.offerName?.toLowerCase().includes(search.toLowerCase())
+        );
+        const matchingOfferProductIds = matchingOffers
+            .filter((offer) => offer.offerType === "product")
+            .map((offer) => new mongoose.Types.ObjectId(offer.targetId));
+        const matchingOfferCategoryIds = matchingOffers
+            .filter((offer) => offer.offerType === "category")
+            .map((offer) => new mongoose.Types.ObjectId(offer.targetId));
+        const searchConditions = [
+            { name: { $regex: search, $options: 'i' } },
+            { brand: { $regex: search, $options: 'i' } }
+        ];
+
+        if (matchingOfferProductIds.length) {
+            searchConditions.push({ _id: { $in: matchingOfferProductIds } });
+        }
+
+        if (matchingOfferCategoryIds.length) {
+            searchConditions.push({ "categoryDetails._id": { $in: matchingOfferCategoryIds } });
+        }
+
+        pipeline.push({
+            $match: {
+                $or: searchConditions
             }
         });
     }
@@ -130,7 +184,6 @@ export const getShopData = async (queryFilters, skip, limit) => {
     });
 
     const result = await Product.aggregate(pipeline);
-    const offers = await getActiveOffers();
     const products = applyOffersToProductCards(result[0].data, offers);
     const totalProducts = result[0].metadata[0] ? result[0].metadata[0].total : 0;
     

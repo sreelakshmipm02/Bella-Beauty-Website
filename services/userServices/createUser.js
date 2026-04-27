@@ -1,5 +1,6 @@
 import User from "../../models/user.js";
 import AppError from "../../utils/AppError.js";
+import { generateUniqueReferralCode } from "./referralCode.js";
 
 // create user
 export const createUser = async (userData) => {
@@ -9,7 +10,7 @@ export const createUser = async (userData) => {
     email,
     phone,
     password,
-    referralCode
+    referredByCode
   } = userData;
 
   // check existing user
@@ -29,17 +30,13 @@ export const createUser = async (userData) => {
   email,
   phone,
   password,
+  referralCode: await generateUniqueReferralCode(firstName),
+  referredByCode: referredByCode ? referredByCode.trim().toUpperCase() : null,
   authProviders: {
     google: false,
     local: true //required
   }
 });
-
-
-  // optional referral code
-  if (referralCode) {
-    user.referralCode = referralCode;
-  }
 
   return await user.save();
 };
