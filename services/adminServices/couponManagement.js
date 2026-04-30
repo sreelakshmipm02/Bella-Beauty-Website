@@ -8,10 +8,7 @@ export const getAdminCouponsList = async (page = 1, limit = 6, search = "") => {
     const query = {};
 
     if (search) {
-        query.$or = [
-            { code: { $regex: search, $options: "i" } },
-            { description: { $regex: search, $options: "i" } }
-        ];
+        query.code = { $regex: search, $options: "i" };
     }
 
     const [coupons, totalCoupons] = await Promise.all([
