@@ -38,7 +38,29 @@ const orderSchema = new mongoose.Schema({
             default: "Pending"
         },
         cancelReason: { type: String },
-        adminRejectReason: { type: String } 
+        adminRejectReason: { type: String },
+        refund: {
+            status: {
+                type: String,
+                enum: ["None", "Pending", "Processed"],
+                default: "None"
+            },
+            amount: {
+                type: Number,
+                default: 0
+            },
+            trigger: {
+                type: String,
+                trim: true
+            },
+            processedAt: {
+                type: Date
+            },
+            transactionReference: {
+                type: String,
+                trim: true
+            }
+        }
     }],
     shippingAddress: {
         fullName: { type: String, required: true },
@@ -58,10 +80,18 @@ const orderSchema = new mongoose.Schema({
         },
         status: {
             type: String,
-            enum: ["Pending", "Paid", "Failed", "Refunded"],
+            enum: ["Pending", "Paid", "Failed", "Partially Refunded", "Refunded"],
             default: "Pending"
         },
-        transactionId: { type: String } 
+        transactionId: { type: String },
+        walletAmount: {
+            type: Number,
+            default: 0
+        },
+        refundedAmount: {
+            type: Number,
+            default: 0
+        }
     },
     summary: {
         subtotal: { type: Number, required: true },

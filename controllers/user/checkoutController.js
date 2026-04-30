@@ -1,6 +1,7 @@
 import { getCartData } from "../../services/userServices/cartService.js";
 import { getUserAddresses } from "../../services/userServices/userAddress.js";
 import { getRazorpayInstance, processCheckout, verifyPaymentSignature } from "../../services/userServices/orderService.js";
+import { getWalletSnapshot } from "../../services/walletService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
 import AppError from "../../utils/AppError.js";
 
@@ -17,6 +18,8 @@ export const getCheckoutPage = asyncHandler(async (req, res) => {
     
     const cartData = await getCartData(userId);
     const addresses = await getUserAddresses(userId);
+    const wallet = await getWalletSnapshot(userId, 5);
+    const cartTotal = Number(cartData?.summary?.total || 0);
 
     if (!cartData || cartData.items.length === 0) {
         return res.redirect("/cart");
@@ -27,6 +30,11 @@ export const getCheckoutPage = asyncHandler(async (req, res) => {
         isLoggedIn: true,
         cart: cartData,
         addresses: addresses || [],
+        wallet: {
+            ...wallet,
+            isSufficient: wallet.balance >= cartTotal,
+            shortfall: Number(Math.max(cartTotal - wallet.balance, 0).toFixed(2))
+        },
         razorpayEnabled: Boolean(process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET)
     });
 });
@@ -53,7 +61,7 @@ export const placeOrderAjax = asyncHandler(async (req, res) => {
 
         // Create the Gateway Order (Amount must be in Paise, so multiply by 100)
         const options = {
-            amount: Math.round(cartData.summary.total * 100), 
+            amount: Math.round(Number(cartData.summary.total) * 100), 
             currency: "INR",
             receipt: `receipt_${Date.now()}`
         };
@@ -69,7 +77,7 @@ export const placeOrderAjax = asyncHandler(async (req, res) => {
         });
     }
 
-    // If COD, proceed exactly as you did before
+    // COD and Wallet can complete immediately on the backend
     const order = await processCheckout(userId, addressId, paymentMethod);
 
     res.status(201).json({ 

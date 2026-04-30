@@ -42,8 +42,8 @@ export const getAdminOrderDetailPage = asyncHandler(async (req, res) => {
  */
 export const updateOrderStatusAjax = asyncHandler(async (req, res) => {
     const { status } = req.body;
-    await updateOrderStatusService(req.params.id, status);
-    res.status(200).json({ success: true, message: `Order status updated to ${status}.` });
+    const order = await updateOrderStatusService(req.params.id, status);
+    res.status(200).json({ success: true, message: `Order status updated to ${order.orderStatus}.` });
 });
 
 /**
@@ -51,8 +51,14 @@ export const updateOrderStatusAjax = asyncHandler(async (req, res) => {
  */
 export const processReturnAjax = asyncHandler(async (req, res) => {
     const { action, rejectReason } = req.body;
-    await processReturnRequestService(req.params.orderId, req.params.itemId, action, rejectReason);
-    res.status(200).json({ success: true, message: `Return ${action.toLowerCase()}ed successfully.` });
+    const result = await processReturnRequestService(req.params.orderId, req.params.itemId, action, rejectReason);
+    const message = action === "Approve"
+        ? result.refundAmount > 0
+            ? `Return approved successfully. Stock was restored and ₹${result.refundAmount.toFixed(2)} was refunded to the user's wallet.`
+            : "Return approved successfully. Stock was restored immediately."
+        : `Return ${action.toLowerCase()}ed successfully.`;
+
+    res.status(200).json({ success: true, message });
 });
 
 /**
@@ -60,6 +66,6 @@ export const processReturnAjax = asyncHandler(async (req, res) => {
  */
 export const updatePaymentStatusAjax = asyncHandler(async (req, res) => {
     const { status } = req.body;
-    await updatePaymentStatusService(req.params.id, status);
-    res.status(200).json({ success: true, message: `Payment status updated to ${status}.` });
+    const order = await updatePaymentStatusService(req.params.id, status);
+    res.status(200).json({ success: true, message: `Payment status updated to ${order.payment.status}.` });
 });

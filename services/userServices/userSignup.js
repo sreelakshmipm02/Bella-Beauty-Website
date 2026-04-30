@@ -4,6 +4,7 @@ import TempUser from "../../models/tempUser.js";
 import bcrypt from "bcrypt";
 import { generateOtp, sendOtpEmail } from "../../utils/otpService.js";
 import AppError from "../../utils/AppError.js";
+import { resolveReferralSource } from "./referralCode.js";
 
 
 //SIGNUP SERVICE
@@ -39,6 +40,8 @@ export const sendSignupOtpService = async (userData) => {
     throw new AppError("Email is required!", 400);
   }
 
+  const { normalizedCode } = await resolveReferralSource({ referredByCode });
+
   //i.generate OTP
   const otp = generateOtp();
 
@@ -63,7 +66,7 @@ export const sendSignupOtpService = async (userData) => {
     lastName,
     email,
     phone,
-    referredByCode: referredByCode ? referredByCode.trim().toUpperCase() : null,
+    referredByCode: normalizedCode,
     password: hashedPassword
   });
 

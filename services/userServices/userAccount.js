@@ -9,5 +9,19 @@ export const getUserData = async (userId) => {
         throw new AppError("User not found", 404);
     }
 
-    return await ensureUserReferralCode(user);
+    const preparedUser = await ensureUserReferralCode(user);
+
+    if (!preparedUser.wallet) {
+        preparedUser.wallet = { balance: 0, transactions: [] };
+    }
+
+    if (!Array.isArray(preparedUser.wallet.transactions)) {
+        preparedUser.wallet.transactions = [];
+    }
+
+    preparedUser.wallet.transactions.sort(
+        (left, right) => new Date(right.createdAt) - new Date(left.createdAt)
+    );
+
+    return preparedUser;
 };

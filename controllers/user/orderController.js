@@ -32,9 +32,17 @@ export const getOrderSuccessPage = asyncHandler(async (req, res) => {
         order,
         paymentStatement: [
             { label: "Order ID", value: order.orderId },
-            { label: "Payment Method", value: order.payment.method === "Online" ? "Razorpay" : order.payment.method },
+            {
+                label: "Payment Method",
+                value: order.payment.method === "Online"
+                    ? "Razorpay"
+                    : order.payment.method === "Wallet"
+                        ? "Bella Wallet"
+                        : order.payment.method
+            },
             { label: "Payment Status", value: order.payment.status },
-            { label: "Amount Paid", value: `₹${order.summary.total.toFixed(2)}` }
+            { label: order.payment.method === "Wallet" ? "Wallet Debited" : "Amount Paid", value: `₹${order.summary.total.toFixed(2)}` },
+            ...(order.payment.transactionId ? [{ label: "Reference", value: order.payment.transactionId }] : [])
         ]
     });
 });
@@ -101,17 +109,25 @@ export const cancelOrderAjax = asyncHandler(async (req, res) => {
     if (!order) throw new AppError("Order not found", 404);
 
     const allItemIds = order.items.map(item => item._id);
-    await cancelMultipleItemsService(req.params.orderId, allItemIds, req.session.userId, req.body.reason);
+    const result = await cancelMultipleItemsService(req.params.orderId, allItemIds, req.session.userId, req.body.reason);
 
-    res.status(200).json({ success: true, message: "Order cancelled successfully." });
+    const message = result.refundAmount > 0
+        ? `Order cancelled successfully. ₹${result.refundAmount.toFixed(2)} has been refunded to your wallet.`
+        : "Order cancelled successfully.";
+
+    res.status(200).json({ success: true, message });
 });
 
 /**
  * Cancel a single item.
  */
 export const cancelItemAjax = asyncHandler(async (req, res) => {
-    await cancelMultipleItemsService(req.params.orderId, [req.params.itemId], req.session.userId, req.body.reason);
-    res.status(200).json({ success: true, message: "Item cancelled successfully." });
+    const result = await cancelMultipleItemsService(req.params.orderId, [req.params.itemId], req.session.userId, req.body.reason);
+    const message = result.refundAmount > 0
+        ? `Item cancelled successfully. ₹${result.refundAmount.toFixed(2)} has been refunded to your wallet.`
+        : "Item cancelled successfully.";
+
+    res.status(200).json({ success: true, message });
 });
 
 // ---------------------------------------------------------
@@ -131,7 +147,10 @@ export const returnOrderAjax = asyncHandler(async (req, res) => {
     }
 
     await returnMultipleItemsService(req.params.orderId, deliveredItemIds, req.session.userId, req.body.reason);
-    res.status(200).json({ success: true, message: "Return requested successfully." });
+    res.status(200).json({
+        success: true,
+        message: "Return requested successfully. Your refund will be credited to your wallet once the admin approves it."
+    });
 });
 
 /**
@@ -139,7 +158,10 @@ export const returnOrderAjax = asyncHandler(async (req, res) => {
  */
 export const returnItemAjax = asyncHandler(async (req, res) => {
     await returnMultipleItemsService(req.params.orderId, [req.params.itemId], req.session.userId, req.body.reason);
-    res.status(200).json({ success: true, message: "Item return requested successfully." });
+    res.status(200).json({
+        success: true,
+        message: "Item return requested successfully. Your refund will be credited to your wallet once the admin approves it."
+    });
 });
 
 // ---------------------------------------------------------

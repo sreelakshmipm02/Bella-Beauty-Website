@@ -1,97 +1,90 @@
 import Order from "../../models/order.js";
 import ProductVariant from "../../models/productVariant.js";
+import {
+    buildRefundAllocationMap,
+    canRefundToWallet,
+    creditWallet,
+    recalculateOrderStatusFromItems,
+    syncPaymentRefundStatus
+} from "../walletService.js";
 import AppError from "../../utils/AppError.js";
 
 // Order status should follow this step-by-step flow
-const MANUAL_STATUS_FLOW = ['Pending', 'Processing', 'Shipped', 'Delivered'];
+const MANUAL_STATUS_FLOW = ["Pending", "Processing", "Shipped", "Delivered"];
 
-export const getAdminOrdersList = async (page = 1, limit = 6, search = '', statusFilter = 'all', sortOption = 'newest') => {
-    let query = {};
+export const getAdminOrdersList = async (page = 1, limit = 6, search = "", statusFilter = "all", sortOption = "newest") => {
+    const query = {};
 
-    // Search order using orderId
-    if (search) query.orderId = { $regex: search, $options: 'i' };
+    if (search) query.orderId = { $regex: search, $options: "i" };
+    if (statusFilter && statusFilter !== "all") query.orderStatus = statusFilter;
 
-    // Filter by order status (if selected)
-    if (statusFilter && statusFilter !== 'all') query.orderStatus = statusFilter;
+    let sortQuery = { createdAt: -1 };
 
-    // Default sorting: newest orders first
-    let sortQuery = { createdAt: -1 }; 
+    if (sortOption === "oldest") sortQuery = { createdAt: 1 };
+    if (sortOption === "amount_desc") sortQuery = { "summary.total": -1 };
+    if (sortOption === "amount_asc") sortQuery = { "summary.total": 1 };
 
-    if (sortOption === 'oldest') sortQuery = { createdAt: 1 };
-
-    // Sort by total amount
-    if (sortOption === 'amount_desc') sortQuery = { 'summary.total': -1 }; 
-    if (sortOption === 'amount_asc') sortQuery = { 'summary.total': 1 };   
-
-    // Pagination logic
     const skip = (page - 1) * limit;
 
-    // Get orders with user details
     const orders = await Order.find(query)
-        .populate('userId', 'name email')
+        .populate("userId", "firstName lastName email phone")
         .sort(sortQuery)
         .skip(skip)
         .limit(limit);
 
-    // Total count for pagination
     const totalOrders = await Order.countDocuments(query);
 
     return { orders, totalOrders };
 };
 
 export const getAdminOrderById = async (orderId) => {
-    // Get full order details with user and product info
     return await Order.findById(orderId)
-        .populate('userId', 'name email phone')
-        .populate('items.productVariantId');
+        .populate("userId", "firstName lastName email phone")
+        .populate("items.productVariantId");
 };
 
 export const updateOrderStatusService = async (orderId, newStatus) => {
     const order = await Order.findById(orderId);
+
     if (!order) throw new AppError("Order not found", 404);
 
     const currentIdx = MANUAL_STATUS_FLOW.indexOf(order.orderStatus);
     const newIdx = MANUAL_STATUS_FLOW.indexOf(newStatus);
 
-    // Do not allow moving backwards in status (like Shipped -> Processing)
     if (currentIdx !== -1 && newIdx !== -1 && newIdx <= currentIdx && newStatus !== order.orderStatus) {
         throw new AppError(`Cannot revert status from ${order.orderStatus} to ${newStatus}`, 400);
     }
 
-    // If setting status to Returned, make sure return is approved
-    if (newStatus === 'Returned') {
-        const hasApprovedReturn = order.items.some(item => item.status === 'Return Approved');
+    if (newStatus === "Returned") {
+        const approvedItems = order.items.filter((item) => item.status === "Return Approved");
 
-        if (!hasApprovedReturn) {
+        if (approvedItems.length === 0) {
             throw new AppError("Cannot set to Returned unless a return request has been approved.", 400);
         }
 
-        // Add stock back only for approved return items
-        for (let item of order.items) {
-            if (item.status === 'Return Approved') {
-                item.status = 'Returned';
+        for (const item of approvedItems) {
+            item.status = "Returned";
 
-                await ProductVariant.findByIdAndUpdate(
-                    item.productVariantId,
-                    { $inc: { stock: item.quantity } }
-                );
-            }
+            await ProductVariant.findByIdAndUpdate(
+                item.productVariantId,
+                { $inc: { stock: item.quantity } }
+            );
         }
+
+        order.orderStatus = recalculateOrderStatusFromItems(order.items);
     } else {
-        // Update item status only if it's not already in a final state
-        order.items.forEach(item => {
-            if (!['Cancelled', 'Returned', 'Return Requested', 'Return Approved', 'Return Rejected'].includes(item.status)) {
+        order.items.forEach((item) => {
+            if (!["Cancelled", "Returned", "Return Requested", "Return Approved", "Return Rejected"].includes(item.status)) {
                 item.status = newStatus;
             }
         });
+
+        order.orderStatus = newStatus;
     }
 
-    // If delivered, mark payment as paid (if still pending)
-    if (newStatus === 'Delivered' && order.payment.status === 'Pending') {
-        order.payment.status = 'Paid';
+    if (newStatus === "Delivered" && order.payment.status === "Pending") {
+        order.payment.status = "Paid";
     }
-
-    order.orderStatus = newStatus;
 
     await order.save();
     return order;
@@ -99,11 +92,11 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
 
 export const updatePaymentStatusService = async (orderId, newStatus) => {
     const order = await Order.findById(orderId);
+
     if (!order) throw new AppError("Order not found", 404);
 
-    // Do not allow changes if already refunded
-    if (order.payment.status === 'Refunded') {
-        throw new AppError("Cannot change status of a refunded payment.", 400);
+    if (["Refunded", "Partially Refunded"].includes(order.payment.status) || Number(order.payment.refundedAmount || 0) > 0) {
+        throw new AppError("Cannot manually change payment status after a wallet refund has been recorded.", 400);
     }
 
     order.payment.status = newStatus;
@@ -114,30 +107,79 @@ export const updatePaymentStatusService = async (orderId, newStatus) => {
 
 export const processReturnRequestService = async (orderId, itemId, action, rejectReason) => {
     const order = await Order.findById(orderId);
+
     if (!order) throw new AppError("Order not found", 404);
 
-    // Find the specific item inside the order
     const item = order.items.id(itemId);
 
-    // Check if item is actually waiting for return approval
-    if (!item || item.status !== 'Return Requested') {
+    if (!item || item.status !== "Return Requested") {
         throw new AppError("Item is not pending a return request.", 400);
     }
 
-    if (action === 'Approve') {
-        item.status = 'Return Approved';
+    let refundAmount = 0;
 
-        // Lock order status as return approved
-        order.orderStatus = 'Return Approved';
+    if (action === "Approve") {
+        item.status = "Returned";
 
-    } else if (action === 'Reject') {
-        item.status = 'Return Rejected';
+        await ProductVariant.findByIdAndUpdate(
+            item.productVariantId,
+            { $inc: { stock: item.quantity } }
+        );
+
+        if (canRefundToWallet(order) && item.refund?.status !== "Processed") {
+            const refundAllocations = buildRefundAllocationMap(order);
+            refundAmount = Number((refundAllocations.get(String(item._id)) || 0).toFixed(2));
+
+            if (refundAmount > 0) {
+                const walletTransaction = await creditWallet({
+                    userId: order.userId,
+                    amount: refundAmount,
+                    description: `Refund for approved return in order ${order.orderId}`,
+                    orderId: order._id,
+                    itemId: item._id
+                });
+
+                item.refund = item.refund || {};
+                item.refund.status = "Processed";
+                item.refund.amount = refundAmount;
+                item.refund.trigger = "Return";
+                item.refund.processedAt = new Date();
+                item.refund.transactionReference = walletTransaction.reference;
+
+                order.payment.refundedAmount = Number(
+                    (Number(order.payment.refundedAmount || 0) + refundAmount).toFixed(2)
+                );
+                syncPaymentRefundStatus(order);
+            }
+        }
+
+        if (!refundAmount) {
+            item.refund = item.refund || {};
+            item.refund.status = canRefundToWallet(order) ? "Processed" : "None";
+            item.refund.amount = refundAmount;
+            item.refund.trigger = "Return";
+            item.refund.processedAt = canRefundToWallet(order) ? new Date() : undefined;
+            item.refund.transactionReference = undefined;
+        }
+    } else if (action === "Reject") {
+        item.status = "Return Rejected";
         item.adminRejectReason = rejectReason;
-
-        // If rejected, keep order as delivered
-        order.orderStatus = 'Delivered';
+        item.refund = item.refund || {};
+        item.refund.status = "None";
+        item.refund.amount = 0;
+        item.refund.trigger = "";
+        item.refund.processedAt = undefined;
+        item.refund.transactionReference = undefined;
+    } else {
+        throw new AppError("Invalid return action.", 400);
     }
 
+    order.orderStatus = recalculateOrderStatusFromItems(order.items);
+
     await order.save();
-    return order;
+
+    return {
+        order,
+        refundAmount: Number(refundAmount.toFixed(2))
+    };
 };

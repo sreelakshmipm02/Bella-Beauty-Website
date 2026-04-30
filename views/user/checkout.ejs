@@ -59,6 +59,22 @@
                     </h2>
 
                     <div class="grid gap-4">
+                        <label class="cursor-pointer relative <%= wallet.isSufficient ? '' : 'opacity-70' %>">
+                            <input type="radio" name="paymentMethod" value="Wallet" class="peer sr-only" <%= wallet.isSufficient ? '' : 'disabled' %>>
+                            <div class="p-4 bg-white rounded-xl border-2 border-gray-200 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-gray-300 transition flex items-center gap-4">
+                                <span class="material-icons-outlined text-gray-400 peer-checked:text-primary">account_balance_wallet</span>
+                                <div class="flex-1">
+                                    <p class="font-bold text-gray-900">Bella Wallet</p>
+                                    <p class="text-sm text-gray-500">Available balance: ₹<%= wallet.balance.toFixed(2) %></p>
+                                    <% if (wallet.isSufficient) { %>
+                                        <p class="text-xs text-green-600 mt-1">Your order total will be debited instantly from the wallet.</p>
+                                    <% } else { %>
+                                        <p class="text-xs text-amber-600 mt-1">You need ₹<%= wallet.shortfall.toFixed(2) %> more in your wallet to use this option.</p>
+                                    <% } %>
+                                </div>
+                            </div>
+                        </label>
+
                         <% if (razorpayEnabled) { %>
                             <label class="cursor-pointer relative">
                                 <input type="radio" name="paymentMethod" value="Online" class="peer sr-only">
@@ -78,7 +94,7 @@
                                 <span class="material-icons-outlined text-gray-400 peer-checked:text-primary">local_shipping</span>
                                 <div>
                                     <p class="font-bold text-gray-900">Cash on Delivery (COD)</p>
-                                    <p class="text-sm text-gray-500">Pay when your order arrives.</p>
+                                    <p class="text-sm text-gray-500">Pay when your order arrives. No wallet refund is created unless a paid order is later returned.</p>
                                 </div>
                             </div>
                         </label>

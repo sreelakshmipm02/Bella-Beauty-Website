@@ -1,6 +1,11 @@
 import User from "../../models/user.js";
 import AppError from "../../utils/AppError.js";
-import { generateUniqueReferralCode } from "./referralCode.js";
+import {
+  applyReferralSignupRewards,
+  generateUniqueReferralCode,
+  generateUniqueReferralInviteToken,
+  resolveReferralSource
+} from "./referralCode.js";
 
 // create user
 export const createUser = async (userData) => {
@@ -13,30 +18,40 @@ export const createUser = async (userData) => {
     referredByCode
   } = userData;
 
-  // check existing user
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new AppError("Email already exists", 409);
   }
 
-  // generate username
+  const { referrer, normalizedCode } = await resolveReferralSource({ referredByCode });
+
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const userName = `${firstName.toLowerCase()}${randomNum}`;
 
   const user = new User({
-  firstName,
-  lastName,
-  userName,
-  email,
-  phone,
-  password,
-  referralCode: await generateUniqueReferralCode(firstName),
-  referredByCode: referredByCode ? referredByCode.trim().toUpperCase() : null,
-  authProviders: {
-    google: false,
-    local: true //required
-  }
-});
+    firstName,
+    lastName,
+    userName,
+    email,
+    phone,
+    password,
+    referralCode: await generateUniqueReferralCode(firstName),
+    referralInviteToken: await generateUniqueReferralInviteToken(),
+    referredByCode: normalizedCode,
+    authProviders: {
+      google: false,
+      local: true
+    }
+  });
 
-  return await user.save();
+  const savedUser = await user.save();
+
+  if (referrer) {
+    await applyReferralSignupRewards({
+      newUser: savedUser,
+      referrer
+    });
+  }
+
+  return savedUser;
 };

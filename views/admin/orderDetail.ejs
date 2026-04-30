@@ -24,7 +24,7 @@
         <%= order.orderStatus === 'Delivered' ? 'bg-green-50 text-green-700 border-green-200' : '' %>
         <%= order.orderStatus.includes('Return') ? 'bg-orange-50 text-orange-700 border-orange-200' : '' %>
         <%= (order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned') ? 'bg-red-50 text-red-700 border-red-200' : 'bg-blue-50 text-blue-700 border-blue-200' %>"
-        <%= (order.orderStatus === 'Return Requested' || order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned') ? 'disabled' : '' %>>
+        <%= (order.orderStatus === 'Return Requested' || order.orderStatus === 'Return Approved' || order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned') ? 'disabled' : '' %>>
     
     <% 
         const flow = ['Pending', 'Processing', 'Shipped', 'Delivered'];
@@ -45,12 +45,11 @@
     <% } %>
 
     <% if (order.orderStatus === 'Return Approved') { %>
-        <option value="Return Approved" selected disabled>Return Approved (Awaiting Package)</option>
-        <option value="Returned">Mark as Returned (Restore Stock)</option>
+        <option value="Return Approved" selected disabled>Return Approved (Legacy Status)</option>
     <% } %>
 
     <% if (order.orderStatus === 'Returned') { %>
-        <option value="Returned" selected disabled>Returned (Stock Restored)</option>
+        <option value="Returned" selected disabled>Returned</option>
     <% } %>
     
     <option value="Cancelled" <%= order.orderStatus === 'Cancelled' ? 'selected' : '' %> 
@@ -94,6 +93,24 @@
                                 <% if (item.status === 'Return Rejected' && item.adminRejectReason) { %>
                                     <div class="mt-3 bg-red-50 p-3 rounded-lg border border-red-100">
                                         <p class="text-xs text-red-600"><span class="font-bold uppercase tracking-wider text-[10px]">Your Rejection Reason:</span> <br><%= item.adminRejectReason %></p>
+                                    </div>
+                                <% } %>
+
+                                <% if (item.refund && item.refund.status === 'Pending') { %>
+                                    <div class="mt-3 bg-amber-50 p-3 rounded-lg border border-amber-100">
+                                        <p class="text-xs text-amber-700"><span class="font-bold uppercase tracking-wider text-[10px]">Wallet Refund:</span> <br>Pending admin approval.</p>
+                                    </div>
+                                <% } %>
+
+                                <% if (item.refund && item.refund.status === 'Processed' && item.refund.amount > 0) { %>
+                                    <div class="mt-3 bg-emerald-50 p-3 rounded-lg border border-emerald-100">
+                                        <p class="text-xs text-emerald-700">
+                                            <span class="font-bold uppercase tracking-wider text-[10px]">Wallet Refunded:</span>
+                                            <br>₹<%= item.refund.amount.toFixed(2) %> credited
+                                            <% if (item.refund.transactionReference) { %>
+                                                <br>Ref: <%= item.refund.transactionReference %>
+                                            <% } %>
+                                        </p>
                                     </div>
                                 <% } %>
 
@@ -143,12 +160,15 @@
             
             <div class="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4 border-b border-gray-100 pb-3">Customer Details</h3>
+                <% const customerName = order.userId && (order.userId.firstName || order.userId.lastName)
+                    ? `${order.userId.firstName || ''} ${order.userId.lastName || ''}`.trim()
+                    : order.shippingAddress.fullName; %>
                 <div class="flex items-center gap-4">
                     <div class="w-12 h-12 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-xl">
-                        <%= (order.userId && order.userId.name) ? order.userId.name.charAt(0).toUpperCase() : order.shippingAddress.fullName.charAt(0).toUpperCase() %>
+                        <%= customerName.charAt(0).toUpperCase() %>
                     </div>
                     <div>
-                        <p class="font-bold text-gray-900"><%= (order.userId && order.userId.name) ? order.userId.name : order.shippingAddress.fullName %></p>
+                        <p class="font-bold text-gray-900"><%= customerName %></p>
                         <p class="text-sm text-gray-500"><%= (order.userId && order.userId.email) ? order.userId.email : 'No email provided' %></p>
                     </div>
                 </div>
@@ -174,19 +194,34 @@
                 <div class="flex justify-between items-center mb-6 pb-6 border-b border-gray-200">
                     <div>
                         <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-1">Payment Method</h3>
-                        <p class="font-bold text-gray-900"><%= order.payment.method %></p>
+                        <p class="font-bold text-gray-900"><%= order.payment.method === 'Wallet' ? 'Bella Wallet' : order.payment.method %></p>
+                        <% if (order.payment.transactionId) { %>
+                            <p class="text-xs text-gray-500 mt-1">Reference: <span class="font-medium text-gray-700"><%= order.payment.transactionId %></span></p>
+                        <% } %>
                     </div>
                     
                     <select onchange="updatePaymentStatus('<%= order._id %>', this.value)"
                         class="text-[10px] font-bold px-3 py-1 rounded-md border outline-none cursor-pointer transition
-                        <%= order.payment.status === 'Paid' ? 'bg-green-100 text-green-800 border-green-200' : 'bg-yellow-100 text-yellow-800 border-yellow-200' %>"
-                        <%= order.payment.status === 'Refunded' ? 'disabled' : '' %>>
+                        <%= order.payment.status === 'Paid' ? 'bg-green-100 text-green-800 border-green-200' : '' %>
+                        <%= order.payment.status === 'Failed' ? 'bg-red-100 text-red-800 border-red-200' : '' %>
+                        <%= order.payment.status === 'Partially Refunded' ? 'bg-blue-100 text-blue-800 border-blue-200' : '' %>
+                        <%= order.payment.status === 'Refunded' ? 'bg-emerald-100 text-emerald-800 border-emerald-200' : '' %>
+                        <%= order.payment.status === 'Pending' ? 'bg-yellow-100 text-yellow-800 border-yellow-200' : '' %>"
+                        <%= ['Refunded', 'Partially Refunded'].includes(order.payment.status) ? 'disabled' : '' %>>
                         <option value="Pending" <%= order.payment.status === 'Pending' ? 'selected' : '' %>>Pending</option>
                         <option value="Paid" <%= order.payment.status === 'Paid' ? 'selected' : '' %>>Paid</option>
                         <option value="Failed" <%= order.payment.status === 'Failed' ? 'selected' : '' %>>Failed</option>
+                        <option value="Partially Refunded" <%= order.payment.status === 'Partially Refunded' ? 'selected' : '' %>>Partially Refunded</option>
                         <option value="Refunded" <%= order.payment.status === 'Refunded' ? 'selected' : '' %>>Refunded</option>
                     </select>
                 </div>
+
+                <% if (order.payment.refundedAmount > 0) { %>
+                    <div class="mb-6 rounded-xl bg-emerald-50 border border-emerald-100 p-4">
+                        <p class="text-xs font-bold uppercase tracking-wider text-emerald-700 mb-1">Wallet Refund Summary</p>
+                        <p class="text-sm font-semibold text-emerald-800">₹<%= order.payment.refundedAmount.toFixed(2) %> has been credited back to the user's wallet.</p>
+                    </div>
+                <% } %>
 
                 <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider mb-4">Price Summary</h3>
                 <div class="space-y-3 text-sm text-gray-600 mb-4 pb-4 border-b border-gray-200">
@@ -208,6 +243,12 @@
                             <span class="font-medium">- ₹<%= order.summary.discount.toFixed(2) %></span>
                         </div>
                     <% } %>
+                    <% if (order.payment.method === 'Wallet') { %>
+                        <div class="flex justify-between text-primary">
+                            <span>Wallet Paid</span>
+                            <span class="font-medium">₹<%= (order.payment.walletAmount || order.summary.total).toFixed(2) %></span>
+                        </div>
+                    <% } %>
                 </div>
                 <div class="flex justify-between items-end">
                     <span class="font-bold text-gray-900">Total</span>
@@ -222,7 +263,6 @@
 <script>
     async function updateOrderStatus(orderId, newStatus) {
         let msg = `Updating to ${newStatus}. This action cannot be undone.`;
-        if(newStatus === 'Returned') msg = "Marking as Returned will permanently restore product stock. Proceed?";
 
         const { isConfirmed } = await Swal.fire({
             title: 'Confirm Status Update',
@@ -320,7 +360,7 @@
         } else {
             const { isConfirmed } = await Swal.fire({
                 title: 'Approve Return Request?',
-                text: "This will approve the return. You will need to manually change the master status to 'Returned' once you physically receive the item to restore stock.",
+                text: "This will approve the return, restore stock immediately, and refund the amount to the user's wallet if the order was paid.",
                 icon: 'question',
                 showCancelButton: true,
                 confirmButtonColor: '#10b981',

@@ -22,11 +22,113 @@ const Toast = Swal.mixin({
     }
 });
 
+const signupReferralState = {
+    verifiedCode: "",
+    inviterName: ""
+};
+
+const setReferralStatus = (type, message) => {
+    const statusBox = document.getElementById("referralStatus");
+    if (!statusBox) return;
+
+    statusBox.classList.remove("text-green-600", "text-red-500", "text-gray-500");
+
+    if (type === "success") {
+        statusBox.classList.add("text-green-600");
+    } else if (type === "error") {
+        statusBox.classList.add("text-red-500");
+    } else {
+        statusBox.classList.add("text-gray-500");
+    }
+
+    statusBox.textContent = message || "";
+};
+
 
 document.addEventListener("DOMContentLoaded", () => {
     //  1. Form Submission 
     const form = document.getElementById("signupForm");
     const submitBtn = document.getElementById("submitBtn");
+    const referralInput = document.getElementById("referral");
+    const verifyReferralBtn = document.getElementById("verifyReferralBtn");
+    const signupReferralConfig = window.signupReferralConfig || {};
+
+    if (signupReferralConfig.referralPreview) {
+        signupReferralState.verifiedCode = signupReferralConfig.referralPreview.code || "";
+        signupReferralState.inviterName = signupReferralConfig.referralPreview.inviterName || "";
+        setReferralStatus(
+            "success",
+            `Invite from ${signupReferralState.inviterName} applied successfully.`
+        );
+    } else if (signupReferralConfig.referralError) {
+        setReferralStatus("error", signupReferralConfig.referralError);
+    }
+
+    if (referralInput) {
+        referralInput.addEventListener("input", () => {
+            referralInput.value = referralInput.value.toUpperCase().replace(/\s+/g, "");
+
+            const normalizedCode = referralInput.value.trim();
+
+            if (!normalizedCode) {
+                signupReferralState.verifiedCode = "";
+                signupReferralState.inviterName = "";
+                setReferralStatus("default", "");
+                return;
+            }
+
+            if (signupReferralState.verifiedCode && signupReferralState.verifiedCode !== normalizedCode) {
+                signupReferralState.verifiedCode = "";
+                signupReferralState.inviterName = "";
+                setReferralStatus("default", "Referral changed. Click Verify to confirm this code.");
+            }
+        });
+    }
+
+    if (verifyReferralBtn && referralInput) {
+        verifyReferralBtn.addEventListener("click", async () => {
+            const code = referralInput.value.trim().toUpperCase();
+
+            if (!code) {
+                setReferralStatus("error", "Please enter a referral code first.");
+                return;
+            }
+
+            const originalText = verifyReferralBtn.innerText;
+            verifyReferralBtn.innerText = "Checking...";
+            verifyReferralBtn.disabled = true;
+
+            try {
+                const response = await fetch("/referrals/verify", {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ code })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    referralInput.value = data.referral.code;
+                    signupReferralState.verifiedCode = data.referral.code;
+                    signupReferralState.inviterName = data.referral.inviterName;
+                    setReferralStatus(
+                        "success",
+                        `Verified. You are signing up with ${data.referral.inviterName}'s referral code.`
+                    );
+                } else {
+                    signupReferralState.verifiedCode = "";
+                    signupReferralState.inviterName = "";
+                    setReferralStatus("error", data.message || "Referral code is invalid.");
+                }
+            } catch (error) {
+                console.error("Referral verification error:", error);
+                setReferralStatus("error", "Could not verify the referral right now. Please try again.");
+            } finally {
+                verifyReferralBtn.innerText = originalText;
+                verifyReferralBtn.disabled = false;
+            }
+        });
+    }
 
     if (form) {
         form.addEventListener("submit", async function (e) {
@@ -38,7 +140,7 @@ document.addEventListener("DOMContentLoaded", () => {
                 email: document.getElementById("email").value.trim(),
                 phone: document.getElementById("mobile").value.trim(),
                 password: document.getElementById("password").value,
-                referredByCode: document.getElementById("referral").value.trim()
+                referredByCode: document.getElementById("referral").value.trim().toUpperCase()
             };
 
             try {

@@ -11,17 +11,19 @@
             <div>
                 <div class="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-emerald-100 text-emerald-700 text-sm font-semibold mb-6">
                     <span class="material-icons-outlined text-[18px]">verified</span>
-                    <span><%= order.payment.method === "Online" ? "Payment successful" : "Order confirmed" %></span>
+                    <span><%= order.payment.method === "Online" ? "Payment successful" : order.payment.method === "Wallet" ? "Wallet payment successful" : "Order confirmed" %></span>
                 </div>
 
                 <h1 class="text-4xl sm:text-5xl font-display font-bold text-gray-900 leading-tight mb-4">
-                    <%= order.payment.method === "Online" ? "Your Bella payment went through." : "Your Bella order is confirmed." %>
+                    <%= order.payment.method === "Online" ? "Your Bella payment went through." : order.payment.method === "Wallet" ? "Your Bella wallet payment is complete." : "Your Bella order is confirmed." %>
                 </h1>
 
                 <p class="text-gray-600 text-lg max-w-2xl mb-8 leading-relaxed">
                     <%= order.payment.method === "Online"
                         ? "Your payment has been received and your order is now being prepared with care. Keep this statement handy for quick reference."
-                        : "Your order has been placed successfully. We have captured the order details and will keep you updated as it moves through fulfillment." %>
+                        : order.payment.method === "Wallet"
+                            ? "Your wallet has been debited successfully and the order is now being prepared with care. We will also route any eligible refunds back to the same wallet."
+                            : "Your order has been placed successfully. We have captured the order details and will keep you updated as it moves through fulfillment." %>
                 </p>
 
                 <div class="grid sm:grid-cols-2 gap-4 mb-8">

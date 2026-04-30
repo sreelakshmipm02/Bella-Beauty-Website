@@ -9,6 +9,10 @@ import { createUser } from "../../services/userServices/createUser.js";
 import { loginUser } from "../../services/userServices/userLogin.js";
 
 import { getUserData } from "../../services/userServices/userAccount.js";
+import {
+    getReferralPreview,
+    REFERRAL_OFFERS
+} from "../../services/userServices/referralCode.js";
 
 import {
     getUserAddresses,
@@ -35,9 +39,60 @@ import AppError from "../../utils/AppError.js";
 
 //----------------------------------------------------------------------
 //get signup page
-export const signupPage = (req, res) => {
-    res.render("user/signup", { error: null });
-};
+export const signupPage = asyncHandler(async (req, res) => {
+    const referralCodeFromQuery = req.query.ref || "";
+
+    let referralPreview = null;
+    let referralError = null;
+
+    if (referralCodeFromQuery) {
+        try {
+            referralPreview = await getReferralPreview({ referredByCode: referralCodeFromQuery });
+        } catch (error) {
+            referralError = error.message;
+        }
+    }
+
+    res.render("user/signup", {
+        error: null,
+        referralPreview,
+        referralError,
+        prefilledReferralCode: referralPreview?.code || referralCodeFromQuery.trim().toUpperCase(),
+        referralOffers: REFERRAL_OFFERS
+    });
+});
+
+export const signupInvitePage = asyncHandler(async (req, res) => {
+    let referralPreview = null;
+    let referralError = null;
+
+    try {
+        referralPreview = await getReferralPreview({ inviteToken: req.params.inviteToken });
+    } catch (error) {
+        referralError = error.message;
+    }
+
+    res.render("user/signup", {
+        error: null,
+        referralPreview,
+        referralError,
+        prefilledReferralCode: referralPreview?.code || "",
+        referralOffers: REFERRAL_OFFERS
+    });
+});
+
+export const verifyReferralAjax = asyncHandler(async (req, res) => {
+    const referralPreview = await getReferralPreview({
+        referredByCode: req.body.code || "",
+        inviteToken: req.body.inviteToken || ""
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Referral verified successfully.",
+        referral: referralPreview
+    });
+});
 
 //send signup otp
 export const sendSignupOtpController = asyncHandler(async (req, res) => {
@@ -100,6 +155,16 @@ export const userAccount = asyncHandler(async (req, res) => {
     const user = await getUserData(userId);
     res.render("user/account", {
         title: "My Account",
+        user: user,
+        referralOffers: REFERRAL_OFFERS
+    });
+});
+
+export const walletPage = asyncHandler(async (req, res) => {
+    const userId = req.session.userId;
+    const user = await getUserData(userId);
+    res.render("user/wallet", {
+        title: "My Wallet",
         user: user
     });
 });

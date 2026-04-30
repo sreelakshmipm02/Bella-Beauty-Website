@@ -9,7 +9,8 @@ import {
     sendUpdateEmailOtp, verifyEmailUpdate, userLogout,
     forgotPasswordPage, forgotPasswordSubmit, resetPasswordPage,
     resetPasswordSubmit, getSingleAddress, passwordPage,
-    updatePassword, forgotPasswordLoggedIn
+    updatePassword, forgotPasswordLoggedIn, walletPage,
+    signupInvitePage, verifyReferralAjax
 } from "../controllers/user/userController.js";
 import { googleAuthCallback } from "../controllers/user/authController.js";
 import { getHomePage } from "../controllers/user/homeController.js";
@@ -39,9 +40,11 @@ router.get("/product/:slug", preventCache, getProductDetails);
 
 // --- Registration & OTP Flow ---
 router.get("/signup", preventCache, isGuest, signupPage);
+router.get("/signup/invite/:inviteToken", preventCache, isGuest, signupInvitePage);
 router.post("/signup/otp", sendSignupOtpController);         
 router.post("/signup/otp/verify", verifySignupOtp);          
 router.post("/signup/otp/resend", resendSignupOtp);          
+router.post("/referrals/verify", verifyReferralAjax);
 
 // --- Login & Social Auth ---
 router.get("/login", preventCache, isGuest, loginPage);
@@ -62,6 +65,7 @@ router.post("/reset-password/:token", resetPasswordSubmit);
 //  2. PROFILE & PERSONAL SETTINGS (Requires Login)
 // ---------------------------------------------------------
 router.get('/account', preventCache, checkUserSession, userAccount);
+router.get('/wallet', preventCache, checkUserSession, walletPage);
 router.put('/profile', checkUserSession, uploadUser.single('profileImage'), updateProfile);
 
 // Handles verification when a user wants to change their primary email
