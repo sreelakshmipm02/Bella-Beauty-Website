@@ -1,0 +1,412 @@
+<%- include("../partials/adminHeader") %>
+
+<%
+    const hasTrendData = analytics?.salesTrend?.rows?.some((row) => row.orders > 0 || row.netRevenue > 0);
+    const hasStatusData = Array.isArray(analytics?.orderStatusDistribution) && analytics.orderStatusDistribution.length > 0;
+    const hasPaymentData = Array.isArray(analytics?.paymentMethodDistribution) && analytics.paymentMethodDistribution.length > 0;
+%>
+
+<div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+    <div>
+        <h2 class="text-3xl font-display font-bold text-slate-900 dark:text-white mb-2">Sales Analysis</h2>
+        <p class="text-slate-500 dark:text-slate-400">
+            Sales report for <span class="font-semibold text-slate-700 dark:text-slate-200"><%= analytics.filters.label %></span>.
+        </p>
+    </div>
+
+    <div class="flex flex-wrap items-center gap-3">
+        <a href="/admin/analytics/download/excel?<%= analytics.filters.queryString %>" class="px-4 py-2 border border-emerald-200 text-emerald-700 bg-emerald-50 rounded-lg font-semibold hover:bg-emerald-100 transition">
+            Download Excel
+        </a>
+        <a href="/admin/analytics/download/pdf?<%= analytics.filters.queryString %>" class="px-4 py-2 bg-primary text-white rounded-lg font-semibold hover:bg-pink-700 transition">
+            Download PDF
+        </a>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 mb-8">
+    <form action="/admin/analytics" method="GET" class="flex flex-col md:flex-row gap-4 items-end" id="analyticsFilterForm">
+        <div class="w-full md:w-48">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time Period</label>
+            <select name="period" id="analyticsPeriodSelect" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
+                <option value="daily" <%= analytics.filters.period === "daily" ? "selected" : "" %>>Today</option>
+                <option value="weekly" <%= analytics.filters.period === "weekly" ? "selected" : "" %>>Last 7 Days</option>
+                <option value="monthly" <%= analytics.filters.period === "monthly" ? "selected" : "" %>>This Month</option>
+                <option value="yearly" <%= analytics.filters.period === "yearly" ? "selected" : "" %>>This Year</option>
+                <option value="custom" <%= analytics.filters.period === "custom" ? "selected" : "" %>>Custom Range</option>
+            </select>
+        </div>
+
+        <div id="analyticsCustomDates" class="flex flex-col md:flex-row gap-4 w-full md:w-auto <%= analytics.filters.period === 'custom' ? '' : 'hidden' %>">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From</label>
+                <input type="date" name="from" value="<%= analytics.filters.from %>" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
+            </div>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To</label>
+                <input type="date" name="to" value="<%= analytics.filters.to %>" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
+            </div>
+            <button type="submit" class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition">Apply</button>
+        </div>
+    </form>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Summary Metrics</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Metric</th>
+                    <th class="px-6 py-4">Value</th>
+                    <th class="px-6 py-4">Notes</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <tr>
+                    <td class="px-6 py-4 font-medium">Overall Sales Count</td>
+                    <td class="px-6 py-4 font-semibold"><%= analytics.summary.salesCount %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Orders recorded in the selected period</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Overall Order Amount</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(analytics.summary.grossOrderAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Gross revenue before discounts and refunds</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Overall Discount</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(analytics.summary.totalDiscount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Combined offer and coupon reduction</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Net Revenue</td>
+                    <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(analytics.summary.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Revenue retained after discounts and refunds</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Average Order Value</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(analytics.summary.averageOrderValue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Average gross order amount</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Items Sold</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(analytics.summary.totalItemsOrdered).toLocaleString("en-IN") %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Total item quantity sold</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Paid Orders</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(analytics.summary.paidOrdersCount).toLocaleString("en-IN") %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Orders with successful payment contribution</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Refunded Amount</td>
+                    <td class="px-6 py-4 font-semibold text-rose-600">₹<%= Number(analytics.summary.refundedAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Amount returned to customers</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Sales Trend</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Period</th>
+                    <th class="px-6 py-4">Orders</th>
+                    <th class="px-6 py-4">Gross Amount</th>
+                    <th class="px-6 py-4">Discount</th>
+                    <th class="px-6 py-4">Net Revenue</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (hasTrendData) { %>
+                    <% analytics.salesTrend.rows.forEach((row) => { %>
+                        <tr>
+                            <td class="px-6 py-4 font-medium"><%= row.label %></td>
+                            <td class="px-6 py-4"><%= row.orders %></td>
+                            <td class="px-6 py-4">₹<%= Number(row.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 text-red-500">₹<%= Number(row.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(row.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No sales trend data available for this period.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Order Status Distribution</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Orders</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                    <% if (hasStatusData) { %>
+                        <% analytics.orderStatusDistribution.forEach((status) => { %>
+                            <tr>
+                                <td class="px-6 py-4 font-medium"><%= status.label %></td>
+                                <td class="px-6 py-4 font-semibold"><%= status.count %></td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="2" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No order status activity in this period.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Payment Method Distribution</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Method</th>
+                        <th class="px-6 py-4">Orders</th>
+                        <th class="px-6 py-4">Order Amount</th>
+                        <th class="px-6 py-4">Retained Revenue</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                    <% if (hasPaymentData) { %>
+                        <% analytics.paymentMethodDistribution.forEach((method) => { %>
+                            <tr>
+                                <td class="px-6 py-4 font-medium"><%= method.label %></td>
+                                <td class="px-6 py-4"><%= method.count || 0 %></td>
+                                <td class="px-6 py-4">₹<%= Number(method.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                                <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(method.revenue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No payment activity in this period.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Top Products</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Rank</th>
+                    <th class="px-6 py-4">Product</th>
+                    <th class="px-6 py-4">Units</th>
+                    <th class="px-6 py-4">Gross</th>
+                    <th class="px-6 py-4">Discount</th>
+                    <th class="px-6 py-4">Net</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (analytics.topProducts && analytics.topProducts.length > 0) { %>
+                    <% analytics.topProducts.forEach((product, index) => { %>
+                        <tr>
+                            <td class="px-6 py-4 font-semibold"><%= index + 1 %></td>
+                            <td class="px-6 py-4 font-medium"><%= product.productName %></td>
+                            <td class="px-6 py-4"><%= product.unitsOrdered %></td>
+                            <td class="px-6 py-4">₹<%= Number(product.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 text-red-500">₹<%= Number(product.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(product.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No product performance data available for this period.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Discount and Coupon Deductions</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Type</th>
+                    <th class="px-6 py-4">Amount</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <tr>
+                    <td class="px-6 py-4 font-medium">Product Offers (Item-level)</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(analytics.summary.offerDiscount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Coupon Usage (Cart-level)</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(analytics.summary.couponDiscount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Coupon Code Usage</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Coupon Code</th>
+                    <th class="px-6 py-4">Times Used</th>
+                    <th class="px-6 py-4">Discount Type</th>
+                    <th class="px-6 py-4">Total Discount Saved</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (analytics.couponUsage && analytics.couponUsage.length > 0) { %>
+                    <% analytics.couponUsage.forEach((coupon) => { %>
+                        <tr>
+                            <td class="px-6 py-4 font-semibold text-primary"><%= coupon.code %></td>
+                            <td class="px-6 py-4"><%= coupon.timesUsed %></td>
+                            <td class="px-6 py-4 capitalize"><%= coupon.discountType %></td>
+                            <td class="px-6 py-4 font-semibold">₹<%= coupon.totalDiscount.toFixed(2) %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="4" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No coupons used in this period.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Sales Report</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Date</th>
+                    <th class="px-6 py-4">Order ID</th>
+                    <th class="px-6 py-4">Customer</th>
+                    <th class="px-6 py-4">Items</th>
+                    <th class="px-6 py-4">Gross</th>
+                    <th class="px-6 py-4">Discount</th>
+                    <th class="px-6 py-4">Net Revenue</th>
+                    <th class="px-6 py-4">Status</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (analytics.reportRows && analytics.reportRows.length > 0) { %>
+                    <% analytics.reportRows.forEach((row) => { %>
+                        <tr>
+                            <td class="px-6 py-4 whitespace-nowrap"><%= new Date(row.date).toLocaleDateString("en-IN") %></td>
+                            <td class="px-6 py-4 font-semibold"><%= row.orderId %></td>
+                            <td class="px-6 py-4"><%= row.customerName %></td>
+                            <td class="px-6 py-4"><%= row.totalItems %></td>
+                            <td class="px-6 py-4">₹<%= Number(row.grossOrderAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 text-red-500">₹<%= Number(row.totalDiscount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(row.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4"><%= row.orderStatus %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="8" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No orders found for this period.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Product Sales Breakdown</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Product Name</th>
+                    <th class="px-6 py-4">Units Sold</th>
+                    <th class="px-6 py-4">Gross Amount</th>
+                    <th class="px-6 py-4">Discount</th>
+                    <th class="px-6 py-4">Net Revenue</th>
+                    <th class="px-6 py-4">Return Orders</th>
+                    <th class="px-6 py-4">Cancelled</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (analytics.productBreakdown && analytics.productBreakdown.length > 0) { %>
+                    <% analytics.productBreakdown.forEach((product) => { %>
+                        <tr>
+                            <td class="px-6 py-4 font-medium"><%= product.productName %></td>
+                            <td class="px-6 py-4"><%= product.unitsOrdered %></td>
+                            <td class="px-6 py-4">₹<%= Number(product.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 text-red-500">₹<%= Number(product.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(product.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4"><%= product.returnOrders %></td>
+                            <td class="px-6 py-4"><%= product.cancelled %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="7" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No product data available.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const analyticsPeriodSelect = document.getElementById("analyticsPeriodSelect");
+    const analyticsCustomDates = document.getElementById("analyticsCustomDates");
+
+    if (analyticsPeriodSelect && analyticsCustomDates) {
+        analyticsPeriodSelect.addEventListener("change", function () {
+            if (this.value === "custom") {
+                analyticsCustomDates.classList.remove("hidden");
+                return;
+            }
+
+            analyticsCustomDates.classList.add("hidden");
+            this.form.submit();
+        });
+    }
+</script>
+
+<%- include("../partials/adminFooter") %>

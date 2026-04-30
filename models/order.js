@@ -28,9 +28,52 @@ const orderSchema = new mongoose.Schema({
         },
         productName: { type: String, required: true },
         image: { type: String, required: true },
-        price: { type: Number, required: true }, 
+        price: { type: Number, required: true },
+        originalPrice: {
+            type: Number,
+            min: 0
+        },
         quantity: { type: Number, required: true },
         itemTotal: { type: Number, required: true },
+        originalItemTotal: {
+            type: Number,
+            min: 0
+        },
+        offerDiscount: {
+            type: Number,
+            default: 0,
+            min: 0
+        },
+        appliedOffer: {
+            offerId: {
+                type: mongoose.Schema.Types.ObjectId,
+                ref: "Offer"
+            },
+            offerName: {
+                type: String,
+                trim: true
+            },
+            offerType: {
+                type: String,
+                enum: ["product", "category"]
+            },
+            discountType: {
+                type: String,
+                enum: ["flat", "percentage"]
+            },
+            discountValue: {
+                type: Number,
+                min: 0
+            },
+            maxDiscountValue: {
+                type: Number,
+                min: 0
+            },
+            label: {
+                type: String,
+                trim: true
+            }
+        },
         status: {
             type: String,
             // Added "Return Approved"
@@ -97,7 +140,25 @@ const orderSchema = new mongoose.Schema({
         subtotal: { type: Number, required: true },
         tax: { type: Number, required: true },
         shipping: { type: Number, default: 0 },
+        grossSubtotal: { type: Number, default: 0 },
+        originalGrossSubtotal: { type: Number, default: 0 },
+        offerDiscount: { type: Number, default: 0 },
         discount: { type: Number, default: 0 },
+        couponDiscount: { type: Number, default: 0 },
+        totalDiscount: { type: Number, default: 0 },
+        couponCode: {
+            type: String,
+            trim: true,
+            uppercase: true
+        },
+        couponDiscountType: {
+            type: String,
+            enum: ["percentage", "fixed"]
+        },
+        couponId: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "Coupon"
+        },
         total: { type: Number, required: true }
     },
     cancelReason: { type: String },

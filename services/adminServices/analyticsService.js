@@ -3,7 +3,7 @@ import autoTable from "jspdf-autotable";
 import Order from "../../models/order.js";
 import Coupon from "../../models/coupon.js";
 
-const VALID_PERIODS = new Set(["daily", "weekly", "yearly", "custom"]);
+const VALID_PERIODS = new Set(["daily", "weekly", "monthly", "yearly", "custom"]);
 const ORDER_STATUS_ORDER = [
     "Pending",
     "Processing",
@@ -22,6 +22,8 @@ const roundCurrency = (value) => Number(toNumber(value).toFixed(2));
 const formatCurrency = (value) => `Rs. ${roundCurrency(value).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 const formatDateLabel = (date) => new Intl.DateTimeFormat("en-IN", { dateStyle: "medium" }).format(date);
 const formatDateTimeLabel = (date) => new Intl.DateTimeFormat("en-IN", { dateStyle: "medium", timeStyle: "short" }).format(date);
+const formatShortDayLabel = (date) => new Intl.DateTimeFormat("en-IN", { month: "short", day: "numeric" }).format(date);
+const formatShortMonthLabel = (date) => new Intl.DateTimeFormat("en-IN", { month: "short", year: "numeric" }).format(date);
 const formatInputDate = (date) => {
     const year = date.getFullYear();
     const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -37,6 +39,8 @@ const escapeHtml = (value) => String(value ?? "")
 
 const startOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 0, 0, 0, 0);
 const endOfDay = (date) => new Date(date.getFullYear(), date.getMonth(), date.getDate(), 23, 59, 59, 999);
+const startOfMonth = (date) => new Date(date.getFullYear(), date.getMonth(), 1, 0, 0, 0, 0);
+const endOfMonth = (date) => new Date(date.getFullYear(), date.getMonth() + 1, 0, 23, 59, 59, 999);
 
 const buildDateRange = ({ period = "weekly", from = "", to = "" } = {}) => {
     const normalizedPeriod = VALID_PERIODS.has(period) ? period : "weekly";
@@ -47,9 +51,12 @@ const buildDateRange = ({ period = "weekly", from = "", to = "" } = {}) => {
 
     if (normalizedPeriod === "weekly") {
         startDate = startOfDay(new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6));
+    } else if (normalizedPeriod === "monthly") {
+        startDate = startOfMonth(now);
+        endDate = endOfDay(now);
     } else if (normalizedPeriod === "yearly") {
         startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
-        endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        endDate = endOfMonth(new Date(now.getFullYear(), 11, 1));
     } else if (normalizedPeriod === "custom") {
         const parsedFrom = from ? new Date(`${from}T00:00:00`) : null;
         const parsedTo = to ? new Date(`${to}T00:00:00`) : null;
@@ -71,6 +78,7 @@ const buildDateRange = ({ period = "weekly", from = "", to = "" } = {}) => {
     const periodLabels = {
         daily: "Today",
         weekly: "Last 7 Days",
+        monthly: "This Month",
         yearly: `Year ${startDate.getFullYear()}`,
         custom: `${formatDateLabel(startDate)} to ${formatDateLabel(endDate)}`
     };
@@ -140,13 +148,35 @@ const getCustomerName = (order) => {
     return fullName || order?.shippingAddress?.fullName || "Guest User";
 };
 
+const getItemOriginalUnitPrice = (item) => {
+    const storedOriginalPrice = toNumber(item?.originalPrice);
+    if (storedOriginalPrice > 0) return roundCurrency(storedOriginalPrice);
+
+    const currentVariantPrice = toNumber(item?.productVariantId?.price);
+    if (currentVariantPrice > 0) return roundCurrency(currentVariantPrice);
+
+    return roundCurrency(item?.price);
+};
+
+const getItemOriginalTotal = (item) => {
+    const storedOriginalTotal = toNumber(item?.originalItemTotal);
+    if (storedOriginalTotal > 0) return roundCurrency(storedOriginalTotal);
+
+    return roundCurrency(getItemOriginalUnitPrice(item) * toNumber(item?.quantity));
+};
+
 const getOfferDiscount = (order) => {
     const summaryOfferDiscount = toNumber(order?.summary?.offerDiscount);
     if (summaryOfferDiscount > 0) return roundCurrency(summaryOfferDiscount);
 
-    return roundCurrency(
-        (order?.items || []).reduce((sum, item) => sum + toNumber(item.offerDiscount), 0)
-    );
+    return roundCurrency((order?.items || []).reduce((sum, item) => {
+        const storedOfferDiscount = toNumber(item?.offerDiscount);
+        if (storedOfferDiscount > 0) {
+            return sum + storedOfferDiscount;
+        }
+
+        return sum + Math.max(getItemOriginalTotal(item) - toNumber(item?.itemTotal), 0);
+    }, 0));
 };
 
 const getCouponDiscount = (order) => {
@@ -159,12 +189,98 @@ const getOriginalGrossSubtotal = (order) => {
     const summaryValue = toNumber(order?.summary?.originalGrossSubtotal);
     if (summaryValue > 0) return roundCurrency(summaryValue);
 
-    return roundCurrency(
-        (order?.items || []).reduce(
-            (sum, item) => sum + toNumber(item.originalItemTotal || item.itemTotal),
-            0
-        )
-    );
+    return roundCurrency((order?.items || []).reduce((sum, item) => sum + getItemOriginalTotal(item), 0));
+};
+
+const getGrossSubtotalAfterOffers = (order, couponDiscount = null) => {
+    const summaryGrossSubtotal = toNumber(order?.summary?.grossSubtotal);
+    if (summaryGrossSubtotal > 0) return roundCurrency(summaryGrossSubtotal);
+
+    const normalizedCouponDiscount = couponDiscount ?? getCouponDiscount(order);
+    const shipping = roundCurrency(order?.summary?.shipping);
+    const finalOrderAmount = roundCurrency(order?.summary?.total);
+
+    return roundCurrency(Math.max(finalOrderAmount - shipping + normalizedCouponDiscount, 0));
+};
+
+const getEligibleCouponDiscountForAnalytics = (coupon, grossSubtotal) => {
+    if (!coupon || grossSubtotal <= 0) return 0;
+    if (grossSubtotal < toNumber(coupon.minOrderAmount)) return 0;
+
+    let discount = 0;
+
+    if (coupon.discountType === "percentage") {
+        discount = (grossSubtotal * toNumber(coupon.discountValue)) / 100;
+        if (coupon.maxDiscount) {
+            discount = Math.min(discount, toNumber(coupon.maxDiscount));
+        }
+    } else {
+        discount = toNumber(coupon.discountValue);
+    }
+
+    return roundCurrency(Math.max(Math.min(discount, grossSubtotal), 0));
+};
+
+const resolveCouponSnapshot = (order, couponsByCode, couponsById, allCoupons = []) => {
+    const storedCouponCode = String(order?.summary?.couponCode || "").trim().toUpperCase();
+    const storedCouponId = order?.summary?.couponId ? String(order.summary.couponId) : "";
+    const storedCouponType = order?.summary?.couponDiscountType || "";
+
+    if (storedCouponCode) {
+        const matchedCoupon = couponsByCode.get(storedCouponCode);
+
+        return {
+            code: storedCouponCode,
+            discountType: storedCouponType || matchedCoupon?.discountType || "Not Recorded"
+        };
+    }
+
+    if (storedCouponId) {
+        const matchedCoupon = couponsById.get(storedCouponId);
+
+        if (matchedCoupon) {
+            return {
+                code: matchedCoupon.code,
+                discountType: storedCouponType || matchedCoupon.discountType || "Not Recorded"
+            };
+        }
+    }
+
+    const couponDiscount = getCouponDiscount(order);
+
+    if (couponDiscount <= 0) {
+        return null;
+    }
+
+    const grossSubtotal = getGrossSubtotalAfterOffers(order, couponDiscount);
+    const orderCreatedAt = order?.createdAt ? new Date(order.createdAt) : null;
+
+    const matchingCoupons = allCoupons.filter((coupon) => {
+        if (orderCreatedAt && coupon?.createdAt && new Date(coupon.createdAt) > orderCreatedAt) {
+            return false;
+        }
+
+        if (orderCreatedAt && coupon?.expiresAt && new Date(coupon.expiresAt) < orderCreatedAt) {
+            return false;
+        }
+
+        const expectedDiscount = getEligibleCouponDiscountForAnalytics(coupon, grossSubtotal);
+        return Math.abs(expectedDiscount - couponDiscount) < 0.01;
+    });
+
+    if (matchingCoupons.length === 1) {
+        return {
+            code: matchingCoupons[0].code,
+            discountType: matchingCoupons[0].discountType,
+            inferred: true
+        };
+    }
+
+    return {
+        code: "Not Recorded",
+        discountType: "Not Recorded",
+        inferred: true
+    };
 };
 
 const getOrderFinancials = (order) => {
@@ -175,6 +291,7 @@ const getOrderFinancials = (order) => {
         toNumber(order?.summary?.totalDiscount) || offerDiscount + couponDiscount
     );
     const originalGrossSubtotal = getOriginalGrossSubtotal(order);
+    const grossSubtotal = getGrossSubtotalAfterOffers(order, couponDiscount);
     const grossOrderAmount = roundCurrency(originalGrossSubtotal + shipping);
     const finalOrderAmount = roundCurrency(order?.summary?.total);
     const refundedAmount = roundCurrency(order?.payment?.refundedAmount);
@@ -185,6 +302,7 @@ const getOrderFinancials = (order) => {
 
     return {
         shipping,
+        grossSubtotal,
         offerDiscount,
         couponDiscount,
         totalDiscount,
@@ -226,6 +344,84 @@ const buildQueryString = ({ period, from, to }) => {
     return params.toString();
 };
 
+const getDateSpanInDays = (startDate, endDate) => {
+    const difference = endOfDay(endDate).getTime() - startOfDay(startDate).getTime();
+    return Math.max(1, Math.floor(difference / (1000 * 60 * 60 * 24)) + 1);
+};
+
+const resolveTrendGranularity = ({ period, startDate, endDate }) => {
+    if (period === "yearly") {
+        return "month";
+    }
+
+    return getDateSpanInDays(startDate, endDate) > 92 ? "month" : "day";
+};
+
+const buildTrendBucketKey = (date, granularity) => {
+    if (granularity === "month") {
+        return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`;
+    }
+
+    return formatInputDate(date);
+};
+
+const buildTrendBucketLabel = (date, granularity) => {
+    if (granularity === "month") {
+        return formatShortMonthLabel(date);
+    }
+
+    return formatShortDayLabel(date);
+};
+
+const buildSalesTrend = (trendMap, dateRange) => {
+    const granularity = resolveTrendGranularity(dateRange);
+    const rows = [];
+
+    if (granularity === "month") {
+        const cursor = startOfMonth(dateRange.startDate);
+        const lastMonth = startOfMonth(dateRange.endDate);
+
+        while (cursor <= lastMonth) {
+            const bucketDate = new Date(cursor);
+            const key = buildTrendBucketKey(bucketDate, granularity);
+            const existing = trendMap.get(key);
+
+            rows.push({
+                label: buildTrendBucketLabel(bucketDate, granularity),
+                orders: existing?.orders || 0,
+                grossAmount: roundCurrency(existing?.grossAmount || 0),
+                discount: roundCurrency(existing?.discount || 0),
+                netRevenue: roundCurrency(existing?.netRevenue || 0)
+            });
+
+            cursor.setMonth(cursor.getMonth() + 1);
+        }
+
+        return { granularity, rows };
+    }
+
+    const cursor = startOfDay(dateRange.startDate);
+    const lastDay = startOfDay(dateRange.endDate);
+
+    while (cursor <= lastDay) {
+        const bucketDate = new Date(cursor);
+        const key = buildTrendBucketKey(bucketDate, granularity);
+        const existing = trendMap.get(key);
+
+        rows.push({
+            label: buildTrendBucketLabel(bucketDate, granularity),
+            orders: existing?.orders || 0,
+            grossAmount: roundCurrency(existing?.grossAmount || 0),
+            discount: roundCurrency(existing?.discount || 0),
+            netRevenue: roundCurrency(existing?.netRevenue || 0)
+        });
+
+        cursor.setDate(cursor.getDate() + 1);
+    }
+
+    return { granularity, rows };
+};
+
 export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" } = {}) => {
     const dateRange = buildDateRange({ period, from, to });
     const query = {
@@ -237,21 +433,15 @@ export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" 
 
     const orders = await Order.find(query)
         .populate("userId", "firstName lastName email")
+        .populate({ path: "items.productVariantId", select: "price" })
         .sort({ createdAt: -1 })
         .lean();
 
-    const couponCodes = Array.from(
-        new Set(
-            orders
-                .map((order) => order?.summary?.couponCode)
-                .filter(Boolean)
-        )
-    );
-
-    const couponDetails = couponCodes.length
-        ? await Coupon.find({ code: { $in: couponCodes } }).select("code discountType").lean()
-        : [];
-    const couponTypeMap = new Map(couponDetails.map((coupon) => [coupon.code, coupon.discountType]));
+    const allCoupons = await Coupon.find({})
+        .select("code discountType discountValue minOrderAmount maxDiscount expiresAt createdAt")
+        .lean();
+    const couponMapByCode = new Map(allCoupons.map((coupon) => [coupon.code, coupon]));
+    const couponMapById = new Map(allCoupons.map((coupon) => [String(coupon._id), coupon]));
 
     let salesCount = 0;
     let grossOrderAmount = 0;
@@ -268,11 +458,14 @@ export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" 
     const productBreakdownMap = new Map();
     const orderStatusMap = new Map();
     const paymentMethodMap = new Map();
+    const salesTrendMap = new Map();
+    const trendGranularity = resolveTrendGranularity(dateRange);
 
     orders.forEach((order) => {
         const financials = getOrderFinancials(order);
         const customerName = getCustomerName(order);
-        const couponCode = order?.summary?.couponCode || (financials.couponDiscount > 0 ? "Applied Coupon" : "");
+        const couponSnapshot = resolveCouponSnapshot(order, couponMapByCode, couponMapById, allCoupons);
+        const couponCode = couponSnapshot?.code || "";
         const orderTotalAllocations = financials.isPaidOrder
             ? allocateAmountAcrossItems(order.items, financials.finalOrderAmount)
             : new Map((order.items || []).map((item) => [String(item._id), 0]));
@@ -297,7 +490,7 @@ export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" 
             const existingCoupon = couponUsageMap.get(couponCode) || {
                 code: couponCode,
                 timesUsed: 0,
-                discountType: couponTypeMap.get(couponCode) || "Unknown",
+                discountType: couponSnapshot?.discountType || "Not Recorded",
                 totalDiscount: 0
             };
 
@@ -329,6 +522,27 @@ export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" 
         );
         paymentMethodMap.set(paymentMethod, existingPaymentMethod);
 
+        const trendDate = new Date(order.createdAt);
+        const trendKey = buildTrendBucketKey(trendDate, trendGranularity);
+        const existingTrend = salesTrendMap.get(trendKey) || {
+            grossAmount: 0,
+            discount: 0,
+            netRevenue: 0,
+            orders: 0
+        };
+
+        existingTrend.orders += 1;
+        existingTrend.grossAmount = roundCurrency(
+            existingTrend.grossAmount + financials.grossOrderAmount
+        );
+        existingTrend.discount = roundCurrency(
+            existingTrend.discount + financials.totalDiscount
+        );
+        existingTrend.netRevenue = roundCurrency(
+            existingTrend.netRevenue + financials.retainedRevenue
+        );
+        salesTrendMap.set(trendKey, existingTrend);
+
         reportRows.push({
             id: order._id,
             orderId: order.orderId,
@@ -345,13 +559,14 @@ export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" 
             paymentMethod,
             paymentStatus: order?.payment?.status || "Pending",
             orderStatus: currentOrderStatus,
-            couponCode
+            couponCode,
+            couponDiscountType: couponSnapshot?.discountType || ""
         });
 
         (order.items || []).forEach((item) => {
             const itemId = String(item._id);
             const key = item.productName || "Unknown Product";
-            const originalItemTotal = roundCurrency(item.originalItemTotal || item.itemTotal);
+            const originalItemTotal = getItemOriginalTotal(item);
             const currentOfferDiscount = roundCurrency(
                 toNumber(item.offerDiscount) || Math.max(originalItemTotal - toNumber(item.itemTotal), 0)
             );
@@ -417,6 +632,7 @@ export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" 
 
     const orderStatusDistribution = buildDistributionArray(orderStatusMap, ORDER_STATUS_ORDER);
     const paymentMethodDistribution = buildDistributionArray(paymentMethodMap, PAYMENT_METHOD_ORDER);
+    const salesTrend = buildSalesTrend(salesTrendMap, dateRange);
 
     return {
         filters: {
@@ -437,6 +653,7 @@ export const getSalesAnalytics = async ({ period = "weekly", from = "", to = "" 
         productBreakdown,
         orderStatusDistribution,
         paymentMethodDistribution,
+        salesTrend,
         topProducts: productBreakdown.slice(0, 5)
     };
 };

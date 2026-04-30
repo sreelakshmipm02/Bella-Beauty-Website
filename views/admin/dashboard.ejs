@@ -1,185 +1,336 @@
 <%- include("../partials/adminHeader") %>
-        <div class="mb-10">
-            <h2 class="text-4xl font-display text-slate-900 dark:text-white mb-2">Dashboard Overview</h2>
-            <p class="text-slate-500 dark:text-slate-400">Welcome back, Admin! Here's what's happening today.</p>
+
+<%
+    const hasSalesTrendData = salesTrend?.rows?.some((row) => row.orders > 0 || row.netRevenue > 0);
+    const hasStatusData = Array.isArray(orderStatusDistribution) && orderStatusDistribution.length > 0;
+    const hasPaymentData = Array.isArray(paymentMethodDistribution) && paymentMethodDistribution.length > 0;
+%>
+
+<div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
+    <div>
+        <h2 class="text-3xl font-display text-slate-900 dark:text-white mb-2">Dashboard Overview</h2>
+        <p class="text-slate-500 dark:text-slate-400">
+            Business summary for <span class="font-semibold text-slate-700 dark:text-slate-200"><%= filters.label %></span>.
+        </p>
+    </div>
+
+    <form action="/admin/dashboard" method="GET" class="flex flex-col md:flex-row gap-4 items-end" id="dashboardFilterForm">
+        <div class="w-full md:w-48">
+            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time Period</label>
+            <select name="period" id="dashboardPeriodSelect" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
+                <option value="daily" <%= filters.period === "daily" ? "selected" : "" %>>Today</option>
+                <option value="weekly" <%= filters.period === "weekly" ? "selected" : "" %>>Last 7 Days</option>
+                <option value="monthly" <%= filters.period === "monthly" ? "selected" : "" %>>This Month</option>
+                <option value="yearly" <%= filters.period === "yearly" ? "selected" : "" %>>This Year</option>
+                <option value="custom" <%= filters.period === "custom" ? "selected" : "" %>>Custom Range</option>
+            </select>
         </div>
-        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
-            <div
-                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <div class="flex justify-between items-start mb-4">
-                    <div
-                        class="p-3 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 rounded-xl">
-                        <span class="material-icons-outlined">account_balance_wallet</span>
-                    </div>
-                    <span
-                        class="text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-900/30 px-2 py-1 rounded-full">+12.5%
-                        ↑</span>
-                </div>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Revenue</p>
-                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">₹4,25,390</p>
+
+        <div id="dashboardCustomDates" class="flex flex-col md:flex-row gap-4 w-full lg:w-auto <%= filters.period === 'custom' ? '' : 'hidden' %>">
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From</label>
+                <input type="date" name="from" value="<%= filters.from %>" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
             </div>
-            <div
-                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="p-3 bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 rounded-xl">
-                        <span class="material-icons-outlined">shopping_bag</span>
-                    </div>
-                    <span
-                        class="text-xs font-bold text-blue-600 bg-blue-50 dark:bg-blue-900/30 px-2 py-1 rounded-full">+5.2%
-                        ↑</span>
-                </div>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Total Orders</p>
-                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">1,245</p>
+            <div>
+                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To</label>
+                <input type="date" name="to" value="<%= filters.to %>" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
             </div>
-            <div
-                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="p-3 bg-purple-50 dark:bg-purple-900/20 text-purple-600 dark:text-purple-400 rounded-xl">
-                        <span class="material-icons-outlined">group</span>
-                    </div>
-                    <span
-                        class="text-xs font-bold text-red-600 bg-red-50 dark:bg-red-900/30 px-2 py-1 rounded-full">-1.4%
-                        ↓</span>
-                </div>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Active Users</p>
-                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">8,520</p>
-            </div>
-            <div
-                class="bg-white dark:bg-slate-900 p-6 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800">
-                <div class="flex justify-between items-start mb-4">
-                    <div class="p-3 bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 rounded-xl">
-                        <span class="material-icons-outlined">support_agent</span>
-                    </div>
-                    <span
-                        class="text-[10px] font-bold text-slate-500 dark:text-slate-300 bg-slate-100 dark:bg-slate-800 px-2 py-1 rounded-full tracking-wider uppercase">New</span>
-                </div>
-                <p class="text-slate-500 dark:text-slate-400 text-sm font-medium mb-1">Pending Queries</p>
-                <p class="text-2xl font-display font-bold text-slate-900 dark:text-white">42</p>
-            </div>
+            <button type="submit" class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition">
+                Apply
+            </button>
         </div>
-        <div
-            class="bg-white dark:bg-slate-900 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-            <div class="px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
-                <h3 class="text-xl font-display font-bold text-slate-900 dark:text-white">Recent Orders</h3>
-                <a class="text-primary hover:underline text-sm font-semibold flex items-center gap-1" href="#">
-                    View All <span class="material-icons-outlined !text-sm">trending_flat</span>
-                </a>
-            </div>
-            <div class="overflow-x-auto">
-                <table class="w-full text-left">
-                    <thead>
-                        <tr
-                            class="bg-slate-50 dark:bg-slate-800/50 text-[10px] font-bold text-slate-400 uppercase tracking-widest">
-                            <th class="px-8 py-4">Order ID</th>
-                            <th class="px-8 py-4">Customer</th>
-                            <th class="px-8 py-4">Status</th>
-                            <th class="px-8 py-4">Amount</th>
-                            <th class="px-8 py-4 text-center">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody class="divide-y divide-slate-100 dark:divide-slate-800">
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                #ORD-9281</td>
-                            <td class="px-8 py-5">
-                                <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 rounded-full bg-pink-100 dark:bg-pink-900/30 text-pink-600 dark:text-pink-400 text-xs font-bold flex items-center justify-center">
-                                        SJ</div>
-                                    <span class="text-sm font-medium">Sarah J.</span>
-                                </div>
-                            </td>
-                            <td class="px-8 py-5">
-                                <span
-                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-blue-600"></span>
-                                    Processing
-                                </span>
-                            </td>
-                            <td class="px-8 py-5 text-sm font-display font-bold">₹1,491.00</td>
-                            <td class="px-8 py-5 text-center">
-                                <button class="text-slate-400 hover:text-primary transition-colors">
-                                    <span class="material-icons-outlined">visibility</span>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                #ORD-9280</td>
-                            <td class="px-8 py-5">
-                                <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 text-xs font-bold flex items-center justify-center">
-                                        MK</div>
-                                    <span class="text-sm font-medium">Mike K.</span>
-                                </div>
-                            </td>
-                            <td class="px-8 py-5">
-                                <span
-                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-emerald-600"></span>
-                                    Delivered
-                                </span>
-                            </td>
-                            <td class="px-8 py-5 text-sm font-display font-bold">₹5,200.00</td>
-                            <td class="px-8 py-5 text-center">
-                                <button class="text-slate-400 hover:text-primary transition-colors">
-                                    <span class="material-icons-outlined">visibility</span>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                #ORD-9279</td>
-                            <td class="px-8 py-5">
-                                <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 rounded-full bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 text-xs font-bold flex items-center justify-center">
-                                        AL</div>
-                                    <span class="text-sm font-medium">Amy L.</span>
-                                </div>
-                            </td>
-                            <td class="px-8 py-5">
-                                <span
-                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-amber-600"></span>
-                                    Pending
-                                </span>
-                            </td>
-                            <td class="px-8 py-5 text-sm font-display font-bold">₹899.00</td>
-                            <td class="px-8 py-5 text-center">
-                                <button class="text-slate-400 hover:text-primary transition-colors">
-                                    <span class="material-icons-outlined">visibility</span>
-                                </button>
-                            </td>
-                        </tr>
-                        <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors group">
-                            <td class="px-8 py-5 text-sm font-display font-bold text-primary tracking-tight">
-                                #ORD-9278</td>
-                            <td class="px-8 py-5">
-                                <div class="flex items-center gap-3">
-                                    <div
-                                        class="w-8 h-8 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 text-xs font-bold flex items-center justify-center">
-                                        RP</div>
-                                    <span class="text-sm font-medium">Raj P.</span>
-                                </div>
-                            </td>
-                            <td class="px-8 py-5">
-                                <span
-                                    class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400">
-                                    <span class="w-1.5 h-1.5 rounded-full bg-red-600"></span>
-                                    Cancelled
-                                </span>
-                            </td>
-                            <td class="px-8 py-5 text-sm font-display font-bold">₹2,150.00</td>
-                            <td class="px-8 py-5 text-center">
-                                <button class="text-slate-400 hover:text-primary transition-colors">
-                                    <span class="material-icons-outlined">visibility</span>
-                                </button>
-                            </td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
+    </form>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Period Metrics</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Metric</th>
+                    <th class="px-6 py-4">Value</th>
+                    <th class="px-6 py-4">Notes</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <tr>
+                    <td class="px-6 py-4 font-medium">Net Revenue</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(periodSummary.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Retained after discounts and refunds</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Orders In Period</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(periodSummary.salesCount).toLocaleString("en-IN") %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Orders created in the selected range</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Paid Orders</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(periodSummary.paidOrdersCount).toLocaleString("en-IN") %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Successful orders contributing revenue</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Average Order Value</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(periodSummary.averageOrderValue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Gross order amount divided by order count</td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Store Metrics</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Metric</th>
+                    <th class="px-6 py-4">Value</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <tr>
+                    <td class="px-6 py-4 font-medium">Lifetime Revenue</td>
+                    <td class="px-6 py-4 font-semibold">₹<%= Number(totalRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Total Orders</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(totalOrders).toLocaleString("en-IN") %></td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Active Users</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(activeUsers).toLocaleString("en-IN") %></td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Pending Orders</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(pendingOrdersCount).toLocaleString("en-IN") %></td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Low Stock Variants</td>
+                    <td class="px-6 py-4 font-semibold"><%= Number(lowStockCount || 0).toLocaleString("en-IN") %></td>
+                </tr>
+            </tbody>
+        </table>
+    </div>
+    <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800">
+        <a href="/admin/inventory?lowStock=true" class="text-sm font-semibold text-primary hover:underline">Review low stock items</a>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4">
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Sales Trend</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Revenue and order movement across <%= filters.label %>.</p>
         </div>
-        <%- include("../partials/adminFooter") %>
+        <a href="/admin/analytics?<%= filters.queryString %>" class="text-sm font-semibold text-primary hover:underline">Open full analysis</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Period</th>
+                    <th class="px-6 py-4">Orders</th>
+                    <th class="px-6 py-4">Gross Amount</th>
+                    <th class="px-6 py-4">Discount</th>
+                    <th class="px-6 py-4">Net Revenue</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (hasSalesTrendData) { %>
+                    <% salesTrend.rows.forEach((row) => { %>
+                        <tr>
+                            <td class="px-6 py-4 font-medium"><%= row.label %></td>
+                            <td class="px-6 py-4"><%= row.orders %></td>
+                            <td class="px-6 py-4">₹<%= Number(row.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 text-red-500">₹<%= Number(row.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(row.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No sales trend data available for this period.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Order Status Distribution</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Status</th>
+                        <th class="px-6 py-4">Orders</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                    <% if (hasStatusData) { %>
+                        <% orderStatusDistribution.forEach((status) => { %>
+                            <tr>
+                                <td class="px-6 py-4 font-medium"><%= status.label %></td>
+                                <td class="px-6 py-4 font-semibold"><%= status.count %></td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="2" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No order status activity in this period.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Payment Method Distribution</h3>
+        </div>
+        <div class="overflow-x-auto">
+            <table class="w-full text-left">
+                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                    <tr>
+                        <th class="px-6 py-4">Method</th>
+                        <th class="px-6 py-4">Orders</th>
+                        <th class="px-6 py-4">Order Amount</th>
+                        <th class="px-6 py-4">Revenue</th>
+                    </tr>
+                </thead>
+                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                    <% if (hasPaymentData) { %>
+                        <% paymentMethodDistribution.forEach((method) => { %>
+                            <tr>
+                                <td class="px-6 py-4 font-medium"><%= method.label %></td>
+                                <td class="px-6 py-4"><%= method.count || 0 %></td>
+                                <td class="px-6 py-4">₹<%= Number(method.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                                <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(method.revenue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            </tr>
+                        <% }) %>
+                    <% } else { %>
+                        <tr>
+                            <td colspan="4" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No payment activity in this period.</td>
+                        </tr>
+                    <% } %>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
+        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Top Products</h3>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Rank</th>
+                    <th class="px-6 py-4">Product</th>
+                    <th class="px-6 py-4">Units</th>
+                    <th class="px-6 py-4">Gross</th>
+                    <th class="px-6 py-4">Discount</th>
+                    <th class="px-6 py-4">Net</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (topProducts && topProducts.length > 0) { %>
+                    <% topProducts.forEach((product, index) => { %>
+                        <tr>
+                            <td class="px-6 py-4 font-semibold"><%= index + 1 %></td>
+                            <td class="px-6 py-4 font-medium"><%= product.productName %></td>
+                            <td class="px-6 py-4"><%= product.unitsOrdered %></td>
+                            <td class="px-6 py-4">₹<%= Number(product.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 text-red-500">₹<%= Number(product.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(product.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No product performance data available for this period.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
+    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4">
+        <div>
+            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recent Orders</h3>
+            <p class="text-sm text-slate-500 dark:text-slate-400">Latest order activity across the store.</p>
+        </div>
+        <a href="/admin/orders" class="text-sm font-semibold text-primary hover:underline">View all orders</a>
+    </div>
+    <div class="overflow-x-auto">
+        <table class="w-full text-left">
+            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                <tr>
+                    <th class="px-6 py-4">Order ID</th>
+                    <th class="px-6 py-4">Customer</th>
+                    <th class="px-6 py-4">Status</th>
+                    <th class="px-6 py-4">Amount</th>
+                    <th class="px-6 py-4 text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
+                <% if (typeof recentOrders !== "undefined" && recentOrders.length > 0) { %>
+                    <% recentOrders.forEach((order) => { %>
+                        <%
+                            let customerName = "Guest User";
+                            if (order.userId && order.userId.firstName) {
+                                customerName = `${order.userId.firstName} ${order.userId.lastName || ""}`.trim();
+                            } else if (order.shippingAddress && order.shippingAddress.fullName) {
+                                customerName = order.shippingAddress.fullName.trim();
+                            }
+                        %>
+                        <tr>
+                            <td class="px-6 py-4 font-semibold text-primary"><%= order.orderId %></td>
+                            <td class="px-6 py-4"><%= customerName %></td>
+                            <td class="px-6 py-4"><%= order.orderStatus %></td>
+                            <td class="px-6 py-4">₹<%= order.summary && order.summary.total ? Number(order.summary.total).toFixed(2) : "0.00" %></td>
+                            <td class="px-6 py-4 text-center">
+                                <a href="/admin/orders/<%= order._id %>" class="text-primary hover:underline">View</a>
+                            </td>
+                        </tr>
+                    <% }) %>
+                <% } else { %>
+                    <tr>
+                        <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No recent orders found.</td>
+                    </tr>
+                <% } %>
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    const dashboardPeriodSelect = document.getElementById("dashboardPeriodSelect");
+    const dashboardCustomDates = document.getElementById("dashboardCustomDates");
+
+    if (dashboardPeriodSelect && dashboardCustomDates) {
+        dashboardPeriodSelect.addEventListener("change", function () {
+            if (this.value === "custom") {
+                dashboardCustomDates.classList.remove("hidden");
+                return;
+            }
+
+            dashboardCustomDates.classList.add("hidden");
+            this.form.submit();
+        });
+    }
+</script>
+
+<%- include("../partials/adminFooter") %>

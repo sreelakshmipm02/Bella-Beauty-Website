@@ -1,7 +1,9 @@
 import { authenticateAdmin } from "../../services/adminServices/adminAuth.js";
 import { generateAdminResetToken, resetAdminPassword } from "../../services/adminServices/adminPassword.js";
 import { toggleUserBlockStatus, fetchUsersWithFilter } from "../../services/adminServices/userManagement.js";
+import { getDashboardMetrics } from "../../services/adminServices/dashboardService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
+
 
 // Render Login Page
 export const adminLoginPage = (req, res) => {
@@ -40,9 +42,15 @@ export const adminLogin = async (req, res) => {
 };
 
 // Render Dashboard Page
-export const dashboardPage = (req, res) => {
-    res.render('admin/dashboard');
-};
+export const dashboardPage = asyncHandler(async (req, res) => {
+    const dashboardData = await getDashboardMetrics(req.query);
+
+    res.render("admin/dashboard", {
+        title: "Admin Dashboard - Bella",
+        path: "/admin/dashboard",
+        ...dashboardData 
+    });
+});
 
 // 1. Render Forgot Password Page
 export const adminForgotPasswordPage = (req, res) => {

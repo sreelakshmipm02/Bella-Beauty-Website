@@ -74,6 +74,11 @@ import {
     toggleOfferStatus
 } from "../controllers/admin/offerController.js";
 
+import {
+    analyticsPage,
+    downloadSalesReport
+} from "../controllers/admin/analyticsController.js";
+
 const router = express.Router();
 
 // ---------------------------------------------------------
@@ -162,5 +167,11 @@ router.post('/offers', checkAdminSession, createOffer);
 router.get('/offers/:id', checkAdminSession, getOfferDetails);
 router.put('/offers/:id', checkAdminSession, updateOffer);
 router.patch('/offers/:id/status', checkAdminSession, toggleOfferStatus);
+
+// ---------------------------------------------------------
+//  ANALYTICS & REPORTING
+// ---------------------------------------------------------
+router.get('/analytics', checkAdminSession, preventCache, analyticsPage);
+router.get('/analytics/download/:format', checkAdminSession, downloadSalesReport);
 
 export default router;

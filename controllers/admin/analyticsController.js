@@ -10,15 +10,17 @@ const buildReportFileName = (analytics, extension) => {
     const period = analytics.filters.period || "weekly";
     const from = analytics.filters.from || "start";
     const to = analytics.filters.to || "end";
-    return `bella-sales-report-${period}-${from}-to-${to}.${extension}`;
+    return `Bella-Sales-Report-${period}-${from}-to-${to}.${extension}`;
 };
 
 export const analyticsPage = asyncHandler(async (req, res) => {
+    // Fetches the data using your existing powerful service
     const analytics = await getSalesAnalytics(req.query);
 
     res.render("admin/analytics", {
-        title: "Sales Analytics",
-        analytics
+        title: "Sales Analytics - Bella Admin",
+        analytics,
+        path: '/admin/analytics' // Helps highlight the active sidebar link
     });
 });
 

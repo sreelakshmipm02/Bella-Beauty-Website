@@ -3,6 +3,7 @@ import crypto from "crypto";
 import Razorpay from "razorpay";
 import Order from "../../models/order.js";
 import Cart from "../../models/cart.js";
+import Coupon from "../../models/coupon.js";
 import ProductVariant from "../../models/productVariant.js";
 import { getCartData } from "./cartService.js";
 import { getAddressById } from "./userAddress.js";
@@ -99,6 +100,7 @@ export const processCheckout = async (userId, addressId, paymentMethod, transact
     ensureValidPaymentMethod(paymentMethod);
 
     const cartData = await getCartData(userId);
+    const cartRecord = await Cart.findOne({ userId }).select("appliedCoupon");
 
     if (!cartData || cartData.items.length === 0) {
         throw new AppError("Your cart is empty.", 400);
@@ -112,13 +114,40 @@ export const processCheckout = async (userId, addressId, paymentMethod, transact
 
     await ensureCheckoutStock(cartData.items);
 
+    let couponSnapshot = null;
+
+    if (cartRecord?.appliedCoupon?.couponId || cartData.appliedCoupon?.code) {
+        const coupon = cartRecord?.appliedCoupon?.couponId
+            ? await Coupon.findById(cartRecord.appliedCoupon.couponId).select("code discountType")
+            : await Coupon.findOne({ code: cartData.appliedCoupon.code }).select("code discountType");
+
+        couponSnapshot = {
+            _id: coupon?._id || cartRecord?.appliedCoupon?.couponId || null,
+            code: coupon?.code || cartData.appliedCoupon?.code || null,
+            discountType: coupon?.discountType || null,
+            discountAmount: Number(cartData.appliedCoupon?.discountAmount || cartData.summary.discount || 0)
+        };
+    }
+
     const orderItems = cartData.items.map((item) => ({
         productVariantId: item.variantId,
         productName: item.productName,
         image: item.image,
         price: Number(item.price),
+        originalPrice: Number(item.originalPrice || item.price),
         quantity: item.quantity,
         itemTotal: Number(item.itemTotal),
+        originalItemTotal: Number(item.originalItemTotal || item.itemTotal),
+        offerDiscount: Number(item.offerDiscount || 0),
+        appliedOffer: item.appliedOffer ? {
+            offerId: item.appliedOffer._id || null,
+            offerName: item.appliedOffer.offerName || null,
+            offerType: item.appliedOffer.offerType || null,
+            discountType: item.appliedOffer.discountType || null,
+            discountValue: Number(item.appliedOffer.discountValue || 0),
+            maxDiscountValue: Number(item.appliedOffer.maxDiscountValue || 0),
+            label: item.appliedOffer.label || null
+        } : undefined,
         status: "Pending",
         refund: {
             status: "None",
@@ -151,7 +180,15 @@ export const processCheckout = async (userId, addressId, paymentMethod, transact
             subtotal: Number(cartData.summary.subtotal),
             tax: Number(cartData.summary.tax),
             shipping: Number(cartData.summary.shipping),
+            grossSubtotal: Number(cartData.summary.grossSubtotal || 0),
+            originalGrossSubtotal: Number(cartData.summary.originalGrossSubtotal || 0),
+            offerDiscount: Number(cartData.summary.offerSavings || 0),
             discount: Number(cartData.summary.discount),
+            couponDiscount: Number(couponSnapshot?.discountAmount || cartData.summary.discount || 0),
+            totalDiscount: Number(cartData.summary.totalDiscount || 0),
+            couponCode: couponSnapshot?.code || undefined,
+            couponDiscountType: couponSnapshot?.discountType || undefined,
+            couponId: couponSnapshot?._id || undefined,
             total: totalAmount
         },
         orderStatus: "Pending"
