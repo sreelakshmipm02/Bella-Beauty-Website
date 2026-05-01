@@ -4,316 +4,584 @@
     const hasSalesTrendData = salesTrend?.rows?.some((row) => row.orders > 0 || row.netRevenue > 0);
     const hasStatusData = Array.isArray(orderStatusDistribution) && orderStatusDistribution.length > 0;
     const hasPaymentData = Array.isArray(paymentMethodDistribution) && paymentMethodDistribution.length > 0;
+
+    const formatCurrency = (value) =>
+        `₹${Number(value || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    const formatNumber = (value) => Number(value || 0).toLocaleString("en-IN");
+    const getPercentage = (value, total) => (total > 0 ? Math.round((Number(value || 0) / total) * 100) : 0);
+    const totalStatusOrders = hasStatusData
+        ? orderStatusDistribution.reduce((sum, item) => sum + Number(item.count || 0), 0)
+        : 0;
+    const totalPaymentOrders = hasPaymentData
+        ? paymentMethodDistribution.reduce((sum, item) => sum + Number(item.count || 0), 0)
+        : 0;
+    const maxTrendRevenue = hasSalesTrendData
+        ? Math.max(...salesTrend.rows.map((row) => Number(row.netRevenue || 0)), 1)
+        : 1;
+    const maxPaymentRevenue = hasPaymentData
+        ? Math.max(...paymentMethodDistribution.map((method) => Number(method.revenue || 0)), 1)
+        : 1;
+    const maxTopProductRevenue = topProducts && topProducts.length > 0
+        ? Math.max(...topProducts.map((product) => Number(product.netRevenue || 0)), 1)
+        : 1;
+    const topStatus = hasStatusData
+        ? orderStatusDistribution.reduce((best, item) => (!best || item.count > best.count ? item : best), null)
+        : null;
+    const topPaymentMethod = hasPaymentData
+        ? paymentMethodDistribution.reduce((best, item) => (!best || item.count > best.count ? item : best), null)
+        : null;
+    const storeAlert = lowStockCount > 0
+        ? `${formatNumber(lowStockCount)} low stock variants need your attention.`
+        : pendingOrdersCount > 0
+            ? `${formatNumber(pendingOrdersCount)} orders are still waiting for action.`
+            : "Operations look healthy and up to date.";
+    const getOrderStatusClass = (status = "") => {
+        switch (status.toLowerCase()) {
+            case "delivered":
+                return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
+            case "pending":
+                return "bg-amber-50 text-amber-700 ring-1 ring-amber-100";
+            case "processing":
+                return "bg-violet-50 text-violet-700 ring-1 ring-violet-100";
+            case "shipped":
+                return "bg-sky-50 text-sky-700 ring-1 ring-sky-100";
+            case "cancelled":
+                return "bg-rose-50 text-rose-700 ring-1 ring-rose-100";
+            case "returned":
+                return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+            default:
+                return "bg-slate-100 text-slate-700 ring-1 ring-slate-200";
+        }
+    };
 %>
 
-<div class="mb-8 flex flex-col lg:flex-row lg:items-end justify-between gap-6">
-    <div>
-        <h2 class="text-3xl font-display text-slate-900 dark:text-white mb-2">Dashboard Overview</h2>
-        <p class="text-slate-500 dark:text-slate-400">
-            Business summary for <span class="font-semibold text-slate-700 dark:text-slate-200"><%= filters.label %></span>.
-        </p>
-    </div>
+<div class="space-y-8">
+    <section class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 p-[1px] shadow-[0_24px_60px_-24px_rgba(244,63,94,0.5)]">
+        <div class="absolute -left-12 top-10 h-32 w-32 rounded-full bg-white/15 blur-3xl"></div>
+        <div class="absolute right-0 top-0 h-52 w-52 rounded-full bg-amber-200/20 blur-3xl"></div>
+        <div class="relative rounded-[27px] bg-slate-950 text-white">
+            <div class="grid grid-cols-1 xl:grid-cols-[1.6fr_0.9fr] gap-6 p-6 lg:p-8">
+                <div class="space-y-6">
+                    <div class="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
+                        <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1">Admin dashboard</span>
+                        <span class="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-emerald-100">
+                            <%= filters.label %>
+                        </span>
+                        <% if (topStatus) { %>
+                            <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                                Top status: <%= topStatus.label %>
+                            </span>
+                        <% } %>
+                    </div>
 
-    <form action="/admin/dashboard" method="GET" class="flex flex-col md:flex-row gap-4 items-end" id="dashboardFilterForm">
-        <div class="w-full md:w-48">
-            <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">Time Period</label>
-            <select name="period" id="dashboardPeriodSelect" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
-                <option value="daily" <%= filters.period === "daily" ? "selected" : "" %>>Today</option>
-                <option value="weekly" <%= filters.period === "weekly" ? "selected" : "" %>>Last 7 Days</option>
-                <option value="monthly" <%= filters.period === "monthly" ? "selected" : "" %>>This Month</option>
-                <option value="yearly" <%= filters.period === "yearly" ? "selected" : "" %>>This Year</option>
-                <option value="custom" <%= filters.period === "custom" ? "selected" : "" %>>Custom Range</option>
-            </select>
-        </div>
+                    <div class="max-w-3xl">
+                        <h2 class="text-3xl lg:text-4xl font-display font-bold leading-tight">
+                            A friendlier snapshot of how Bella is performing right now.
+                        </h2>
+                        <p class="mt-3 max-w-2xl text-sm lg:text-base text-white/75 leading-7">
+                            Track revenue, order flow, stock pressure, and customer activity from one place without jumping into the analytics screen.
+                        </p>
+                    </div>
 
-        <div id="dashboardCustomDates" class="flex flex-col md:flex-row gap-4 w-full lg:w-auto <%= filters.period === 'custom' ? '' : 'hidden' %>">
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">From</label>
-                <input type="date" name="from" value="<%= filters.from %>" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
+                    <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                        <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+                            <p class="text-xs uppercase tracking-[0.2em] text-white/60">Lifetime Revenue</p>
+                            <p class="mt-2 text-2xl font-semibold"><%= formatCurrency(totalRevenue) %></p>
+                            <p class="mt-1 text-sm text-white/70">Total retained sales across the store.</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+                            <p class="text-xs uppercase tracking-[0.2em] text-white/60">Active Users</p>
+                            <p class="mt-2 text-2xl font-semibold"><%= formatNumber(activeUsers) %></p>
+                            <p class="mt-1 text-sm text-white/70">Customers currently eligible to shop.</p>
+                        </div>
+                        <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
+                            <p class="text-xs uppercase tracking-[0.2em] text-white/60">Ops Alert</p>
+                            <p class="mt-2 text-lg font-semibold"><%= formatNumber(lowStockCount || 0) %> low stock</p>
+                            <p class="mt-1 text-sm text-white/70"><%= storeAlert %></p>
+                        </div>
+                    </div>
+
+                    <div class="flex flex-wrap gap-3">
+                        <a href="/admin/analytics?<%= filters.queryString %>"
+                            class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-rose-50">
+                            <span class="material-icons-outlined text-[18px]">insights</span>
+                            Open full analysis
+                        </a>
+                        <a href="/admin/inventory?lowStock=true"
+                            class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15">
+                            <span class="material-icons-outlined text-[18px]">inventory_2</span>
+                            Review low stock
+                        </a>
+                        <a href="/admin/orders"
+                            class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15">
+                            <span class="material-icons-outlined text-[18px]">receipt_long</span>
+                            View orders
+                        </a>
+                    </div>
+                </div>
+
+                <div class="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur-md">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs uppercase tracking-[0.24em] text-white/60">Dashboard Filters</p>
+                            <h3 class="mt-2 text-xl font-semibold">Refine this view</h3>
+                        </div>
+                        <div class="rounded-2xl bg-white/10 px-3 py-2 text-right">
+                            <p class="text-[11px] uppercase tracking-[0.2em] text-white/60">Focus</p>
+                            <p class="mt-1 text-sm font-semibold text-white"><%= filters.label %></p>
+                        </div>
+                    </div>
+
+                    <form action="/admin/dashboard" method="GET" class="mt-6 space-y-4" id="dashboardFilterForm">
+                        <div>
+                            <label class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-white/60">Time Period</label>
+                            <select name="period" id="dashboardPeriodSelect"
+                                class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10">
+                                <option value="daily" <%= filters.period === "daily" ? "selected" : "" %>>Today</option>
+                                <option value="weekly" <%= filters.period === "weekly" ? "selected" : "" %>>Last 7 Days</option>
+                                <option value="monthly" <%= filters.period === "monthly" ? "selected" : "" %>>This Month</option>
+                                <option value="yearly" <%= filters.period === "yearly" ? "selected" : "" %>>This Year</option>
+                                <option value="custom" <%= filters.period === "custom" ? "selected" : "" %>>Custom Range</option>
+                            </select>
+                        </div>
+
+                        <div id="dashboardCustomDates" class="grid grid-cols-1 sm:grid-cols-2 gap-4 <%= filters.period === 'custom' ? '' : 'hidden' %>">
+                            <div>
+                                <label class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-white/60">From</label>
+                                <input type="date" name="from" value="<%= filters.from %>"
+                                    class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10">
+                            </div>
+                            <div>
+                                <label class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-white/60">To</label>
+                                <input type="date" name="to" value="<%= filters.to %>"
+                                    class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                            <button type="submit"
+                                class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-rose-50">
+                                <span class="material-icons-outlined text-[18px]">tune</span>
+                                Apply filters
+                            </button>
+                            <a href="/admin/dashboard"
+                                class="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                                <span class="material-icons-outlined text-[18px]">restart_alt</span>
+                                Reset
+                            </a>
+                        </div>
+                    </form>
+
+                    <div class="mt-5 rounded-2xl border border-white/10 bg-slate-900/50 p-4">
+                        <p class="text-xs uppercase tracking-[0.2em] text-white/55">Quick Notes</p>
+                        <ul class="mt-3 space-y-2 text-sm text-white/75">
+                            <li class="flex items-start gap-2">
+                                <span class="mt-0.5 h-2 w-2 rounded-full bg-emerald-400"></span>
+                                <span><%= formatNumber(periodSummary.salesCount) %> orders were created in this selected window.</span>
+                            </li>
+                            <li class="flex items-start gap-2">
+                                <span class="mt-0.5 h-2 w-2 rounded-full bg-amber-300"></span>
+                                <span><%= topPaymentMethod ? `${topPaymentMethod.label} is the leading payment mode.` : "No dominant payment method in this range yet." %></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
             </div>
-            <div>
-                <label class="block text-xs font-bold text-slate-500 uppercase tracking-wider mb-2">To</label>
-                <input type="date" name="to" value="<%= filters.to %>" class="w-full px-4 py-2 rounded-lg border border-slate-200 focus:ring-primary focus:border-primary bg-white dark:bg-slate-900 outline-none transition">
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Net Revenue</p>
+                    <h3 class="mt-3 text-2xl font-semibold text-slate-900"><%= formatCurrency(periodSummary.netRevenue) %></h3>
+                </div>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                    <span class="material-icons-outlined">payments</span>
+                </span>
             </div>
-            <button type="submit" class="px-6 py-2 bg-slate-900 hover:bg-slate-800 text-white font-semibold rounded-lg transition">
-                Apply
-            </button>
+            <p class="mt-4 text-sm text-slate-500">Retained after returns, discounts, and refund deductions.</p>
         </div>
-    </form>
-</div>
 
-<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Period Metrics</h3>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <tr>
-                    <th class="px-6 py-4">Metric</th>
-                    <th class="px-6 py-4">Value</th>
-                    <th class="px-6 py-4">Notes</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                <tr>
-                    <td class="px-6 py-4 font-medium">Net Revenue</td>
-                    <td class="px-6 py-4 font-semibold">₹<%= Number(periodSummary.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Retained after discounts and refunds</td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">Orders In Period</td>
-                    <td class="px-6 py-4 font-semibold"><%= Number(periodSummary.salesCount).toLocaleString("en-IN") %></td>
-                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Orders created in the selected range</td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">Paid Orders</td>
-                    <td class="px-6 py-4 font-semibold"><%= Number(periodSummary.paidOrdersCount).toLocaleString("en-IN") %></td>
-                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Successful orders contributing revenue</td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">Average Order Value</td>
-                    <td class="px-6 py-4 font-semibold">₹<%= Number(periodSummary.averageOrderValue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Gross order amount divided by order count</td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Store Metrics</h3>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <tr>
-                    <th class="px-6 py-4">Metric</th>
-                    <th class="px-6 py-4">Value</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                <tr>
-                    <td class="px-6 py-4 font-medium">Lifetime Revenue</td>
-                    <td class="px-6 py-4 font-semibold">₹<%= Number(totalRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">Total Orders</td>
-                    <td class="px-6 py-4 font-semibold"><%= Number(totalOrders).toLocaleString("en-IN") %></td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">Active Users</td>
-                    <td class="px-6 py-4 font-semibold"><%= Number(activeUsers).toLocaleString("en-IN") %></td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">Pending Orders</td>
-                    <td class="px-6 py-4 font-semibold"><%= Number(pendingOrdersCount).toLocaleString("en-IN") %></td>
-                </tr>
-                <tr>
-                    <td class="px-6 py-4 font-medium">Low Stock Variants</td>
-                    <td class="px-6 py-4 font-semibold"><%= Number(lowStockCount || 0).toLocaleString("en-IN") %></td>
-                </tr>
-            </tbody>
-        </table>
-    </div>
-    <div class="px-6 py-4 border-t border-slate-100 dark:border-slate-800">
-        <a href="/admin/inventory?lowStock=true" class="text-sm font-semibold text-primary hover:underline">Review low stock items</a>
-    </div>
-</div>
-
-<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4">
-        <div>
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Sales Trend</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Revenue and order movement across <%= filters.label %>.</p>
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Orders In Period</p>
+                    <h3 class="mt-3 text-2xl font-semibold text-slate-900"><%= formatNumber(periodSummary.salesCount) %></h3>
+                </div>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                    <span class="material-icons-outlined">shopping_bag</span>
+                </span>
+            </div>
+            <p class="mt-4 text-sm text-slate-500">New orders recorded within the selected time range.</p>
         </div>
-        <a href="/admin/analytics?<%= filters.queryString %>" class="text-sm font-semibold text-primary hover:underline">Open full analysis</a>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <tr>
-                    <th class="px-6 py-4">Period</th>
-                    <th class="px-6 py-4">Orders</th>
-                    <th class="px-6 py-4">Gross Amount</th>
-                    <th class="px-6 py-4">Discount</th>
-                    <th class="px-6 py-4">Net Revenue</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                <% if (hasSalesTrendData) { %>
-                    <% salesTrend.rows.forEach((row) => { %>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Paid Orders</p>
+                    <h3 class="mt-3 text-2xl font-semibold text-slate-900"><%= formatNumber(periodSummary.paidOrdersCount) %></h3>
+                </div>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                    <span class="material-icons-outlined">task_alt</span>
+                </span>
+            </div>
+            <p class="mt-4 text-sm text-slate-500">Orders that successfully contributed to collected revenue.</p>
+        </div>
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Average Order Value</p>
+                    <h3 class="mt-3 text-2xl font-semibold text-slate-900"><%= formatCurrency(periodSummary.averageOrderValue) %></h3>
+                </div>
+                <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                    <span class="material-icons-outlined">sell</span>
+                </span>
+            </div>
+            <p class="mt-4 text-sm text-slate-500">Average gross order amount across the selected period.</p>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-6">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Sales Trend</p>
+                    <h3 class="mt-2 text-xl font-semibold text-slate-900">Revenue and order movement across <%= filters.label %></h3>
+                </div>
+                <a href="/admin/analytics?<%= filters.queryString %>" class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+                    Open full analysis
+                    <span class="material-icons-outlined text-[18px]">north_east</span>
+                </a>
+            </div>
+
+            <div class="mt-6 overflow-x-auto">
+                <table class="w-full min-w-[680px] text-left">
+                    <thead class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
                         <tr>
-                            <td class="px-6 py-4 font-medium"><%= row.label %></td>
-                            <td class="px-6 py-4"><%= row.orders %></td>
-                            <td class="px-6 py-4">₹<%= Number(row.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                            <td class="px-6 py-4 text-red-500">₹<%= Number(row.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(row.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                            <th class="pb-4 pr-4">Period</th>
+                            <th class="pb-4 px-4">Orders</th>
+                            <th class="pb-4 px-4">Gross</th>
+                            <th class="pb-4 px-4">Discount</th>
+                            <th class="pb-4 pl-4">Net Revenue</th>
                         </tr>
+                    </thead>
+                    <tbody class="divide-y divide-slate-100 text-sm">
+                        <% if (hasSalesTrendData) { %>
+                            <% salesTrend.rows.forEach((row) => { %>
+                                <tr class="align-top">
+                                    <td class="py-4 pr-4">
+                                        <p class="font-semibold text-slate-900"><%= row.label %></p>
+                                        <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                            <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                style="width: <%= Math.max(getPercentage(row.netRevenue, maxTrendRevenue), row.netRevenue > 0 ? 8 : 0) %>%"></div>
+                                        </div>
+                                    </td>
+                                    <td class="py-4 px-4 font-medium text-slate-700"><%= formatNumber(row.orders) %></td>
+                                    <td class="py-4 px-4 text-slate-700"><%= formatCurrency(row.grossAmount) %></td>
+                                    <td class="py-4 px-4 text-rose-500"><%= formatCurrency(row.discount) %></td>
+                                    <td class="py-4 pl-4">
+                                        <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                            <%= formatCurrency(row.netRevenue) %>
+                                        </span>
+                                    </td>
+                                </tr>
+                            <% }) %>
+                        <% } else { %>
+                            <tr>
+                                <td colspan="5" class="py-10 text-center text-slate-500">No sales trend data available for this period.</td>
+                            </tr>
+                        <% } %>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+        <div class="space-y-6">
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Store Snapshot</p>
+                <h3 class="mt-2 text-xl font-semibold text-slate-900">Operational pulse</h3>
+
+                <div class="mt-5 space-y-4">
+                    <div class="rounded-2xl bg-slate-50 p-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Total Orders</p>
+                                <p class="mt-1 text-2xl font-semibold text-slate-900"><%= formatNumber(totalOrders) %></p>
+                            </div>
+                            <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                                <span class="material-icons-outlined">receipt_long</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-50 p-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Pending Orders</p>
+                                <p class="mt-1 text-2xl font-semibold text-slate-900"><%= formatNumber(pendingOrdersCount) %></p>
+                            </div>
+                            <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm">
+                                <span class="material-icons-outlined">pending_actions</span>
+                            </span>
+                        </div>
+                    </div>
+
+                    <div class="rounded-2xl bg-slate-50 p-4">
+                        <div class="flex items-center justify-between gap-4">
+                            <div>
+                                <p class="text-sm font-medium text-slate-500">Low Stock Variants</p>
+                                <p class="mt-1 text-2xl font-semibold text-slate-900"><%= formatNumber(lowStockCount || 0) %></p>
+                            </div>
+                            <span class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-rose-600 shadow-sm">
+                                <span class="material-icons-outlined">inventory</span>
+                            </span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Quick Actions</p>
+                <h3 class="mt-2 text-xl font-semibold text-slate-900">Jump to what needs attention</h3>
+
+                <div class="mt-5 space-y-3">
+                    <a href="/admin/orders"
+                        class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-primary hover:bg-rose-50/50">
+                        <div>
+                            <p class="font-semibold text-slate-900">Recent Orders</p>
+                            <p class="text-sm text-slate-500">Review the latest customer activity.</p>
+                        </div>
+                        <span class="material-icons-outlined text-slate-400">arrow_forward</span>
+                    </a>
+                    <a href="/admin/inventory?lowStock=true"
+                        class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-primary hover:bg-rose-50/50">
+                        <div>
+                            <p class="font-semibold text-slate-900">Low Stock Review</p>
+                            <p class="text-sm text-slate-500">Prioritize items that may need restocking.</p>
+                        </div>
+                        <span class="material-icons-outlined text-slate-400">arrow_forward</span>
+                    </a>
+                    <a href="/admin/analytics?<%= filters.queryString %>"
+                        class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-primary hover:bg-rose-50/50">
+                        <div>
+                            <p class="font-semibold text-slate-900">Deep Analysis</p>
+                            <p class="text-sm text-slate-500">Open the detailed reporting workspace.</p>
+                        </div>
+                        <span class="material-icons-outlined text-slate-400">arrow_forward</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Order Status</p>
+                    <h3 class="mt-2 text-xl font-semibold text-slate-900">Distribution by workflow stage</h3>
+                </div>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <%= formatNumber(totalStatusOrders) %> orders
+                </span>
+            </div>
+
+            <div class="mt-6 space-y-4">
+                <% if (hasStatusData) { %>
+                    <% orderStatusDistribution.forEach((status) => { %>
+                        <div class="rounded-2xl bg-slate-50 p-4">
+                            <div class="flex items-center justify-between gap-4">
+                                <div>
+                                    <p class="font-semibold text-slate-900"><%= status.label %></p>
+                                    <p class="mt-1 text-sm text-slate-500"><%= getPercentage(status.count, totalStatusOrders) %>% of period orders</p>
+                                </div>
+                                <span class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm">
+                                    <%= formatNumber(status.count) %>
+                                </span>
+                            </div>
+                            <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                <div class="h-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400"
+                                    style="width: <%= Math.max(getPercentage(status.count, totalStatusOrders), status.count > 0 ? 10 : 0) %>%"></div>
+                            </div>
+                        </div>
                     <% }) %>
                 <% } else { %>
-                    <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No sales trend data available for this period.</td>
-                    </tr>
+                    <div class="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
+                        No order status activity in this period.
+                    </div>
                 <% } %>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="grid grid-cols-1 xl:grid-cols-2 gap-8 mb-8">
-    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Order Status Distribution</h3>
+            </div>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+
+        <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div class="flex items-start justify-between gap-4">
+                <div>
+                    <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Payment Methods</p>
+                    <h3 class="mt-2 text-xl font-semibold text-slate-900">Revenue split by checkout preference</h3>
+                </div>
+                <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                    <%= formatNumber(totalPaymentOrders) %> orders
+                </span>
+            </div>
+
+            <div class="mt-6 space-y-4">
+                <% if (hasPaymentData) { %>
+                    <% paymentMethodDistribution.forEach((method) => { %>
+                        <div class="rounded-2xl bg-slate-50 p-4">
+                            <div class="flex flex-wrap items-start justify-between gap-3">
+                                <div>
+                                    <p class="font-semibold text-slate-900"><%= method.label %></p>
+                                    <p class="mt-1 text-sm text-slate-500">
+                                        <%= formatNumber(method.count || 0) %> orders • <%= formatCurrency(method.amount || 0) %> order amount
+                                    </p>
+                                </div>
+                                <span class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                    <%= formatCurrency(method.revenue || 0) %>
+                                </span>
+                            </div>
+                            <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                <div class="h-2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                                    style="width: <%= Math.max(getPercentage(method.revenue, maxPaymentRevenue), Number(method.revenue || 0) > 0 ? 10 : 0) %>%"></div>
+                            </div>
+                        </div>
+                    <% }) %>
+                <% } else { %>
+                    <div class="rounded-2xl border border-dashed border-slate-200 px-4 py-10 text-center text-slate-500">
+                        No payment activity in this period.
+                    </div>
+                <% } %>
+            </div>
+        </div>
+    </section>
+
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Top Products</p>
+                <h3 class="mt-2 text-xl font-semibold text-slate-900">Best performers in the selected range</h3>
+            </div>
+            <span class="text-sm text-slate-500">Sorted by contribution and units ordered.</span>
+        </div>
+
+        <div class="mt-6 overflow-x-auto">
+            <table class="w-full min-w-[760px] text-left">
+                <thead class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
                     <tr>
-                        <th class="px-6 py-4">Status</th>
-                        <th class="px-6 py-4">Orders</th>
+                        <th class="pb-4 pr-4">Rank</th>
+                        <th class="pb-4 px-4">Product</th>
+                        <th class="pb-4 px-4">Units</th>
+                        <th class="pb-4 px-4">Gross</th>
+                        <th class="pb-4 px-4">Discount</th>
+                        <th class="pb-4 pl-4">Net</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                    <% if (hasStatusData) { %>
-                        <% orderStatusDistribution.forEach((status) => { %>
-                            <tr>
-                                <td class="px-6 py-4 font-medium"><%= status.label %></td>
-                                <td class="px-6 py-4 font-semibold"><%= status.count %></td>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    <% if (topProducts && topProducts.length > 0) { %>
+                        <% topProducts.forEach((product, index) => { %>
+                            <tr class="align-top">
+                                <td class="py-4 pr-4">
+                                    <span class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
+                                        <%= index + 1 %>
+                                    </span>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-semibold text-slate-900"><%= product.productName %></p>
+                                    <div class="mt-3 h-2 w-40 rounded-full bg-emerald-100">
+                                        <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                            style="width: <%= Math.max(getPercentage(product.netRevenue, maxTopProductRevenue), Number(product.netRevenue || 0) > 0 ? 10 : 0) %>%"></div>
+                                    </div>
+                                </td>
+                                <td class="py-4 px-4 font-medium text-slate-700"><%= formatNumber(product.unitsOrdered) %></td>
+                                <td class="py-4 px-4 text-slate-700"><%= formatCurrency(product.grossAmount) %></td>
+                                <td class="py-4 px-4 text-rose-500"><%= formatCurrency(product.discount) %></td>
+                                <td class="py-4 pl-4">
+                                    <span class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                        <%= formatCurrency(product.netRevenue) %>
+                                    </span>
+                                </td>
                             </tr>
                         <% }) %>
                     <% } else { %>
                         <tr>
-                            <td colspan="2" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No order status activity in this period.</td>
+                            <td colspan="6" class="py-10 text-center text-slate-500">No product performance data available for this period.</td>
                         </tr>
                     <% } %>
                 </tbody>
             </table>
         </div>
-    </div>
+    </section>
 
-    <div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-        <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Payment Method Distribution</h3>
+    <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+                <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Recent Orders</p>
+                <h3 class="mt-2 text-xl font-semibold text-slate-900">Latest store activity</h3>
+                <p class="mt-1 text-sm text-slate-500">Keep an eye on customer flow without leaving the dashboard.</p>
+            </div>
+            <a href="/admin/orders" class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+                View all orders
+                <span class="material-icons-outlined text-[18px]">east</span>
+            </a>
         </div>
-        <div class="overflow-x-auto">
-            <table class="w-full text-left">
-                <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
+
+        <div class="mt-6 overflow-x-auto">
+            <table class="w-full min-w-[760px] text-left">
+                <thead class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
                     <tr>
-                        <th class="px-6 py-4">Method</th>
-                        <th class="px-6 py-4">Orders</th>
-                        <th class="px-6 py-4">Order Amount</th>
-                        <th class="px-6 py-4">Revenue</th>
+                        <th class="pb-4 pr-4">Order ID</th>
+                        <th class="pb-4 px-4">Customer</th>
+                        <th class="pb-4 px-4">Status</th>
+                        <th class="pb-4 px-4">Amount</th>
+                        <th class="pb-4 pl-4 text-center">Action</th>
                     </tr>
                 </thead>
-                <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                    <% if (hasPaymentData) { %>
-                        <% paymentMethodDistribution.forEach((method) => { %>
+                <tbody class="divide-y divide-slate-100 text-sm">
+                    <% if (typeof recentOrders !== "undefined" && recentOrders.length > 0) { %>
+                        <% recentOrders.forEach((order) => { %>
+                            <%
+                                let customerName = "Guest User";
+                                if (order.userId && order.userId.firstName) {
+                                    customerName = `${order.userId.firstName} ${order.userId.lastName || ""}`.trim();
+                                } else if (order.shippingAddress && order.shippingAddress.fullName) {
+                                    customerName = order.shippingAddress.fullName.trim();
+                                }
+                            %>
                             <tr>
-                                <td class="px-6 py-4 font-medium"><%= method.label %></td>
-                                <td class="px-6 py-4"><%= method.count || 0 %></td>
-                                <td class="px-6 py-4">₹<%= Number(method.amount || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                                <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(method.revenue || 0).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
+                                <td class="py-4 pr-4">
+                                    <span class="font-semibold text-primary"><%= order.orderId %></span>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <p class="font-medium text-slate-900"><%= customerName %></p>
+                                </td>
+                                <td class="py-4 px-4">
+                                    <span class="inline-flex rounded-full px-3 py-1 text-xs font-semibold <%= getOrderStatusClass(order.orderStatus) %>">
+                                        <%= order.orderStatus %>
+                                    </span>
+                                </td>
+                                <td class="py-4 px-4 font-semibold text-slate-900">
+                                    <%= formatCurrency(order.summary && order.summary.total ? order.summary.total : 0) %>
+                                </td>
+                                <td class="py-4 pl-4 text-center">
+                                    <a href="/admin/orders/<%= order._id %>"
+                                        class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-primary hover:text-primary">
+                                        View
+                                        <span class="material-icons-outlined text-[16px]">arrow_forward</span>
+                                    </a>
+                                </td>
                             </tr>
                         <% }) %>
                     <% } else { %>
                         <tr>
-                            <td colspan="4" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No payment activity in this period.</td>
+                            <td colspan="5" class="py-10 text-center text-slate-500">No recent orders found.</td>
                         </tr>
                     <% } %>
                 </tbody>
             </table>
         </div>
-    </div>
-</div>
-
-<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden mb-8">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800">
-        <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Top Products</h3>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <tr>
-                    <th class="px-6 py-4">Rank</th>
-                    <th class="px-6 py-4">Product</th>
-                    <th class="px-6 py-4">Units</th>
-                    <th class="px-6 py-4">Gross</th>
-                    <th class="px-6 py-4">Discount</th>
-                    <th class="px-6 py-4">Net</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                <% if (topProducts && topProducts.length > 0) { %>
-                    <% topProducts.forEach((product, index) => { %>
-                        <tr>
-                            <td class="px-6 py-4 font-semibold"><%= index + 1 %></td>
-                            <td class="px-6 py-4 font-medium"><%= product.productName %></td>
-                            <td class="px-6 py-4"><%= product.unitsOrdered %></td>
-                            <td class="px-6 py-4">₹<%= Number(product.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                            <td class="px-6 py-4 text-red-500">₹<%= Number(product.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                            <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(product.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                        </tr>
-                    <% }) %>
-                <% } else { %>
-                    <tr>
-                        <td colspan="6" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No product performance data available for this period.</td>
-                    </tr>
-                <% } %>
-            </tbody>
-        </table>
-    </div>
-</div>
-
-<div class="bg-white dark:bg-slate-900 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-800 overflow-hidden">
-    <div class="px-6 py-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center gap-4">
-        <div>
-            <h3 class="text-lg font-semibold text-slate-900 dark:text-white">Recent Orders</h3>
-            <p class="text-sm text-slate-500 dark:text-slate-400">Latest order activity across the store.</p>
-        </div>
-        <a href="/admin/orders" class="text-sm font-semibold text-primary hover:underline">View all orders</a>
-    </div>
-    <div class="overflow-x-auto">
-        <table class="w-full text-left">
-            <thead class="bg-slate-50 dark:bg-slate-800/50 text-xs font-bold text-slate-500 uppercase tracking-wider">
-                <tr>
-                    <th class="px-6 py-4">Order ID</th>
-                    <th class="px-6 py-4">Customer</th>
-                    <th class="px-6 py-4">Status</th>
-                    <th class="px-6 py-4">Amount</th>
-                    <th class="px-6 py-4 text-center">Action</th>
-                </tr>
-            </thead>
-            <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
-                <% if (typeof recentOrders !== "undefined" && recentOrders.length > 0) { %>
-                    <% recentOrders.forEach((order) => { %>
-                        <%
-                            let customerName = "Guest User";
-                            if (order.userId && order.userId.firstName) {
-                                customerName = `${order.userId.firstName} ${order.userId.lastName || ""}`.trim();
-                            } else if (order.shippingAddress && order.shippingAddress.fullName) {
-                                customerName = order.shippingAddress.fullName.trim();
-                            }
-                        %>
-                        <tr>
-                            <td class="px-6 py-4 font-semibold text-primary"><%= order.orderId %></td>
-                            <td class="px-6 py-4"><%= customerName %></td>
-                            <td class="px-6 py-4"><%= order.orderStatus %></td>
-                            <td class="px-6 py-4">₹<%= order.summary && order.summary.total ? Number(order.summary.total).toFixed(2) : "0.00" %></td>
-                            <td class="px-6 py-4 text-center">
-                                <a href="/admin/orders/<%= order._id %>" class="text-primary hover:underline">View</a>
-                            </td>
-                        </tr>
-                    <% }) %>
-                <% } else { %>
-                    <tr>
-                        <td colspan="5" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No recent orders found.</td>
-                    </tr>
-                <% } %>
-            </tbody>
-        </table>
-    </div>
+    </section>
 </div>
 
 <script>

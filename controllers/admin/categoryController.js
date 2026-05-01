@@ -16,7 +16,7 @@ import AppError from "../../utils/AppError.js";
 // in parallel to ensure the page loads as quickly as possible.
 export const categoryManagementPage = asyncHandler(async (req, res) => {
     const page = parseInt(req.query.page) || 1;
-    const limit = 5;
+    const limit = 6;
     const { status, search } = req.query;
 
     const [categoryData, allAttributes] = await Promise.all([

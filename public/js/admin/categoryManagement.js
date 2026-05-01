@@ -484,6 +484,21 @@ function openAddCategoryModal() {
     }, 10);
 }
 
+function toggleImageFieldState(previewId, placeholderId, overlayId, imageSrc = '') {
+    const preview = document.getElementById(previewId);
+    const placeholder = document.getElementById(placeholderId);
+    const overlay = overlayId ? document.getElementById(overlayId) : null;
+    const hasImage = Boolean(imageSrc);
+
+    preview.src = imageSrc;
+    preview.classList.toggle('hidden', !hasImage);
+    placeholder.classList.toggle('hidden', hasImage);
+
+    if (overlay) {
+        overlay.classList.toggle('hidden', !hasImage);
+    }
+}
+
 function closeAddCategoryModal() {
     const addModal = document.getElementById('addCategoryModal');
     const addBackdrop = document.getElementById('addModalBackdrop');
@@ -499,29 +514,22 @@ function closeAddCategoryModal() {
         const checkboxes = document.querySelectorAll('#attributeCheckboxList input[type="checkbox"]');
         checkboxes.forEach(cb => cb.checked = false);
 
-        document.getElementById('imagePreview').classList.add('hidden');
-        document.getElementById('uploadPlaceholder').classList.remove('opacity-0');
+        toggleImageFieldState('imagePreview', 'uploadPlaceholder', 'imagePreviewOverlay');
         document.getElementById('addCategoryError').classList.add('hidden');
     }, 300);
 }
 
 function previewCategoryImage(event) {
     const input = event.target;
-    const preview = document.getElementById('imagePreview');
-    const placeholder = document.getElementById('uploadPlaceholder');
 
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            preview.src = e.target.result;
-            preview.classList.remove('hidden');
-            placeholder.classList.add('opacity-0');
-        }
+            toggleImageFieldState('imagePreview', 'uploadPlaceholder', 'imagePreviewOverlay', e.target.result);
+        };
         reader.readAsDataURL(input.files[0]);
     } else {
-        preview.src = "";
-        preview.classList.add('hidden');
-        placeholder.classList.remove('opacity-0');
+        toggleImageFieldState('imagePreview', 'uploadPlaceholder', 'imagePreviewOverlay');
     }
 }
 
@@ -603,9 +611,6 @@ async function openEditCategoryModal(categoryId) {
                 statusCb.checked = (cat.status === 'active');
             }
 
-            const imgPreview = document.getElementById('editImagePreview');
-            const placeholder = document.getElementById('editUploadPlaceholder');
-
             if (cat.categoryImage) {
                 let imgPath = '';
                 if (cat.categoryImage.startsWith('http')) {
@@ -618,13 +623,9 @@ async function openEditCategoryModal(categoryId) {
                     imgPath = cleanPath.startsWith('/') ? cleanPath : '/' + cleanPath;
                 }
 
-                imgPreview.src = imgPath;
-                imgPreview.classList.remove('hidden');
-                placeholder.classList.add('hidden');
+                toggleImageFieldState('editImagePreview', 'editUploadPlaceholder', 'editImagePreviewOverlay', imgPath);
             } else {
-                imgPreview.src = '';
-                imgPreview.classList.add('hidden');
-                placeholder.classList.remove('hidden');
+                toggleImageFieldState('editImagePreview', 'editUploadPlaceholder', 'editImagePreviewOverlay');
             }
 
             const checkboxes = document.querySelectorAll('#editAttributeCheckboxList input[type="checkbox"]');
@@ -658,23 +659,22 @@ function closeEditCategoryModal() {
     setTimeout(() => {
         modal.classList.add('hidden');
         document.getElementById('editCategoryForm').reset();
+        toggleImageFieldState('editImagePreview', 'editUploadPlaceholder', 'editImagePreviewOverlay');
         document.getElementById('editCategoryError').classList.add('hidden');
     }, 300);
 }
 
 function previewEditCategoryImage(event) {
     const input = event.target;
-    const preview = document.getElementById('editImagePreview');
-    const placeholder = document.getElementById('editUploadPlaceholder');
 
     if (input.files && input.files[0]) {
         const reader = new FileReader();
         reader.onload = (e) => {
-            preview.src = e.target.result;
-            preview.classList.remove('hidden');
-            placeholder.classList.add('hidden');
-        }
+            toggleImageFieldState('editImagePreview', 'editUploadPlaceholder', 'editImagePreviewOverlay', e.target.result);
+        };
         reader.readAsDataURL(input.files[0]);
+    } else {
+        toggleImageFieldState('editImagePreview', 'editUploadPlaceholder', 'editImagePreviewOverlay');
     }
 }
 

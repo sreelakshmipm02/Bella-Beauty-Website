@@ -1,5 +1,6 @@
 import Category from "../../models/category.js";
 import Attribute from "../../models/attribute.js";
+import Product from "../../models/product.js";
 import AppError from "../../utils/AppError.js";
 
 // Pulls every single attribute (like Size, Color, Scent) from the database.
@@ -65,7 +66,26 @@ export const fetchCategoriesWithFilter = async (status, search, page = 1, limit 
         Category.countDocuments(filter)
     ]);
 
-    return { categories, totalCategories };
+    const categoryIds = categories.map(category => category._id);
+
+    const productCounts = categoryIds.length
+        ? await Product.aggregate([
+            { $match: { categoryId: { $in: categoryIds } } },
+            { $group: { _id: "$categoryId", productCount: { $sum: 1 } } }
+        ])
+        : [];
+
+    const productCountMap = new Map(
+        productCounts.map(item => [item._id.toString(), item.productCount])
+    );
+
+    const categoriesWithProductCount = categories.map(category => {
+        const categoryObj = category.toObject();
+        categoryObj.productCount = productCountMap.get(category._id.toString()) || 0;
+        return categoryObj;
+    });
+
+    return { categories: categoriesWithProductCount, totalCategories };
 };
 
 // Executes our "soft delete" strategy.

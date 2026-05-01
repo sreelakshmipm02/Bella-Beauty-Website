@@ -335,16 +335,47 @@ multiImageInput.addEventListener('change', function (e) {
     }
     const reader = new FileReader();
     reader.onload = (event) => {
-        imageToCrop.src = event.target.result;
+        destroyCropperInstance();
+        resetCropperImage();
         cropperModal.classList.remove('hidden');
-        cropperInstance = new Cropper(imageToCrop, { aspectRatio: 1, viewMode: 1, autoCropArea: 1, background: false });
+        imageToCrop.onload = () => {
+            requestAnimationFrame(() => {
+                cropperInstance = new Cropper(imageToCrop, {
+                    aspectRatio: 1,
+                    viewMode: 1,
+                    autoCropArea: 1,
+                    background: false,
+                    responsive: true,
+                    restore: false
+                });
+            });
+        };
+        imageToCrop.onerror = () => {
+            document.getElementById('cancelCropBtn').click();
+            Swal.fire('Error', 'Unable to load the selected image. Please try another file.', 'error');
+        };
+        imageToCrop.src = event.target.result;
     };
     reader.readAsDataURL(file);
 });
 
+function destroyCropperInstance() {
+    if (cropperInstance) {
+        cropperInstance.destroy();
+        cropperInstance = null;
+    }
+}
+
+function resetCropperImage() {
+    imageToCrop.onload = null;
+    imageToCrop.onerror = null;
+    imageToCrop.removeAttribute('src');
+}
+
 document.getElementById('cancelCropBtn').addEventListener('click', () => {
     cropperModal.classList.add('hidden');
-    if (cropperInstance) { cropperInstance.destroy(); cropperInstance = null; }
+    destroyCropperInstance();
+    resetCropperImage();
     multiImageInput.value = '';
 });
 
