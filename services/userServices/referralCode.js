@@ -4,8 +4,8 @@ import AppError from "../../utils/AppError.js";
 import { creditWallet, debitWallet } from "../walletService.js";
 
 export const REFERRAL_OFFERS = {
-    refereeReward: 100,
-    referrerReward: 150
+    refereeReward: 50,
+    referrerReward: 100
 };
 
 const formatUserName = (user) => {
