@@ -36,7 +36,10 @@
                                             <div class="flex justify-between items-start">
                                                 <div>
                                                     <p class="text-xs text-gray-500 uppercase tracking-widest">
-                                                        <%= item.brand %>
+                                                        <b><%= item.brand %></b>
+                                                    </p>
+                                                    <p class="text-xs text-gray-500 tracking-widest">
+                                                        Stock - <%= item.stock %>
                                                     </p>
                                                     <a href="/product/<%= item.slug %>"
                                                         class="font-bold text-gray-900 hover:text-primary transition line-clamp-1">
