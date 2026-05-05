@@ -75,7 +75,8 @@ const ensureTargetExists = async (offerType, targetId) => {
 
 export const getOfferFormOptions = async () => {
     const [products, categories] = await Promise.all([
-        Product.find({ status: "active" }).sort({ name: 1 }).select("name"),
+        // Ensure categoryId is included in the select query
+        Product.find({ status: "active" }).sort({ name: 1 }).select("name categoryId"),
         Category.find({ status: "active" }).sort({ name: 1 }).select("name")
     ]);
 
