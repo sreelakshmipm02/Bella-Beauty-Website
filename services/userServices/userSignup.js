@@ -6,7 +6,6 @@ import { generateOtp, sendOtpEmail } from "../../utils/otpService.js";
 import AppError from "../../utils/AppError.js";
 import { resolveReferralSource } from "./referralCode.js";
 
-
 //SIGNUP SERVICE
 export const sendSignupOtp = async (email, payload) => {
   // i. Check if user already exists
@@ -19,8 +18,8 @@ export const sendSignupOtp = async (email, payload) => {
 
     if (isGoogleOnlyUser) {
       throw new AppError(
-        "This email is already registered using Google. Please sign in with Google or set a password."
-        ,409
+        "This email is already registered using Google. Please sign in with Google or set a password.",
+        409,
       );
     }
 
@@ -35,7 +34,8 @@ export const sendSignupOtp = async (email, payload) => {
 
 //OTP SENDING SERVICE
 export const sendSignupOtpService = async (userData) => {
-  const { firstName, lastName, email, phone, password, referredByCode } = userData;
+  const { firstName, lastName, email, phone, password, referredByCode } =
+    userData;
   if (!email) {
     throw new AppError("Email is required!", 400);
   }
@@ -67,7 +67,7 @@ export const sendSignupOtpService = async (userData) => {
     email,
     phone,
     referredByCode: normalizedCode,
-    password: hashedPassword
+    password: hashedPassword,
   });
 
   //v.send email
@@ -107,12 +107,12 @@ export const resendOtpService = async (email) => {
 
   // 3. Update the OTP collection (The source of truth for verification)
   await Otp.deleteMany({ email });
-  await Otp.create({ email, otp: newOtp }); 
+  await Otp.create({ email, otp: newOtp });
 
   // 4. Update TempUser timestamp only
   await TempUser.findOneAndUpdate(
     { email },
-    { $set: { updatedAt: new Date() } }
+    { $set: { updatedAt: new Date() } },
   );
 
   // 5. Send email

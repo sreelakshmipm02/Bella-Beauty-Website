@@ -1,245 +1,261 @@
 // 1. Standard Error Popup
 const showErrorAlert = (message) => {
-    Swal.fire({
-        icon: 'error',
-        title: 'Oops...',
-        text: message,
-        confirmButtonColor: '#d33', // Red for errors
-        confirmButtonText: 'Try Again'
-    });
+  Swal.fire({
+    icon: "error",
+    title: "Oops...",
+    text: message,
+    confirmButtonColor: "#d33", // Red for errors
+    confirmButtonText: "Try Again",
+  });
 };
 
 // 2. Toast Notification (for Resend OTP)
 const Toast = Swal.mixin({
-    toast: true,
-    position: 'top-end',
-    showConfirmButton: false,
-    timer: 3000,
-    timerProgressBar: true,
-    didOpen: (toast) => {
-        toast.addEventListener('mouseenter', Swal.stopTimer)
-        toast.addEventListener('mouseleave', Swal.resumeTimer)
-    }
+  toast: true,
+  position: "top-end",
+  showConfirmButton: false,
+  timer: 3000,
+  timerProgressBar: true,
+  didOpen: (toast) => {
+    toast.addEventListener("mouseenter", Swal.stopTimer);
+    toast.addEventListener("mouseleave", Swal.resumeTimer);
+  },
 });
 
 const signupReferralState = {
-    verifiedCode: "",
-    inviterName: ""
+  verifiedCode: "",
+  inviterName: "",
 };
 
 const setReferralStatus = (type, message) => {
-    const statusBox = document.getElementById("referralStatus");
-    if (!statusBox) return;
+  const statusBox = document.getElementById("referralStatus");
+  if (!statusBox) return;
 
-    statusBox.classList.remove("text-green-600", "text-red-500", "text-gray-500");
+  statusBox.classList.remove("text-green-600", "text-red-500", "text-gray-500");
 
-    if (type === "success") {
-        statusBox.classList.add("text-green-600");
-    } else if (type === "error") {
-        statusBox.classList.add("text-red-500");
-    } else {
-        statusBox.classList.add("text-gray-500");
-    }
+  if (type === "success") {
+    statusBox.classList.add("text-green-600");
+  } else if (type === "error") {
+    statusBox.classList.add("text-red-500");
+  } else {
+    statusBox.classList.add("text-gray-500");
+  }
 
-    statusBox.textContent = message || "";
+  statusBox.textContent = message || "";
 };
 
-
 document.addEventListener("DOMContentLoaded", () => {
-    //  1. Form Submission 
-    const form = document.getElementById("signupForm");
-    const submitBtn = document.getElementById("submitBtn");
-    const referralInput = document.getElementById("referral");
-    const verifyReferralBtn = document.getElementById("verifyReferralBtn");
-    const signupReferralConfig = window.signupReferralConfig || {};
+  //  1. Form Submission
+  const form = document.getElementById("signupForm");
+  const submitBtn = document.getElementById("submitBtn");
+  const referralInput = document.getElementById("referral");
+  const verifyReferralBtn = document.getElementById("verifyReferralBtn");
+  const signupReferralConfig = window.signupReferralConfig || {};
 
-    if (signupReferralConfig.referralPreview) {
-        signupReferralState.verifiedCode = signupReferralConfig.referralPreview.code || "";
-        signupReferralState.inviterName = signupReferralConfig.referralPreview.inviterName || "";
+  if (signupReferralConfig.referralPreview) {
+    signupReferralState.verifiedCode =
+      signupReferralConfig.referralPreview.code || "";
+    signupReferralState.inviterName =
+      signupReferralConfig.referralPreview.inviterName || "";
+    setReferralStatus(
+      "success",
+      `Invite from ${signupReferralState.inviterName} applied successfully.`,
+    );
+  } else if (signupReferralConfig.referralError) {
+    setReferralStatus("error", signupReferralConfig.referralError);
+  }
+
+  if (referralInput) {
+    referralInput.addEventListener("input", () => {
+      referralInput.value = referralInput.value
+        .toUpperCase()
+        .replace(/\s+/g, "");
+
+      const normalizedCode = referralInput.value.trim();
+
+      if (!normalizedCode) {
+        signupReferralState.verifiedCode = "";
+        signupReferralState.inviterName = "";
+        setReferralStatus("default", "");
+        return;
+      }
+
+      if (
+        signupReferralState.verifiedCode &&
+        signupReferralState.verifiedCode !== normalizedCode
+      ) {
+        signupReferralState.verifiedCode = "";
+        signupReferralState.inviterName = "";
         setReferralStatus(
-            "success",
-            `Invite from ${signupReferralState.inviterName} applied successfully.`
+          "default",
+          "Referral changed. Click Verify to confirm this code.",
         );
-    } else if (signupReferralConfig.referralError) {
-        setReferralStatus("error", signupReferralConfig.referralError);
-    }
+      }
+    });
+  }
 
-    if (referralInput) {
-        referralInput.addEventListener("input", () => {
-            referralInput.value = referralInput.value.toUpperCase().replace(/\s+/g, "");
+  if (verifyReferralBtn && referralInput) {
+    verifyReferralBtn.addEventListener("click", async () => {
+      const code = referralInput.value.trim().toUpperCase();
 
-            const normalizedCode = referralInput.value.trim();
+      if (!code) {
+        setReferralStatus("error", "Please enter a referral code first.");
+        return;
+      }
 
-            if (!normalizedCode) {
-                signupReferralState.verifiedCode = "";
-                signupReferralState.inviterName = "";
-                setReferralStatus("default", "");
-                return;
-            }
+      const originalText = verifyReferralBtn.innerText;
+      verifyReferralBtn.innerText = "Checking...";
+      verifyReferralBtn.disabled = true;
 
-            if (signupReferralState.verifiedCode && signupReferralState.verifiedCode !== normalizedCode) {
-                signupReferralState.verifiedCode = "";
-                signupReferralState.inviterName = "";
-                setReferralStatus("default", "Referral changed. Click Verify to confirm this code.");
-            }
+      try {
+        const response = await fetch("/referrals/verify", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ code }),
         });
-    }
 
-    if (verifyReferralBtn && referralInput) {
-        verifyReferralBtn.addEventListener("click", async () => {
-            const code = referralInput.value.trim().toUpperCase();
+        const data = await response.json();
 
-            if (!code) {
-                setReferralStatus("error", "Please enter a referral code first.");
-                return;
-            }
+        if (data.success) {
+          referralInput.value = data.referral.code;
+          signupReferralState.verifiedCode = data.referral.code;
+          signupReferralState.inviterName = data.referral.inviterName;
+          setReferralStatus(
+            "success",
+            `Verified. You are signing up with ${data.referral.inviterName}'s referral code.`,
+          );
+        } else {
+          signupReferralState.verifiedCode = "";
+          signupReferralState.inviterName = "";
+          setReferralStatus(
+            "error",
+            data.message || "Referral code is invalid.",
+          );
+        }
+      } catch (error) {
+        console.error("Referral verification error:", error);
+        setReferralStatus(
+          "error",
+          "Could not verify the referral right now. Please try again.",
+        );
+      } finally {
+        verifyReferralBtn.innerText = originalText;
+        verifyReferralBtn.disabled = false;
+      }
+    });
+  }
 
-            const originalText = verifyReferralBtn.innerText;
-            verifyReferralBtn.innerText = "Checking...";
-            verifyReferralBtn.disabled = true;
+  if (form) {
+    form.addEventListener("submit", async function (e) {
+      e.preventDefault();
 
-            try {
-                const response = await fetch("/referrals/verify", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify({ code })
-                });
+      const data = {
+        firstName: document.getElementById("first-name").value.trim(),
+        lastName: document.getElementById("last-name").value.trim(),
+        email: document.getElementById("email").value.trim(),
+        phone: document.getElementById("mobile").value.trim(),
+        password: document.getElementById("password").value,
+        referredByCode: document
+          .getElementById("referral")
+          .value.trim()
+          .toUpperCase(),
+      };
 
-                const data = await response.json();
+      try {
+        showLoading();
 
-                if (data.success) {
-                    referralInput.value = data.referral.code;
-                    signupReferralState.verifiedCode = data.referral.code;
-                    signupReferralState.inviterName = data.referral.inviterName;
-                    setReferralStatus(
-                        "success",
-                        `Verified. You are signing up with ${data.referral.inviterName}'s referral code.`
-                    );
-                } else {
-                    signupReferralState.verifiedCode = "";
-                    signupReferralState.inviterName = "";
-                    setReferralStatus("error", data.message || "Referral code is invalid.");
-                }
-            } catch (error) {
-                console.error("Referral verification error:", error);
-                setReferralStatus("error", "Could not verify the referral right now. Please try again.");
-            } finally {
-                verifyReferralBtn.innerText = originalText;
-                verifyReferralBtn.disabled = false;
-            }
+        const res = await fetch("/signup/otp", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(data),
         });
-    }
 
-    if (form) {
-        form.addEventListener("submit", async function (e) {
-            e.preventDefault();
+        const result = await res.json();
 
-            const data = {
-                firstName: document.getElementById("first-name").value.trim(),
-                lastName: document.getElementById("last-name").value.trim(),
-                email: document.getElementById("email").value.trim(),
-                phone: document.getElementById("mobile").value.trim(),
-                password: document.getElementById("password").value,
-                referredByCode: document.getElementById("referral").value.trim().toUpperCase()
-            };
+        hideLoading();
 
-            try {
-                showLoading();
+        // Failure cases
+        if (!result.success) {
+          // Check if it's a Google account error
+          if (result.message?.includes("Google")) {
+            Swal.fire({
+              icon: "info",
+              title: "Account Exists",
+              text: result.message,
+              showCancelButton: true,
+              confirmButtonText: "Go to Login",
+              confirmButtonColor: "#db2777", //  primary pink
+            }).then((result) => {
+              if (result.isConfirmed) {
+                window.location.href = "/login";
+              }
+            });
+          } else {
+            showErrorAlert(result.message);
+          }
+          return;
+        }
 
-                const res = await fetch("/signup/otp", {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json" },
-                    body: JSON.stringify(data)
-                });
+        // Success
+        openOtpPopup();
+        startOtpTimer();
 
-                const result = await res.json();
-
-                hideLoading();
-
-                // Failure cases
-                if (!result.success) {
-                    // Check if it's a Google account error
-                    if (result.message?.includes("Google")) {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'Account Exists',
-                            text: result.message,
-                            showCancelButton: true,
-                            confirmButtonText: 'Go to Login',
-                            confirmButtonColor: '#db2777' //  primary pink
-                        }).then((result) => {
-                            if (result.isConfirmed) {
-                                window.location.href = "/login";
-                            }
-                        });
-                    } else {
-                        showErrorAlert(result.message);
-                    }
-                    return;
-                }
-
-                // Success
-                openOtpPopup();
-                startOtpTimer();
-
-                // Success Toast
-                Toast.fire({
-                    icon: 'success',
-                    title: 'OTP Sent successfully'
-                });
-
-            } catch (error) {
-                hideLoading();
-                console.error(error);
-                showErrorAlert("Server error. Please check your connection.");
-            }
+        // Success Toast
+        Toast.fire({
+          icon: "success",
+          title: "OTP Sent successfully",
         });
-    }
+      } catch (error) {
+        hideLoading();
+        console.error(error);
+        showErrorAlert("Server error. Please check your connection.");
+      }
+    });
+  }
 });
-
 
 //  2. OTP Verification Logic
 
 async function verifyOtp() {
-    const inputs = document.querySelectorAll(".otp-input");
-    let otp = "";
-    inputs.forEach(input => otp += input.value);
+  const inputs = document.querySelectorAll(".otp-input");
+  let otp = "";
+  inputs.forEach((input) => (otp += input.value));
 
-    if (otp.length < 4) {
-        // Validation error inside the modal
-        const errorBox = document.getElementById("otpError");
-        errorBox.innerText = "Please enter the full 4-digit code.";
-        errorBox.classList.remove("hidden");
-        return;
-    }
+  if (otp.length < 4) {
+    // Validation error inside the modal
+    const errorBox = document.getElementById("otpError");
+    errorBox.innerText = "Please enter the full 4-digit code.";
+    errorBox.classList.remove("hidden");
+    return;
+  }
 
-    const email = document.getElementById("email").value.trim();
-    const verifyBtn = document.getElementById("verifyBtn");
+  const email = document.getElementById("email").value.trim();
+  const verifyBtn = document.getElementById("verifyBtn");
 
-    try {
-        const originalText = verifyBtn.innerText;
-        verifyBtn.innerText = "Verifying...";
-        verifyBtn.disabled = true;
+  try {
+    const originalText = verifyBtn.innerText;
+    verifyBtn.innerText = "Verifying...";
+    verifyBtn.disabled = true;
 
-        const res = await fetch("/signup/otp/verify", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email, otp })
-        });
+    const res = await fetch("/signup/otp/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, otp }),
+    });
 
-        const data = await res.json();
+    const data = await res.json();
 
-        verifyBtn.innerText = originalText;
-        verifyBtn.disabled = false;
+    verifyBtn.innerText = originalText;
+    verifyBtn.disabled = false;
 
-        if (data.success) {
-            document.getElementById("otpError").classList.add("hidden");
-            closeOtpPopup();
+    if (data.success) {
+      document.getElementById("otpError").classList.add("hidden");
+      closeOtpPopup();
 
-            openSuccessPopup();
+      openSuccessPopup();
 
-            // Swal for success
-            /*
+      // Swal for success
+      /*
             Swal.fire({
                 icon: 'success',
                 title: 'Account Created!',
@@ -250,158 +266,156 @@ async function verifyOtp() {
                 window.location.href = "/login";
             });
             */
+    } else {
+      const errorBox = document.getElementById("otpError");
+      errorBox.innerText = data.message || "Invalid OTP";
+      errorBox.classList.remove("hidden");
+      clearOtpInputs();
 
-        } else {
-            const errorBox = document.getElementById("otpError");
-            errorBox.innerText = data.message || "Invalid OTP";
-            errorBox.classList.remove("hidden");
-            clearOtpInputs();
-
-            //  Shake the popup for visual feedback
-            const popupContent = document.querySelector("#otpPopup > div");
-            popupContent.classList.add('animate-shake');
-            setTimeout(() => popupContent.classList.remove('animate-shake'), 500);
-        }
-    } catch (error) {
-        console.error("Verification Error:", error);
-        showErrorAlert("Something went wrong verifying OTP.");
-        verifyBtn.disabled = false;
+      //  Shake the popup for visual feedback
+      const popupContent = document.querySelector("#otpPopup > div");
+      popupContent.classList.add("animate-shake");
+      setTimeout(() => popupContent.classList.remove("animate-shake"), 500);
     }
+  } catch (error) {
+    console.error("Verification Error:", error);
+    showErrorAlert("Something went wrong verifying OTP.");
+    verifyBtn.disabled = false;
+  }
 }
-
 
 //  3. Helper Functions
 
 function showLoading() {
-    const popup = document.getElementById("loadingPopup");
-    if (popup) {
-        popup.classList.remove("hidden");
-        popup.classList.add("flex");
-    }
+  const popup = document.getElementById("loadingPopup");
+  if (popup) {
+    popup.classList.remove("hidden");
+    popup.classList.add("flex");
+  }
 }
 
 function hideLoading() {
-    const popup = document.getElementById("loadingPopup");
-    if (popup) {
-        popup.classList.add("hidden");
-        popup.classList.remove("flex");
-    }
+  const popup = document.getElementById("loadingPopup");
+  if (popup) {
+    popup.classList.add("hidden");
+    popup.classList.remove("flex");
+  }
 }
 
 function openOtpPopup() {
-    const popup = document.getElementById("otpPopup");
-    if (popup) {
-        popup.classList.remove("hidden");
-        popup.classList.add("flex");
-        const firstInput = document.querySelector(".otp-input");
-        if (firstInput) firstInput.focus();
-    }
+  const popup = document.getElementById("otpPopup");
+  if (popup) {
+    popup.classList.remove("hidden");
+    popup.classList.add("flex");
+    const firstInput = document.querySelector(".otp-input");
+    if (firstInput) firstInput.focus();
+  }
 }
 
 function closeOtpPopup() {
-    const popup = document.getElementById("otpPopup");
-    if (popup) {
-        popup.classList.add("hidden");
-        popup.classList.remove("flex");
-        clearInterval(timerInterval);
-    }
+  const popup = document.getElementById("otpPopup");
+  if (popup) {
+    popup.classList.add("hidden");
+    popup.classList.remove("flex");
+    clearInterval(timerInterval);
+  }
 }
 
 function openSuccessPopup() {
-    const popup = document.getElementById("successPopup");
-    if (popup) {
-        popup.classList.remove("hidden");
-        popup.classList.add("flex");
-    }
+  const popup = document.getElementById("successPopup");
+  if (popup) {
+    popup.classList.remove("hidden");
+    popup.classList.add("flex");
+  }
 }
 
 function clearOtpInputs() {
-    const inputs = document.querySelectorAll(".otp-input");
-    inputs.forEach(input => input.value = "");
-    inputs[0].focus();
+  const inputs = document.querySelectorAll(".otp-input");
+  inputs.forEach((input) => (input.value = ""));
+  inputs[0].focus();
 }
 
 function goToLogin() {
-    window.location.href = "/login";
+  window.location.href = "/login";
 }
 
-//  4. OTP Timer Logic 
+//  4. OTP Timer Logic
 let timerInterval;
 
 function startOtpTimer() {
-    let timeLeft = 60;
-    const timerDisplay = document.getElementById("otpTimer");
-    const timeoutMsg = document.getElementById("otpTimeoutMsg");
-    const resendBtn = document.getElementById("resendOtpBtn");
+  let timeLeft = 60;
+  const timerDisplay = document.getElementById("otpTimer");
+  const timeoutMsg = document.getElementById("otpTimeoutMsg");
+  const resendBtn = document.getElementById("resendOtpBtn");
+
+  if (timerDisplay) {
+    timerDisplay.innerHTML = `OTP expires in <span class="font-bold">${timeLeft}</span> seconds`;
+    timerDisplay.classList.remove("hidden");
+  }
+  if (timeoutMsg) timeoutMsg.classList.add("hidden");
+
+  if (resendBtn) {
+    resendBtn.disabled = true;
+    resendBtn.classList.add("opacity-50", "cursor-not-allowed");
+  }
+
+  clearInterval(timerInterval);
+
+  timerInterval = setInterval(() => {
+    timeLeft--;
 
     if (timerDisplay) {
-        timerDisplay.innerHTML = `OTP expires in <span class="font-bold">${timeLeft}</span> seconds`;
-        timerDisplay.classList.remove("hidden");
-    }
-    if (timeoutMsg) timeoutMsg.classList.add("hidden");
-
-    if (resendBtn) {
-        resendBtn.disabled = true;
-        resendBtn.classList.add("opacity-50", "cursor-not-allowed");
+      timerDisplay.innerHTML = `OTP expires in <span class="font-bold">${timeLeft}</span> seconds`;
     }
 
-    clearInterval(timerInterval);
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (timerDisplay) timerDisplay.classList.add("hidden");
+      if (timeoutMsg) timeoutMsg.classList.remove("hidden");
 
-    timerInterval = setInterval(() => {
-        timeLeft--;
-
-        if (timerDisplay) {
-            timerDisplay.innerHTML = `OTP expires in <span class="font-bold">${timeLeft}</span> seconds`;
-        }
-
-        if (timeLeft <= 0) {
-            clearInterval(timerInterval);
-            if (timerDisplay) timerDisplay.classList.add("hidden");
-            if (timeoutMsg) timeoutMsg.classList.remove("hidden");
-
-            if (resendBtn) {
-                resendBtn.disabled = false;
-                resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
-            }
-        }
-    }, 1000);
+      if (resendBtn) {
+        resendBtn.disabled = false;
+        resendBtn.classList.remove("opacity-50", "cursor-not-allowed");
+      }
+    }
+  }, 1000);
 }
 
 // Resend OTP Wrapper
 async function resendOtp() {
-    const email = document.getElementById("email").value.trim();
-    if (!email) {
-        showErrorAlert("Email is required to resend OTP.");
-        return;
+  const email = document.getElementById("email").value.trim();
+  if (!email) {
+    showErrorAlert("Email is required to resend OTP.");
+    return;
+  }
+
+  try {
+    showLoading();
+    // Change the URL to a specific resend endpoint
+    const res = await fetch("/signup/otp/resend", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email }), // ONLY send the email
+    });
+
+    const result = await res.json();
+    hideLoading();
+
+    if (result.success) {
+      Toast.fire({
+        icon: "success",
+        title: "New code sent to your email",
+      });
+
+      startOtpTimer();
+      clearOtpInputs();
+      document.getElementById("otpError").classList.add("hidden");
+    } else {
+      showErrorAlert(result.message);
     }
-
-    try {
-        showLoading();
-        // Change the URL to a specific resend endpoint
-        const res = await fetch("/signup/otp/resend", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ email }) // ONLY send the email
-        });
-
-        const result = await res.json();
-        hideLoading();
-
-        if (result.success) {
-            Toast.fire({
-                icon: 'success',
-                title: 'New code sent to your email'
-            });
-
-            startOtpTimer();
-            clearOtpInputs();
-            document.getElementById("otpError").classList.add("hidden");
-        } else {
-            showErrorAlert(result.message);
-        }
-    } catch (err) {
-        hideLoading();
-        console.error(err);
-        showErrorAlert("Failed to resend OTP.");
-    }
+  } catch (err) {
+    hideLoading();
+    console.error(err);
+    showErrorAlert("Failed to resend OTP.");
+  }
 }

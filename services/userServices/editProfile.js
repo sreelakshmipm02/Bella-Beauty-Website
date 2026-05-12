@@ -5,67 +5,69 @@ import AppError from "../../utils/AppError.js";
 
 // 1. Update Profile Logic
 export const updateUserProfile = async (userId, userData, filePath) => {
-    const { firstName, lastName, phone } = userData;
+  const { firstName, lastName, phone } = userData;
 
-    // 1. Prepare the update object
-    const updates = {
-        firstName,
-        lastName,
-        phone
-    };
+  // 1. Prepare the update object
+  const updates = {
+    firstName,
+    lastName,
+    phone,
+  };
 
-    // 2. DEBUG: Log what we are trying to save
-    console.log("Service received filePath:", filePath);
+  // 2. DEBUG: Log what we are trying to save
+  console.log("Service received filePath:", filePath);
 
-    // 3. If a file was uploaded, add it to the updates
-    if (filePath) {
-        updates.profileImage = filePath;
-    }
+  // 3. If a file was uploaded, add it to the updates
+  if (filePath) {
+    updates.profileImage = filePath;
+  }
 
-    // 4. Update the User in MongoDB
-    // { new: true } returns the updated document so we can see it
-    const updatedUser = await User.findByIdAndUpdate(userId, updates, { new: true });
+  // 4. Update the User in MongoDB
+  // { new: true } returns the updated document so we can see it
+  const updatedUser = await User.findByIdAndUpdate(userId, updates, {
+    new: true,
+  });
 
-    console.log("Updated User in DB:", updatedUser); 
+  console.log("Updated User in DB:", updatedUser);
 
-    return updatedUser;
+  return updatedUser;
 };
 
 // 2. Initiate Email Update (Check existence + Send OTP)
 export const requestEmailUpdateOtp = async (newEmail) => {
-    // Check if email is already taken by ANOTHER user
-    const existingUser = await User.findOne({ email: newEmail });
-    if (existingUser) {
-        throw new AppError("Email already in use.", 409);
-    }
+  // Check if email is already taken by ANOTHER user
+  const existingUser = await User.findOne({ email: newEmail });
+  if (existingUser) {
+    throw new AppError("Email already in use.", 409);
+  }
 
-    // Generate OTP
-    const otp = generateOtp();
+  // Generate OTP
+  const otp = generateOtp();
 
-    // Delete old OTPs for this email and save the new one
-    await Otp.deleteMany({ email: newEmail });
-    await Otp.create({ email: newEmail, otp });
+  // Delete old OTPs for this email and save the new one
+  await Otp.deleteMany({ email: newEmail });
+  await Otp.create({ email: newEmail, otp });
 
-    // Send Email
-    await sendOtpEmail(newEmail, otp);
+  // Send Email
+  await sendOtpEmail(newEmail, otp);
 
-    return true;
+  return true;
 };
 
 // 3. Confirm Email Update (Verify OTP + Update DB)
 export const completeEmailUpdate = async (userId, newEmail, otp) => {
-    // Verify OTP
-    const record = await Otp.findOne({ email: newEmail, otp });
+  // Verify OTP
+  const record = await Otp.findOne({ email: newEmail, otp });
 
-    if (!record) {
-        throw new AppError("Invalid or Expired OTP", 400);
-    }
+  if (!record) {
+    throw new AppError("Invalid or Expired OTP", 400);
+  }
 
-    // Update User Email
-    await User.findByIdAndUpdate(userId, { email: newEmail });
+  // Update User Email
+  await User.findByIdAndUpdate(userId, { email: newEmail });
 
-    // Cleanup OTP
-    await Otp.deleteMany({ email: newEmail });
+  // Cleanup OTP
+  await Otp.deleteMany({ email: newEmail });
 
-    return true;
+  return true;
 };

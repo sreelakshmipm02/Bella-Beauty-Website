@@ -1,45 +1,45 @@
 import Admin from "../../models/admin.js";
 import crypto from "crypto";
 import bcrypt from "bcrypt";
-import { sendResetEmail } from "../../utils/otpService.js"; 
+import { sendResetEmail } from "../../utils/otpService.js";
 import AppError from "../../utils/AppError.js";
 
 // 1. Generate Token & Send Email
 export const generateAdminResetToken = async (email) => {
-    const admin = await Admin.findOne({ email });
-    if (!admin) throw new AppError("Admin with this email does not exist.", 404);
+  const admin = await Admin.findOne({ email });
+  if (!admin) throw new AppError("Admin with this email does not exist.", 404);
 
-    // Generate Token
-    const token = crypto.randomBytes(32).toString("hex");
+  // Generate Token
+  const token = crypto.randomBytes(32).toString("hex");
 
-    // Save to DB (Expires in 1 Hour)
-    admin.resetPasswordToken = token;
-    admin.resetPasswordExpires = Date.now() + 3600000; 
-    await admin.save();
+  // Save to DB (Expires in 1 Hour)
+  admin.resetPasswordToken = token;
+  admin.resetPasswordExpires = Date.now() + 3600000;
+  await admin.save();
 
-    // Send Email (Admin Link)
-    const resetUrl = `http://localhost:3000/admin/reset-password/${token}`;
-    await sendResetEmail(email, resetUrl);
+  // Send Email (Admin Link)
+  const resetUrl = `http://localhost:3000/admin/reset-password/${token}`;
+  await sendResetEmail(email, resetUrl);
 
-    return true;
+  return true;
 };
 
 // 2. Reset Password
 export const resetAdminPassword = async (token, newPassword) => {
-    const admin = await Admin.findOne({
-        resetPasswordToken: token,
-        resetPasswordExpires: { $gt: Date.now() } // Check if not expired
-    });
+  const admin = await Admin.findOne({
+    resetPasswordToken: token,
+    resetPasswordExpires: { $gt: Date.now() }, // Check if not expired
+  });
 
-    if (!admin) throw new AppError("Token is invalid or has expired.", 400);
+  if (!admin) throw new AppError("Token is invalid or has expired.", 400);
 
-    // Hash new password
-    admin.password = await bcrypt.hash(newPassword, 10);
-    
-    // Clear token fields
-    admin.resetPasswordToken = undefined;
-    admin.resetPasswordExpires = undefined;
-    
-    await admin.save();
-    return true;
+  // Hash new password
+  admin.password = await bcrypt.hash(newPassword, 10);
+
+  // Clear token fields
+  admin.resetPasswordToken = undefined;
+  admin.resetPasswordExpires = undefined;
+
+  await admin.save();
+  return true;
 };

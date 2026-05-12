@@ -4,26 +4,22 @@ import {
   applyReferralSignupRewards,
   generateUniqueReferralCode,
   generateUniqueReferralInviteToken,
-  resolveReferralSource
+  resolveReferralSource,
 } from "./referralCode.js";
 
 // create user
 export const createUser = async (userData) => {
-  const {
-    firstName,
-    lastName,
-    email,
-    phone,
-    password,
-    referredByCode
-  } = userData;
+  const { firstName, lastName, email, phone, password, referredByCode } =
+    userData;
 
   const existingUser = await User.findOne({ email });
   if (existingUser) {
     throw new AppError("Email already exists", 409);
   }
 
-  const { referrer, normalizedCode } = await resolveReferralSource({ referredByCode });
+  const { referrer, normalizedCode } = await resolveReferralSource({
+    referredByCode,
+  });
 
   const randomNum = Math.floor(1000 + Math.random() * 9000);
   const userName = `${firstName.toLowerCase()}${randomNum}`;
@@ -40,8 +36,8 @@ export const createUser = async (userData) => {
     referredByCode: normalizedCode,
     authProviders: {
       google: false,
-      local: true
-    }
+      local: true,
+    },
   });
 
   const savedUser = await user.save();
@@ -49,7 +45,7 @@ export const createUser = async (userData) => {
   if (referrer) {
     await applyReferralSignupRewards({
       newUser: savedUser,
-      referrer
+      referrer,
     });
   }
 

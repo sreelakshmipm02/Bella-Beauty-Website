@@ -4,15 +4,15 @@ import Wishlist from "../models/wishlist.js";
 
 /**
  * 1. Prevent Browser Caching
- * Ensures that sensitive pages (like checkout or admin dashboard) are 
+ * Ensures that sensitive pages (like checkout or admin dashboard) are
  * not stored in the browser's back-button cache.
  */
 export const preventCache = (req, res, next) => {
-    res.set('Cache-Control', 'no-store, no-cache, must-revalidate, private');
-    res.set('Pragma', 'no-cache');
-    res.set('Expires', '0');
-    res.setHeader('Surrogate-Control', 'no-store');
-    next();
+  res.set("Cache-Control", "no-store, no-cache, must-revalidate, private");
+  res.set("Pragma", "no-cache");
+  res.set("Expires", "0");
+  res.setHeader("Surrogate-Control", "no-store");
+  next();
 };
 
 /**
@@ -20,12 +20,12 @@ export const preventCache = (req, res, next) => {
  * Strictly checks for the 'adminId' key. It ignores 'userId'.
  */
 export const checkAdminSession = (req, res, next) => {
-    if (req.session && req.session.adminId) {
-        next();
-    } else {
-        // If an admin session isn't found, only redirect to admin login
-        res.redirect("/admin/login");
-    }
+  if (req.session && req.session.adminId) {
+    next();
+  } else {
+    // If an admin session isn't found, only redirect to admin login
+    res.redirect("/admin/login");
+  }
 };
 
 /**
@@ -34,25 +34,25 @@ export const checkAdminSession = (req, res, next) => {
  * ONLY the userId, leaving adminId (if present) untouched.
  */
 export const checkUserSession = async (req, res, next) => {
-    if (req.session && req.session.userId) {
-        try {
-            const user = await User.findById(req.session.userId);
+  if (req.session && req.session.userId) {
+    try {
+      const user = await User.findById(req.session.userId);
 
-            if (!user || user.status === "suspended") {
-                // Targeted deletion to maintain session separation
-                delete req.session.userId;
-                return res.render("user/login", {
-                    error: "Session expired or account is suspended."
-                });
-            }
-            next();
-        } catch (error) {
-            console.error("User Session Check Error:", error);
-            res.redirect("/login");
-        }
-    } else {
-        res.redirect("/login");
+      if (!user || user.status === "suspended") {
+        // Targeted deletion to maintain session separation
+        delete req.session.userId;
+        return res.render("user/login", {
+          error: "Session expired or account is suspended.",
+        });
+      }
+      next();
+    } catch (error) {
+      console.error("User Session Check Error:", error);
+      res.redirect("/login");
     }
+  } else {
+    res.redirect("/login");
+  }
 };
 
 /**
@@ -60,10 +60,10 @@ export const checkUserSession = async (req, res, next) => {
  * Redirects logged-in users away from Login/Signup pages.
  */
 export const isGuest = (req, res, next) => {
-    if (req.session && req.session.userId) {
-        return res.redirect("/");
-    }
-    next();
+  if (req.session && req.session.userId) {
+    return res.redirect("/");
+  }
+  next();
 };
 
 /**
@@ -71,28 +71,30 @@ export const isGuest = (req, res, next) => {
  * Same logic as checkUserSession but returns JSON instead of rendering pages.
  */
 export const checkUserSessionAjax = async (req, res, next) => {
-    if (req.session && req.session.userId) {
-        try {
-            const user = await User.findById(req.session.userId);
-            if (!user || user.status === "suspended") {
-                delete req.session.userId; 
-                return res.status(401).json({
-                    success: false,
-                    message: "Session expired.",
-                    redirect: "/login"
-                });
-            }
-            next();
-        } catch (error) {
-            return res.status(500).json({ success: false, message: "Internal Server Error" });
-        }
-    } else {
+  if (req.session && req.session.userId) {
+    try {
+      const user = await User.findById(req.session.userId);
+      if (!user || user.status === "suspended") {
+        delete req.session.userId;
         return res.status(401).json({
-            success: false,
-            message: "Please login to continue.",
-            redirect: "/login"
+          success: false,
+          message: "Session expired.",
+          redirect: "/login",
         });
+      }
+      next();
+    } catch (error) {
+      return res
+        .status(500)
+        .json({ success: false, message: "Internal Server Error" });
     }
+  } else {
+    return res.status(401).json({
+      success: false,
+      message: "Please login to continue.",
+      redirect: "/login",
+    });
+  }
 };
 
 /**
@@ -100,41 +102,41 @@ export const checkUserSessionAjax = async (req, res, next) => {
  * Fetches the current item count for the navbar badge.
  */
 export const injectCartCount = async (req, res, next) => {
-    res.locals.cartItemCount = 0;
+  res.locals.cartItemCount = 0;
 
-    if (req.session && req.session.userId) {
-        try {
-            const cart = await Cart.findOne({ userId: req.session.userId });
-            if (cart && cart.items) {
-                res.locals.cartItemCount = cart.items.length;
-            }
-        } catch (error) {
-            console.error("Cart Count Injection Error:", error);
-        }
+  if (req.session && req.session.userId) {
+    try {
+      const cart = await Cart.findOne({ userId: req.session.userId });
+      if (cart && cart.items) {
+        res.locals.cartItemCount = cart.items.length;
+      }
+    } catch (error) {
+      console.error("Cart Count Injection Error:", error);
     }
-    next();
+  }
+  next();
 };
 
 /**
  * 7. Inject Wishlist Count
- * Fetches the current wishlist count. Uses optional chaining and 
+ * Fetches the current wishlist count. Uses optional chaining and
  * safety checks to prevent 'undefined' property crashes.
  */
 export const injectWishlistCount = async (req, res, next) => {
-    res.locals.wishlistCount = 0; 
+  res.locals.wishlistCount = 0;
 
-    if (req.session && req.session.userId) {
-        try {
-            const wishlist = await Wishlist.findOne({ userId: req.session.userId });
+  if (req.session && req.session.userId) {
+    try {
+      const wishlist = await Wishlist.findOne({ userId: req.session.userId });
 
-            // Check if wishlist exists and handle either 'items' or 'products' naming
-            if (wishlist) {
-                const list = wishlist.items || wishlist.products || [];
-                res.locals.wishlistCount = list.length;
-            }
-        } catch (error) {
-            console.error("Wishlist Count Injection Error:", error);
-        }
+      // Check if wishlist exists and handle either 'items' or 'products' naming
+      if (wishlist) {
+        const list = wishlist.items || wishlist.products || [];
+        res.locals.wishlistCount = list.length;
+      }
+    } catch (error) {
+      console.error("Wishlist Count Injection Error:", error);
     }
-    next();
+  }
+  next();
 };

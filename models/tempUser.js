@@ -1,27 +1,28 @@
 import mongoose from "mongoose";
 
 const tempUserSchema = new mongoose.Schema(
-    {
-        firstName: String,
-        lastName: String,
-        email: {
-            type: String,
-            required: true,
-            unique: true
-        },
-        phone: String,
-        referredByCode: {
-            type: String,
-            default: null
-        },
-        password: {
-            type: String,
-            required: true
-        }
+  {
+    firstName: String,
+    lastName: String,
+    email: {
+      type: String,
+      required: true,
+      unique: true,
     },
-    {
-        timestamps: true 
-    });
+    phone: String,
+    referredByCode: {
+      type: String,
+      default: null,
+    },
+    password: {
+      type: String,
+      required: true,
+    },
+  },
+  {
+    timestamps: true,
+  },
+);
 
 // Auto delete after 10 minutes
 tempUserSchema.index({ createdAt: 1 }, { expireAfterSeconds: 600 });

@@ -4,10 +4,7 @@ import AppError from "../../utils/AppError.js";
 // login user
 export const loginUser = async (identifier, password) => {
   const user = await User.findOne({
-    $or: [
-      { email: identifier },
-      { userName: identifier }
-    ]
+    $or: [{ email: identifier }, { userName: identifier }],
   });
 
   if (!user) {

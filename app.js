@@ -13,9 +13,9 @@ import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddleware.js";
-import ProductVariant from "./models/productVariant.js"; 
+import ProductVariant from "./models/productVariant.js";
 
-// Since we are using ES Modules, we need to manually reconstruct __dirname 
+// Since we are using ES Modules, we need to manually reconstruct __dirname
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -36,18 +36,18 @@ app.use(express.urlencoded({ extended: true }));
 // --- Session Management ---
 // Using MongoStore so sessions persist even if the server restarts
 app.use(
-    session({
-        secret: process.env.SESSION_SECRET || "bella_secret_key",
-        resave: false,
-        saveUninitialized: false,
-        store: MongoStore.create({
-            mongoUrl: process.env.MONGO_URI,
-            collectionName: "sessions"
-        }),
-        cookie: {
-            maxAge: 1000 * 60 * 60 * 24 // Valid for 24 hours
-        }
-    })
+  session({
+    secret: process.env.SESSION_SECRET || "bella_secret_key",
+    resave: false,
+    saveUninitialized: false,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGO_URI,
+      collectionName: "sessions",
+    }),
+    cookie: {
+      maxAge: 1000 * 60 * 60 * 24, // Valid for 24 hours
+    },
+  }),
 );
 
 // --- Authentication (Passport) ---
@@ -59,18 +59,18 @@ app.use(passport.session());
 // This middleware injects a 'lowStockCount' variable into all admin views.
 // We only run the DB query on /admin routes to keep the public site snappy.
 app.use(async (req, res, next) => {
-    if (req.path.startsWith('/admin')) {
-        try {
-            const count = await ProductVariant.countDocuments({ stock: { $lt: 10 } });
-            res.locals.lowStockCount = count;
-        } catch (err) {
-            console.error("Failed to fetch low stock count:", err);
-            res.locals.lowStockCount = 0;
-        }
-    } else {
-        res.locals.lowStockCount = 0;
+  if (req.path.startsWith("/admin")) {
+    try {
+      const count = await ProductVariant.countDocuments({ stock: { $lt: 10 } });
+      res.locals.lowStockCount = count;
+    } catch (err) {
+      console.error("Failed to fetch low stock count:", err);
+      res.locals.lowStockCount = 0;
     }
-    next();
+  } else {
+    res.locals.lowStockCount = 0;
+  }
+  next();
 });
 
 // --- Route Definitions ---

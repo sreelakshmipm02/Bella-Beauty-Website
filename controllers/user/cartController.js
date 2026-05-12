@@ -1,11 +1,11 @@
 import {
-    addItemToCart,
-    getCartData,
-    updateItemQuantity,
-    removeCartItem,
-    validateCartAvailability,
-    applyCouponToCart,
-    removeCouponFromCart
+  addItemToCart,
+  getCartData,
+  updateItemQuantity,
+  removeCartItem,
+  validateCartAvailability,
+  applyCouponToCart,
+  removeCouponFromCart,
 } from "../../services/userServices/cartService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
 
@@ -18,15 +18,15 @@ import { asyncHandler } from "../../middlewares/asyncHandler.js";
  * If quantity is not given, it will default to 1.
  */
 export const addToCart = asyncHandler(async (req, res) => {
-    const userId = req.session.userId;
-    const { variantId, quantity } = req.body;
-    const cart = await addItemToCart(userId, variantId, parseInt(quantity) || 1);
+  const userId = req.session.userId;
+  const { variantId, quantity } = req.body;
+  const cart = await addItemToCart(userId, variantId, parseInt(quantity) || 1);
 
-    res.status(200).json({
-        success: true,
-        message: "Item added to cart successfully!",
-        cartCount: cart.items.length
-    });
+  res.status(200).json({
+    success: true,
+    message: "Item added to cart successfully!",
+    cartCount: cart.items.length,
+  });
 });
 
 /**
@@ -34,39 +34,43 @@ export const addToCart = asyncHandler(async (req, res) => {
  * Returns updated cart data for UI changes.
  */
 export const updateCartAjax = asyncHandler(async (req, res) => {
-    const { variantId, quantity } = req.body;
-    const newCartData = await updateItemQuantity(req.session.userId, variantId, parseInt(quantity));
-    res.status(200).json({ success: true, cart: newCartData });
+  const { variantId, quantity } = req.body;
+  const newCartData = await updateItemQuantity(
+    req.session.userId,
+    variantId,
+    parseInt(quantity),
+  );
+  res.status(200).json({ success: true, cart: newCartData });
 });
 
 /**
  * Remove an item from the cart using AJAX.
  */
 export const removeFromCartAjax = asyncHandler(async (req, res) => {
-    const { variantId } = req.body;
-    const newCartData = await removeCartItem(req.session.userId, variantId);
-    res.status(200).json({ success: true, cart: newCartData });
+  const { variantId } = req.body;
+  const newCartData = await removeCartItem(req.session.userId, variantId);
+  res.status(200).json({ success: true, cart: newCartData });
 });
 
 export const applyCouponAjax = asyncHandler(async (req, res) => {
-    const { code } = req.body;
-    const cartData = await applyCouponToCart(req.session.userId, code);
+  const { code } = req.body;
+  const cartData = await applyCouponToCart(req.session.userId, code);
 
-    res.status(200).json({
-        success: true,
-        message: `Coupon ${cartData.appliedCoupon.code} applied successfully.`,
-        cart: cartData
-    });
+  res.status(200).json({
+    success: true,
+    message: `Coupon ${cartData.appliedCoupon.code} applied successfully.`,
+    cart: cartData,
+  });
 });
 
 export const removeCouponAjax = asyncHandler(async (req, res) => {
-    const cartData = await removeCouponFromCart(req.session.userId);
+  const cartData = await removeCouponFromCart(req.session.userId);
 
-    res.status(200).json({
-        success: true,
-        message: "Coupon removed successfully.",
-        cart: cartData
-    });
+  res.status(200).json({
+    success: true,
+    message: "Coupon removed successfully.",
+    cart: cartData,
+  });
 });
 
 // ---------------------------------------------------------
@@ -78,19 +82,20 @@ export const removeCouponAjax = asyncHandler(async (req, res) => {
  * If there is a stock issue, display a warning message.
  */
 export const getCartPage = asyncHandler(async (req, res) => {
-    const userId = req.session.userId;
-    const cartData = await getCartData(userId);
-    const errorMsg = req.query.error === 'stock_issue'
-        ? "Some items in your cart are out of stock. Please remove them to continue."
-        : null;
+  const userId = req.session.userId;
+  const cartData = await getCartData(userId);
+  const errorMsg =
+    req.query.error === "stock_issue"
+      ? "Some items in your cart are out of stock. Please remove them to continue."
+      : null;
 
-    res.render("user/cart", {
-        title: "Your Shopping Cart - Bella Beauty",
-        isLoggedIn: true,
-        cart: cartData,
-        adjustments: cartData.adjustments || [],
-        errorMsg
-    });
+  res.render("user/cart", {
+    title: "Your Shopping Cart - Bella Beauty",
+    isLoggedIn: true,
+    cart: cartData,
+    adjustments: cartData.adjustments || [],
+    errorMsg,
+  });
 });
 
 // ---------------------------------------------------------
@@ -126,8 +131,8 @@ export const getCartPage = asyncHandler(async (req, res) => {
  * Check if all items are still available before checkout.
  */
 export const verifyCheckoutAvailability = asyncHandler(async (req, res) => {
-    const userId = req.session.userId;
-    await validateCartAvailability(userId);
-    await getCartData(userId);
-    res.status(200).json({ success: true });
+  const userId = req.session.userId;
+  await validateCartAvailability(userId);
+  await getCartData(userId);
+  res.status(200).json({ success: true });
 });

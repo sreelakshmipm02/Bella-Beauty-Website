@@ -1,43 +1,46 @@
 import mongoose from "mongoose";
 
-const productSchema = new mongoose.Schema({
+const productSchema = new mongoose.Schema(
+  {
     name: {
-        type: String,
-        required: true,
-        trim: true
+      type: String,
+      required: true,
+      trim: true,
     },
-    slug: {  
-        type: String,
-        unique: true
+    slug: {
+      type: String,
+      unique: true,
     },
     brand: {
-        type: String,
-        required : true,
-        trim: true
+      type: String,
+      required: true,
+      trim: true,
     },
     description: {
-        type: String,
-        required: false,
-        trim : true
+      type: String,
+      required: false,
+      trim: true,
     },
     categoryId: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Category",
-        required: true
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Category",
+      required: true,
     },
     productType: {
-        type: String,
-        required: false 
+      type: String,
+      required: false,
     },
     status: {
-        type: String,
-        enum: ["active", "inactive"],
-        default: "inactive"
+      type: String,
+      enum: ["active", "inactive"],
+      default: "inactive",
     },
     createdBy: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: "Admin" 
-    }
-}, { timestamps: true }); 
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Admin",
+    },
+  },
+  { timestamps: true },
+);
 
 export default mongoose.model("Product", productSchema);

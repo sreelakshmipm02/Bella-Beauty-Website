@@ -2,45 +2,45 @@ import nodemailer from "nodemailer";
 import otpGenerator from "otp-generator";
 
 export const generateOtp = () => {
-    return otpGenerator.generate(4, {
-        digits: true,
-        lowerCaseAlphabets: false,
-        upperCaseAlphabets: false,
-        specialChars: false
-    })
+  return otpGenerator.generate(4, {
+    digits: true,
+    lowerCaseAlphabets: false,
+    upperCaseAlphabets: false,
+    specialChars: false,
+  });
 };
 
 export const sendOtpEmail = async (email, otp) => {
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
 
-    const mailOptions = {
-        from: `"Bella Beauty"<${process.env.EMAIL_USER}>`,
-        to: email,
-        subject: "Verify your Bella Beauty account",
-        html: `
+  const mailOptions = {
+    from: `"Bella Beauty"<${process.env.EMAIL_USER}>`,
+    to: email,
+    subject: "Verify your Bella Beauty account",
+    html: `
         <h2>Your OTP Code</h2>
         <p>Your verification code is :</p>
         <h1>${otp}</h1>
         <p>This code is valid for 1 minutes.</p>
-        `
-    };
-    await transporter.sendMail(mailOptions);
+        `,
+  };
+  await transporter.sendMail(mailOptions);
 };
 
 export const sendResetEmail = async (email, resetUrl) => {
-    const transporter = nodemailer.createTransport({
-        service: "gmail",
-        auth: {
-            user: process.env.EMAIL_USER,
-            pass: process.env.EMAIL_PASS
-        }
-    });
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.EMAIL_USER,
+      pass: process.env.EMAIL_PASS,
+    },
+  });
   try {
     const mailOptions = {
       from: process.env.EMAIL_USER, // Sender address
@@ -76,7 +76,6 @@ export const sendResetEmail = async (email, resetUrl) => {
     await transporter.sendMail(mailOptions);
     console.log(`Reset link sent to ${email}`);
     return true;
-
   } catch (error) {
     console.error("Error sending reset email:", error);
     throw new Error("Could not send reset email. Please try again later.");
