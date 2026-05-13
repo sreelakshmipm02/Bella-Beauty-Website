@@ -1,6 +1,7 @@
 import User from "../models/user.js";
 import Cart from "../models/cart.js";
 import Wishlist from "../models/wishlist.js";
+import ProductVariant from "../models/productVariant.js";
 
 /**
  * 1. Prevent Browser Caching
@@ -132,7 +133,21 @@ export const injectWishlistCount = async (req, res, next) => {
       // Check if wishlist exists and handle either 'items' or 'products' naming
       if (wishlist) {
         const list = wishlist.items || wishlist.products || [];
-        res.locals.wishlistCount = list.length;
+        const variantIds = list.map((item) => item.productVariantId).filter(Boolean);
+
+        if (variantIds.length > 0) {
+          const variants = await ProductVariant.find({ _id: { $in: variantIds } })
+            .select("productId")
+            .lean();
+
+          const uniqueProductIds = new Set(
+            variants
+              .map((variant) => variant.productId?.toString())
+              .filter(Boolean),
+          );
+
+          res.locals.wishlistCount = uniqueProductIds.size;
+        }
       }
     } catch (error) {
       console.error("Wishlist Count Injection Error:", error);

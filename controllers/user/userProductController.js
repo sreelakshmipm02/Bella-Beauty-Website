@@ -13,7 +13,7 @@ import {
 
 import { getUserCartVariantIds } from "../../services/userServices/cartService.js";
 
-import { getUserWishlistVariantIds } from "../../services/userServices/wishlistService.js";
+import { getUserWishlistProductIds } from "../../services/userServices/wishlistService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
 
 // Serves as the brain for the main "Shop All" page.
@@ -31,9 +31,9 @@ export const getShopPage = asyncHandler(async (req, res) => {
   const totalPages = Math.ceil(totalProducts / limit);
 
   //Fetch Wishlist IDs if the user is logged in
-  let wishlistVariantIds = [];
+  let wishlistProductIds = [];
   if (req.session.userId) {
-    wishlistVariantIds = await getUserWishlistVariantIds(req.session.userId);
+    wishlistProductIds = await getUserWishlistProductIds(req.session.userId);
   }
 
   res.render("user/shop", {
@@ -47,8 +47,8 @@ export const getShopPage = asyncHandler(async (req, res) => {
     totalPages,
     totalProducts,
     query: req.query,
-    wishlistVariantIds,
-    wishlistVariantIdsJSON: JSON.stringify(wishlistVariantIds),
+    wishlistProductIds,
+    wishlistProductIdsJSON: JSON.stringify(wishlistProductIds),
   });
 });
 
@@ -75,10 +75,10 @@ export const getProductDetails = asyncHandler(async (req, res) => {
   }
 
   let cartVariantIds = [];
-  let wishlistVariantIds = [];
+  let wishlistProductIds = [];
   if (req.session.userId) {
     cartVariantIds = await getUserCartVariantIds(req.session.userId);
-    wishlistVariantIds = await getUserWishlistVariantIds(req.session.userId);
+    wishlistProductIds = await getUserWishlistProductIds(req.session.userId);
   }
 
   const attributeIds = [
@@ -100,7 +100,7 @@ export const getProductDetails = asyncHandler(async (req, res) => {
     attributesInfo,
     variantsJSON: JSON.stringify(variants),
     cartVariantIdsJSON: JSON.stringify(cartVariantIds),
-    wishlistVariantIdsJSON: JSON.stringify(wishlistVariantIds),
+    wishlistProductIdsJSON: JSON.stringify(wishlistProductIds),
     relatedProducts,
   });
 });

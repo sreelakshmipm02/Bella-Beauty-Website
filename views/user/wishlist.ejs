@@ -16,7 +16,7 @@
             <% } else { %>
                 <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6" id="wishlistGrid">
                     <% wishlistItems.forEach(item=> { %>
-                        <div class="wishlist-card bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative" data-variant-id="<%= item.variantId %>">
+                        <div class="wishlist-card bg-white rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300 border border-gray-100 flex flex-col group relative" data-product-id="<%= item.productId %>">
                             <button onclick="toggleWishlist('<%= item.variantId %>')" class="absolute top-3 right-3 bg-white/80 backdrop-blur text-red-500 hover:text-red-700 hover:bg-white p-2 rounded-full shadow-sm z-10 transition">
                                 <span class="material-icons-outlined text-sm">close</span>
                             </button>
@@ -58,6 +58,21 @@
     </main>
 
     <script>
+        function updateWishlistBadge(count) {
+            const badge = document.getElementById('wishlistBadge');
+            if (!badge || typeof count !== 'number') return;
+
+            badge.innerText = count;
+
+            if (count > 0) {
+                badge.classList.remove('hidden');
+                badge.classList.add('scale-125');
+                setTimeout(() => badge.classList.remove('scale-125'), 200);
+            } else {
+                badge.classList.add('hidden');
+            }
+        }
+
         async function moveToCart(variantId) {
             try {
                 // RESTful update
@@ -76,8 +91,9 @@
                         badge.classList.add('scale-125');
                         setTimeout(() => badge.classList.remove('scale-125'), 200);
                     }
+                    updateWishlistBadge(data.wishlistCount);
                     Swal.fire({ icon: 'success', title: 'Moved to Cart!', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
-                    removeCardVisually(variantId);
+                    removeCardVisually(data.productId);
                 } else {
                     Swal.fire({ icon: 'error', title: 'Cannot Add Item', text: data.message });
                 }
@@ -95,14 +111,17 @@
                     body: JSON.stringify({ variantId })
                 });
                 const data = await response.json();
-                if (data.success && !data.isAdded) removeCardVisually(variantId);
+                if (data.success && !data.isAdded) {
+                    updateWishlistBadge(data.wishlistCount);
+                    removeCardVisually(data.productId);
+                }
             } catch (error) {
                 console.error("Wishlist Toggle Error:", error);
             }
         }
 
-        function removeCardVisually(variantId) {
-            const card = document.querySelector(`.wishlist-card[data-variant-id="${variantId}"]`);
+        function removeCardVisually(productId) {
+            const card = document.querySelector(`.wishlist-card[data-product-id="${productId}"]`);
             if (card) {
                 card.style.transform = "scale(0.9)";
                 card.style.opacity = "0";

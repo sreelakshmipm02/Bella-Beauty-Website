@@ -34,7 +34,12 @@ export const getWishlistPage = asyncHandler(async (req, res) => {
 export const toggleWishlistAjax = asyncHandler(async (req, res) => {
   const { variantId } = req.body;
   const result = await toggleWishlistItem(req.session.userId, variantId);
-  res.status(200).json({ success: true, isAdded: result.isAdded });
+  res.status(200).json({
+    success: true,
+    isAdded: result.isAdded,
+    productId: result.productId,
+    wishlistCount: result.totalItems,
+  });
 });
 
 /**
@@ -44,11 +49,13 @@ export const moveToCartAjax = asyncHandler(async (req, res) => {
   const userId = req.session.userId;
   const { variantId } = req.body;
   const cart = await addItemToCart(userId, variantId, 1);
-  await removeWishlistItem(userId, variantId);
+  const result = await removeWishlistItem(userId, variantId);
 
   res.status(200).json({
     success: true,
     message: "Item moved to cart successfully!",
     cartCount: cart.items.length,
+    productId: result.productId,
+    wishlistCount: result.totalItems,
   });
 });

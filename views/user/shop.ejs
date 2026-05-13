@@ -134,12 +134,14 @@
 
     <% 
         let defaultVariantId = product.activeVariants && product.activeVariants[0] ? product.activeVariants[0]._id.toString() : null;
-        let isInWishlist = defaultVariantId && typeof wishlistVariantIds !== 'undefined' && wishlistVariantIds.includes(defaultVariantId);
+        let productId = product._id ? product._id.toString() : null;
+        let isInWishlist = productId && typeof wishlistProductIds !== 'undefined' && wishlistProductIds.includes(productId);
     %>
     <% if (defaultVariantId) { %>
         <button type="button" 
             class="shop-wishlist-btn absolute top-3 right-3 bg-white/80 backdrop-blur-sm p-2 rounded-full shadow-sm hover:bg-white hover:shadow-md transition-all z-20" 
-            data-variant-id="<%= defaultVariantId %>">
+            data-variant-id="<%= defaultVariantId %>"
+            data-product-id="<%= productId %>">
             <span class="material-icons-outlined text-[20px] transition-colors <%= isInWishlist ? 'text-red-500' : 'text-gray-400 hover:text-red-500' %>">
                 <%= isInWishlist ? 'favorite' : 'favorite_border' %>
             </span>
@@ -253,6 +255,22 @@
 
 // --- NEW: Wishlist AJAX functionality for product cards ---
 const isUserLoggedIn = <%= isLoggedIn %>; 
+const wishlistProductIds = <%- locals.wishlistProductIdsJSON || '[]' %>;
+
+function updateWishlistBadge(count) {
+    const badge = document.getElementById('wishlistBadge');
+    if (!badge || typeof count !== 'number') return;
+
+    badge.innerText = count;
+
+    if (count > 0) {
+        badge.classList.remove('hidden');
+        badge.classList.add('scale-125');
+        setTimeout(() => badge.classList.remove('scale-125'), 200);
+    } else {
+        badge.classList.add('hidden');
+    }
+}
 
 document.querySelectorAll('.shop-wishlist-btn').forEach(btn => {
     btn.addEventListener('click', async function (e) {
@@ -267,6 +285,7 @@ document.querySelectorAll('.shop-wishlist-btn').forEach(btn => {
         }
 
         const variantId = this.dataset.variantId;
+        const productId = this.dataset.productId;
         if (!variantId) return;
 
         const icon = this.querySelector('.material-icons-outlined');
@@ -285,18 +304,25 @@ document.querySelectorAll('.shop-wishlist-btn').forEach(btn => {
             const data = await response.json();
 
             if (data.success) {
+                const resolvedProductId = data.productId || productId;
                 if (data.isAdded) {
+                    if (resolvedProductId && !wishlistProductIds.includes(resolvedProductId)) {
+                        wishlistProductIds.push(resolvedProductId);
+                    }
+                    updateWishlistBadge(data.wishlistCount);
                     icon.innerText = 'favorite';
                     icon.classList.remove('text-gray-400', 'hover:text-red-500');
                     icon.classList.add('text-red-500');
                     Swal.fire({ icon: 'success', title: 'Added to Wishlist!', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
                 } else {
+                    const index = wishlistProductIds.indexOf(resolvedProductId);
+                    if (index > -1) wishlistProductIds.splice(index, 1);
+                    updateWishlistBadge(data.wishlistCount);
                     icon.innerText = 'favorite_border';
                     icon.classList.remove('text-red-500');
                     icon.classList.add('text-gray-400', 'hover:text-red-500');
                     Swal.fire({ icon: 'info', title: 'Removed from Wishlist', showConfirmButton: false, timer: 1500, toast: true, position: 'top-end' });
                 }
-                window.location.reload();
             } else {
                 if (data.redirect) window.location.href = data.redirect;
                 else Swal.fire({ icon: 'error', title: 'Oops...', text: data.message });
