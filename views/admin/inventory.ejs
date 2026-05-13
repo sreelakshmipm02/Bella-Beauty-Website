@@ -1,175 +1,292 @@
 <%- include("../partials/adminHeader") %>
 
-<main class="p-6 sm:p-10 space-y-6 max-w-7xl mx-auto">
-    <div class="flex flex-col md:flex-row justify-between items-center gap-4">
-        <h1 class="text-3xl font-bold text-gray-900">Inventory Management</h1>
-        <div class="flex items-center gap-4">
-            <label class="relative inline-flex items-center cursor-pointer">
-                <input type="checkbox" id="lowStockToggle" class="sr-only peer" <%=lowStockFilter ? 'checked' : '' %>>
-                <div class="w-11 h-6 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-red-500">
-                </div>
-                <span class="ml-3 text-sm font-medium text-gray-700">Low Stock Only (< 10)</span>
-            </label>
-            <button id="updateAllBtn" type="button" disabled
-                class="px-4 py-2 rounded-xl bg-primary text-white font-semibold text-sm disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors shadow-sm">
-                Update All
-            </button>
-        </div>
-    </div>
+<main class="mx-auto max-w-7xl space-y-6 p-6 sm:p-10">
+  <div class="flex flex-col items-center justify-between gap-4 md:flex-row">
+    <h1 class="text-3xl font-bold text-gray-900">Inventory Management</h1>
+  </div>
+    <div class="flex flex-wrap items-center gap-4">
+      <div class="flex items-center gap-2">
+        <form action="/admin/inventory" method="GET" id="searchForm" class="relative">
+          <% if (lowStockFilter) { %>
+          <input type="hidden" name="lowStock" value="true" />
+          <% } %>
+          <input
+            type="text"
+            name="search"
+            id="searchInput"
+            placeholder="Search SKU..."
+            value="<%= searchQuery %>"
+            class="focus:ring-primary focus:border-primary w-64 rounded-xl border border-gray-200 py-2 pl-10 pr-10 text-sm shadow-sm outline-none"
+          />
 
-    <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 overflow-hidden">
-        <table class="w-full text-left border-collapse">
-            <thead>
-                <tr class="bg-gray-50 text-gray-500 text-xs uppercase tracking-wider border-b">
-                    <th class="p-4">Product / SKU</th>
-                    <th class="p-4">Current Stock</th>
-                    <th class="p-4">Update Stock</th>
-                    </tr>
-            </thead>
-            <tbody class="divide-y divide-gray-100">
-                <% variants.forEach(variant=> { %>
-                    <tr id="row_<%= variant._id %>" data-variant-id="<%= variant._id %>" data-original-stock="<%= variant.stock %>"
-                        class="<%= variant.stock < 10 ? 'bg-red-50/30' : '' %> transition">
-                        <td class="p-4">
-                            <div class="flex flex-col">
-                                <p class="font-bold text-gray-900 text-sm mb-0.5">
-                                    <%= variant.productId ? variant.productId.name : 'Unknown Product' %>
-                                </p>
-                                <div class="flex items-center gap-2">
-                                    <span class="text-[10px] px-1.5 py-0.5 bg-gray-100 text-gray-600 rounded font-mono uppercase">
-                                        SKU: <%= variant.sku %>
-                                    </span>
-                                </div>
-                            </div>
-                        </td>
-                        <td class="p-4">
-                            <span id="badge_<%= variant._id %>" class="px-3 py-1 rounded-full text-xs font-bold <%= variant.stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' %>">
-                                <%= variant.stock %> units
-                            </span>
-                        </td>
-                        <td class="p-4">
-                            <div class="flex items-center gap-3">
-                                <input type="number" id="input_<%= variant._id %>" value="<%= variant.stock %>"
-                                    min="0"
-                                    class="w-24 px-2 py-1 border rounded-lg text-sm focus:ring-primary outline-none">
-                                <span id="status_<%= variant._id %>" class="text-xs font-semibold text-gray-400 uppercase tracking-wide">No changes</span>
-                            </div>
-                        </td>
-                        </tr>
-                <% }) %>
-            </tbody>
-        </table>
+          <svg
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              stroke-width="2"
+              d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"
+            />
+          </svg>
+
+          <% if (searchQuery) { %>
+          <a
+            href="/admin/inventory?page=1<%= lowStockFilter ? '&lowStock=true' : '' %>"
+            class="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 transition-colors hover:text-gray-600"
+            title="Clear search"
+          >
+            <svg class="h-4 w-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </a>
+          <% } %>
+        </form>
+      </div>
+
+      <div class="flex items-center gap-4">
+        <label class="relative inline-flex cursor-pointer items-center">
+          <input
+            type="checkbox"
+            id="lowStockToggle"
+            class="peer sr-only"
+            <%=lowStockFilter ? 'checked' : '' %>
+          />
+          <div
+            class="peer h-6 w-11 rounded-full bg-gray-200 after:absolute after:left-[2px] after:top-[2px] after:h-5 after:w-5 after:rounded-full after:border after:border-gray-300 after:bg-white after:transition-all after:content-[''] peer-checked:bg-red-500 peer-checked:after:translate-x-full peer-checked:after:border-white peer-focus:outline-none"
+          ></div>
+          <span class="ml-3 text-sm font-medium text-gray-700">Low Stock Only (&lt; 10)</span>
+        </label>
+
+        <button
+          id="updateAllBtn"
+          type="button"
+          disabled
+          class="bg-primary rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm transition-colors disabled:cursor-not-allowed disabled:bg-gray-300"
+        >
+          Update All
+        </button>
+      </div>
     </div>
+  
+
+  <div class="overflow-hidden rounded-2xl border border-gray-100 bg-white p-6 shadow-sm">
+    <table class="w-full border-collapse text-left">
+      <thead>
+        <tr class="border-b bg-gray-50 text-xs uppercase tracking-wider text-gray-500">
+          <th class="p-4">Product / SKU</th>
+          <th class="p-4">Current Stock</th>
+          <th class="p-4">Update Stock</th>
+        </tr>
+      </thead>
+      <tbody class="divide-y divide-gray-100">
+        <% variants.forEach(variant => { %>
+        <tr
+          id="row_<%= variant._id %>"
+          data-variant-id="<%= variant._id %>"
+          data-original-stock="<%= variant.stock %>"
+          class="<%= variant.stock < 10 ? 'bg-red-50/30' : '' %> transition"
+        >
+          <td class="p-4">
+            <div class="flex flex-col">
+              <p class="mb-0.5 text-sm font-bold text-gray-900">
+                <%= variant.productId ? variant.productId.name : 'Unknown Product' %>
+              </p>
+              <div class="flex items-center gap-2">
+                <span class="rounded bg-gray-100 px-1.5 py-0.5 font-mono text-[10px] uppercase text-gray-600">
+                  SKU: <%= variant.sku %>
+                </span>
+              </div>
+            </div>
+          </td>
+          <td class="p-4">
+            <span
+              id="badge_<%= variant._id %>"
+              class="rounded-full px-3 py-1 text-xs font-bold <%= variant.stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700' %>"
+            >
+              <%= variant.stock %> units
+            </span>
+          </td>
+          <td class="p-4">
+            <div class="flex items-center gap-3">
+              <input
+                type="number"
+                id="input_<%= variant._id %>"
+                value="<%= variant.stock %>"
+                min="0"
+                class="focus:ring-primary w-24 rounded-lg border px-2 py-1 text-sm outline-none"
+              />
+              <span
+                id="status_<%= variant._id %>"
+                class="text-xs font-semibold uppercase tracking-wide text-gray-400"
+              >
+                No changes
+              </span>
+            </div>
+          </td>
+        </tr>
+        <% }) %>
+      </tbody>
+    </table>
+
+    <% if (totalPages > 1) { %>
+    <div class="mt-8 flex flex-col items-center justify-between gap-4 border-t border-gray-100 pt-6 sm:flex-row">
+      <p class="text-sm text-gray-500">
+        Showing page <span class="font-semibold text-gray-900"><%= currentPage %></span> of
+        <span class="font-semibold text-gray-900"><%= totalPages %></span>
+      </p>
+      <div class="flex items-center gap-2">
+        <% if (currentPage > 1) { %>
+        <a
+          href="/admin/inventory?page=<%= currentPage - 1 %><%= searchQuery ? '&search=' + searchQuery : '' %><%= lowStockFilter ? '&lowStock=true' : '' %>"
+          class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          Previous
+        </a>
+        <% } %>
+
+        <div class="flex items-center gap-1">
+          <% for(let i = 1; i <= totalPages; i++) { %>
+          <a
+            href="/admin/inventory?page=<%= i %><%= searchQuery ? '&search=' + searchQuery : '' %><%= lowStockFilter ? '&lowStock=true' : '' %>"
+            class="flex h-10 w-10 items-center justify-center rounded-xl border text-sm font-medium transition <%= i === currentPage ? 'bg-primary border-primary shadow-sm text-white' : 'border-gray-200 text-gray-600 hover:bg-gray-50' %>"
+          >
+            <%= i %>
+          </a>
+          <% } %>
+        </div>
+
+        <% if (currentPage < totalPages) { %>
+        <a
+          href="/admin/inventory?page=<%= currentPage + 1 %><%= searchQuery ? '&search=' + searchQuery : '' %><%= lowStockFilter ? '&lowStock=true' : '' %>"
+          class="rounded-xl border border-gray-200 px-4 py-2 text-sm font-medium text-gray-700 transition hover:bg-gray-50"
+        >
+          Next
+        </a>
+        <% } %>
+      </div>
+    </div>
+    <% } %>
+  </div>
 </main>
 
 <script>
-    const changedStocks = new Map();
+  const changedStocks = new Map();
 
-    document.getElementById('lowStockToggle').addEventListener('change', function () {
-        window.location.href = `/admin/inventory?lowStock=${this.checked}`;
-    });
+  // Preserves existing search parameters during filter toggle
+  document.getElementById("lowStockToggle").addEventListener("change", function () {
+    const url = new URL(window.location.href);
+    url.searchParams.set("lowStock", this.checked);
+    url.searchParams.set("page", "1");
+    window.location.href = url.pathname + url.search;
+  });
 
-    const updateAllBtn = document.getElementById('updateAllBtn');
+  const updateAllBtn = document.getElementById("updateAllBtn");
 
-    function refreshUpdateButtonState() {
-        updateAllBtn.disabled = changedStocks.size === 0;
+  function refreshUpdateButtonState() {
+    updateAllBtn.disabled = changedStocks.size === 0;
+  }
+
+  function getStockBadgeClasses(stock) {
+    return stock < 10 ? "bg-red-100 text-red-700" : "bg-green-100 text-green-700";
+  }
+
+  function updateRowState(variantId) {
+    const row = document.getElementById(`row_${variantId}`);
+    const input = document.getElementById(`input_${variantId}`);
+    const status = document.getElementById(`status_${variantId}`);
+    const originalStock = Number(row.dataset.originalStock);
+    const currentStock = Number(input.value);
+
+    if (!Number.isInteger(currentStock) || currentStock < 0) {
+      input.classList.add("border-red-500");
+      status.textContent = "Invalid stock";
+      status.className = "text-xs font-semibold text-red-500 uppercase tracking-wide";
+      changedStocks.delete(variantId);
+      refreshUpdateButtonState();
+      return;
     }
 
-    function getStockBadgeClasses(stock) {
-        return stock < 10 ? 'bg-red-100 text-red-700' : 'bg-green-100 text-green-700';
+    input.classList.remove("border-red-500");
+
+    if (currentStock === originalStock) {
+      changedStocks.delete(variantId);
+      status.textContent = "No changes";
+      status.className = "text-xs font-semibold text-gray-400 uppercase tracking-wide";
+    } else {
+      changedStocks.set(variantId, currentStock);
+      status.textContent = "Pending update";
+      status.className = "text-xs font-semibold text-amber-600 uppercase tracking-wide";
     }
 
-    function updateRowState(variantId) {
+    refreshUpdateButtonState();
+  }
+
+  document.querySelectorAll("tr[data-variant-id]").forEach((row) => {
+    const variantId = row.dataset.variantId;
+    const input = document.getElementById(`input_${variantId}`);
+    input.addEventListener("input", () => updateRowState(variantId));
+  });
+
+  updateAllBtn.addEventListener("click", async () => {
+    if (changedStocks.size === 0) return;
+
+    const updates = Array.from(changedStocks.entries()).map(([variantId, stock]) => ({
+      variantId,
+      stock,
+    }));
+    const originalText = updateAllBtn.textContent;
+
+    try {
+      updateAllBtn.disabled = true;
+      updateAllBtn.textContent = "Updating...";
+
+      const response = await fetch("/admin/inventory/stock", {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ updates }),
+      });
+
+      const data = await response.json();
+
+      if (!data.success) {
+        throw new Error(data.message || "Failed to update stock.");
+      }
+
+      updates.forEach(({ variantId, stock }) => {
         const row = document.getElementById(`row_${variantId}`);
-        const input = document.getElementById(`input_${variantId}`);
+        const badge = document.getElementById(`badge_${variantId}`);
         const status = document.getElementById(`status_${variantId}`);
-        const originalStock = Number(row.dataset.originalStock);
-        const currentStock = Number(input.value);
 
-        if (!Number.isInteger(currentStock) || currentStock < 0) {
-            input.classList.add('border-red-500');
-            status.textContent = 'Invalid stock';
-            status.className = 'text-xs font-semibold text-red-500 uppercase tracking-wide';
-            changedStocks.delete(variantId);
-            refreshUpdateButtonState();
-            return;
-        }
+        row.dataset.originalStock = stock;
+        badge.textContent = `${stock} units`;
+        badge.className = `px-3 py-1 rounded-full text-xs font-bold ${getStockBadgeClasses(stock)}`;
+        status.textContent = "Saved";
+        status.className = "text-xs font-semibold text-green-600 uppercase tracking-wide";
+        changedStocks.delete(variantId);
+      });
 
-        input.classList.remove('border-red-500');
+      refreshUpdateButtonState();
 
-        if (currentStock === originalStock) {
-            changedStocks.delete(variantId);
-            status.textContent = 'No changes';
-            status.className = 'text-xs font-semibold text-gray-400 uppercase tracking-wide';
-        } else {
-            changedStocks.set(variantId, currentStock);
-            status.textContent = 'Pending update';
-            status.className = 'text-xs font-semibold text-amber-600 uppercase tracking-wide';
-        }
-
-        refreshUpdateButtonState();
+      Swal.fire({
+        icon: "success",
+        title: "Stock Updated",
+        text: data.message,
+        toast: true,
+        position: "top-end",
+        timer: 1800,
+        showConfirmButton: false,
+      });
+    } catch (error) {
+      Swal.fire("Error", error.message || "Network Error", "error");
+      refreshUpdateButtonState();
+    } finally {
+      updateAllBtn.textContent = originalText;
     }
-
-    document.querySelectorAll('tr[data-variant-id]').forEach((row) => {
-        const variantId = row.dataset.variantId;
-        const input = document.getElementById(`input_${variantId}`);
-
-        input.addEventListener('input', () => updateRowState(variantId));
-    });
-
-    updateAllBtn.addEventListener('click', async () => {
-        if (changedStocks.size === 0) return;
-
-        const updates = Array.from(changedStocks.entries()).map(([variantId, stock]) => ({ variantId, stock }));
-        const originalText = updateAllBtn.textContent;
-
-        try {
-            updateAllBtn.disabled = true;
-            updateAllBtn.textContent = 'Updating...';
-
-            const response = await fetch('/admin/inventory/stock', {
-                method: 'PATCH',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ updates })
-            });
-
-            const data = await response.json();
-
-            if (!data.success) {
-                throw new Error(data.message || 'Failed to update stock.');
-            }
-
-            updates.forEach(({ variantId, stock }) => {
-                const row = document.getElementById(`row_${variantId}`);
-                const badge = document.getElementById(`badge_${variantId}`);
-                const status = document.getElementById(`status_${variantId}`);
-
-                row.dataset.originalStock = stock;
-                badge.textContent = `${stock} units`;
-                badge.className = `px-3 py-1 rounded-full text-xs font-bold ${getStockBadgeClasses(stock)}`;
-                status.textContent = 'Saved';
-                status.className = 'text-xs font-semibold text-green-600 uppercase tracking-wide';
-                changedStocks.delete(variantId);
-            });
-
-            refreshUpdateButtonState();
-
-            Swal.fire({
-                icon: 'success',
-                title: 'Stock Updated',
-                text: data.message,
-                toast: true,
-                position: 'top-end',
-                timer: 1800,
-                showConfirmButton: false
-            });
-        } catch (error) {
-            Swal.fire('Error', error.message || 'Network Error', 'error');
-            refreshUpdateButtonState();
-        } finally {
-            updateAllBtn.textContent = originalText;
-        }
-    });
+  });
 </script>
 
 <%- include("../partials/adminFooter") %>

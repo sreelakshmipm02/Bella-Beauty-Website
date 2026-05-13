@@ -314,8 +314,8 @@
 
         // Parse the data sent from the backend[cite: 3]
         // Note: ensure your backend Product.find query includes "categoryId"[cite: 4]
-        const offerProducts = <% - JSON.stringify(products) %>;
-        const offerCategories = <% - JSON.stringify(categories) %>;
+        const offerProducts = <%- JSON.stringify(products) %>;
+        const offerCategories = <%- JSON.stringify(categories) %>;
 
         // --- Search & Pagination Helper ---
         function clearOfferSearch() {
