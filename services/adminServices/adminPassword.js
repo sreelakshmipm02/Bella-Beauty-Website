@@ -18,7 +18,7 @@ export const generateAdminResetToken = async (email) => {
   await admin.save();
 
   // Send Email (Admin Link)
-  const resetUrl = `http://localhost:3000/admin/reset-password/${token}`;
+  const resetUrl = `http://54.252.196.133/admin/reset-password/${token}`;
   await sendResetEmail(email, resetUrl);
 
   return true;

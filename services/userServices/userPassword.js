@@ -17,7 +17,7 @@ export const generateResetToken = async (email) => {
   await user.save();
 
   // 3. Send the email
-  const resetUrl = `http://localhost:3000/reset-password/${token}`;
+  const resetUrl = `http://54.252.196.133/reset-password/${token}`;
   await sendResetEmail(email, resetUrl);
 
   return true;
