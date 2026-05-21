@@ -56,7 +56,11 @@ const resolveRepresentativeVariant = async (storedVariant) => {
 };
 
 const normalizeWishlist = async (wishlist) => {
-  if (!wishlist || !Array.isArray(wishlist.items) || wishlist.items.length === 0) {
+  if (
+    !wishlist ||
+    !Array.isArray(wishlist.items) ||
+    wishlist.items.length === 0
+  ) {
     return { changed: false, itemMetadata: [] };
   }
 
@@ -66,7 +70,9 @@ const normalizeWishlist = async (wishlist) => {
   let changed = false;
 
   for (const item of wishlist.items) {
-    const representativeVariant = await resolveRepresentativeVariant(item.productVariantId);
+    const representativeVariant = await resolveRepresentativeVariant(
+      item.productVariantId,
+    );
     const productId = getProductIdFromVariant(representativeVariant);
 
     if (!representativeVariant || !productId) {
@@ -79,7 +85,10 @@ const normalizeWishlist = async (wishlist) => {
       continue;
     }
 
-    if (getVariantId(item.productVariantId) !== getVariantId(representativeVariant)) {
+    if (
+      getVariantId(item.productVariantId) !==
+      getVariantId(representativeVariant)
+    ) {
       item.productVariantId = representativeVariant._id;
       changed = true;
     }
@@ -102,7 +111,8 @@ const normalizeWishlist = async (wishlist) => {
 };
 
 const findVariantOrThrow = async (variantId) => {
-  const variant = await ProductVariant.findById(variantId).populate("productId");
+  const variant =
+    await ProductVariant.findById(variantId).populate("productId");
 
   if (!variant?.productId || variant.productId.status !== "active") {
     throw new AppError("This product is currently unavailable.", 404);
@@ -156,7 +166,8 @@ export const toggleWishlistItem = async (userId, variantId) => {
 
 // Remove item directly from wishlist
 export const removeWishlistItem = async (userId, variantId) => {
-  const targetVariant = await ProductVariant.findById(variantId).populate("productId");
+  const targetVariant =
+    await ProductVariant.findById(variantId).populate("productId");
 
   if (!targetVariant?.productId) {
     await Wishlist.updateOne(
