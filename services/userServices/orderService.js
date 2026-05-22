@@ -97,6 +97,296 @@ const clearCartAfterCheckout = async (userId) => {
   );
 };
 
+const removeOrderItemsFromCart = async (userId, orderItems) => {
+  const variantIds = orderItems.map((item) => item.productVariantId.toString());
+
+  await Cart.findOneAndUpdate(
+    { userId },
+    {
+      $pull: {
+        items: {
+          productVariantId: { $in: variantIds },
+        },
+      },
+      $set: {
+        appliedCoupon: { ...EMPTY_COUPON },
+      },
+    },
+  );
+};
+
+const getCouponSnapshot = async (cartRecord, cartData) => {
+  if (!cartRecord?.appliedCoupon?.couponId && !cartData.appliedCoupon?.code) {
+    return null;
+  }
+
+  const coupon = cartRecord?.appliedCoupon?.couponId
+    ? await Coupon.findById(cartRecord.appliedCoupon.couponId).select(
+        "code discountType",
+      )
+    : await Coupon.findOne({ code: cartData.appliedCoupon.code }).select(
+        "code discountType",
+      );
+
+  return {
+    _id: coupon?._id || cartRecord?.appliedCoupon?.couponId || null,
+    code: coupon?.code || cartData.appliedCoupon?.code || null,
+    discountType: coupon?.discountType || null,
+    discountAmount: Number(
+      cartData.appliedCoupon?.discountAmount || cartData.summary.discount || 0,
+    ),
+  };
+};
+
+const buildOrderItems = (cartData) =>
+  cartData.items.map((item) => ({
+    productVariantId: item.variantId,
+    productName: item.productName,
+    image: item.image,
+    price: Number(item.price),
+    originalPrice: Number(item.originalPrice || item.price),
+    quantity: item.quantity,
+    itemTotal: Number(item.itemTotal),
+    originalItemTotal: Number(item.originalItemTotal || item.itemTotal),
+    offerDiscount: Number(item.offerDiscount || 0),
+    appliedOffer: item.appliedOffer
+      ? {
+          offerId: item.appliedOffer._id || null,
+          offerName: item.appliedOffer.offerName || null,
+          offerType: item.appliedOffer.offerType || null,
+          discountType: item.appliedOffer.discountType || null,
+          discountValue: Number(item.appliedOffer.discountValue || 0),
+          maxDiscountValue: Number(item.appliedOffer.maxDiscountValue || 0),
+          label: item.appliedOffer.label || null,
+        }
+      : undefined,
+    status: "Pending",
+    refund: {
+      status: "None",
+      amount: 0,
+    },
+  }));
+
+const buildOrderDocument = ({
+  userId,
+  address,
+  cartData,
+  couponSnapshot,
+  paymentMethod,
+  paymentStatus,
+  transactionId = null,
+}) => {
+  const totalAmount = Number(cartData.summary.total);
+
+  return new Order({
+    userId,
+    items: buildOrderItems(cartData),
+    shippingAddress: {
+      fullName: address.fullName,
+      phone: address.phone,
+      addressLine1: address.addressLine1,
+      addressLine2: address.addressLine2,
+      city: address.city,
+      state: address.state,
+      postalCode: address.postalCode,
+      country: address.country,
+    },
+    payment: {
+      method: paymentMethod,
+      status: paymentStatus,
+      transactionId,
+      walletAmount: paymentMethod === "Wallet" ? totalAmount : 0,
+      refundedAmount: 0,
+    },
+    summary: {
+      subtotal: Number(cartData.summary.subtotal),
+      tax: Number(cartData.summary.tax),
+      shipping: Number(cartData.summary.shipping),
+      grossSubtotal: Number(cartData.summary.grossSubtotal || 0),
+      originalGrossSubtotal: Number(
+        cartData.summary.originalGrossSubtotal || 0,
+      ),
+      offerDiscount: Number(cartData.summary.offerSavings || 0),
+      discount: Number(cartData.summary.discount),
+      couponDiscount: Number(
+        couponSnapshot?.discountAmount || cartData.summary.discount || 0,
+      ),
+      totalDiscount: Number(cartData.summary.totalDiscount || 0),
+      couponCode: couponSnapshot?.code || undefined,
+      couponDiscountType: couponSnapshot?.discountType || undefined,
+      couponId: couponSnapshot?._id || undefined,
+      total: totalAmount,
+    },
+    orderStatus: "Pending",
+  });
+};
+
+const ensureOrderItemsAvailable = async (orderItems) => {
+  for (const item of orderItems) {
+    const variant = await ProductVariant.findById(item.productVariantId)
+      .populate({
+        path: "productId",
+        populate: { path: "categoryId" },
+      })
+      .select("stock status productId");
+
+    const product = variant?.productId;
+    const category = product?.categoryId;
+
+    if (
+      !variant ||
+      variant.status !== "active" ||
+      !product ||
+      product.status !== "active" ||
+      !category ||
+      category.status !== "active"
+    ) {
+      throw new AppError(`${item.productName} is no longer available.`, 409);
+    }
+
+    if (variant.stock < item.quantity) {
+      throw new AppError(
+        `${item.productName} only has ${variant.stock} item(s) left in stock.`,
+        409,
+      );
+    }
+  }
+};
+
+export const createPendingOnlineOrder = async (
+  userId,
+  addressId,
+  razorpayOrderId = null,
+) => {
+  const cartData = await getCartData(userId);
+  const cartRecord = await Cart.findOne({ userId }).select("appliedCoupon");
+
+  if (!cartData || cartData.items.length === 0) {
+    throw new AppError("Your cart is empty.", 400);
+  }
+
+  const address = await getAddressById(addressId, userId);
+
+  if (!address) {
+    throw new AppError("Shipping address not found.", 404);
+  }
+
+  await ensureCheckoutStock(cartData.items);
+
+  const couponSnapshot = await getCouponSnapshot(cartRecord, cartData);
+  const order = buildOrderDocument({
+    userId,
+    address,
+    cartData,
+    couponSnapshot,
+    paymentMethod: "Online",
+    paymentStatus: "Failed",
+    transactionId: razorpayOrderId,
+  });
+
+  return await order.save();
+};
+
+export const prepareRetryOnlinePayment = async (userId, orderId) => {
+  const order = await Order.findOne({ _id: orderId, userId });
+
+  if (!order) throw new AppError("Order not found.", 404);
+
+  if (order.payment.method !== "Online" || order.payment.status !== "Failed") {
+    throw new AppError("This order is not eligible for payment retry.", 400);
+  }
+
+  if (["Cancelled", "Returned"].includes(order.orderStatus)) {
+    throw new AppError("This order can no longer be paid for.", 400);
+  }
+
+  await ensureOrderItemsAvailable(order.items);
+
+  const options = {
+    amount: Math.round(Number(order.summary.total) * 100),
+    currency: "INR",
+    receipt: `retry_${order.orderId}_${Date.now()}`,
+  };
+  const razorpayOrder = await getRazorpayInstance().orders.create(options);
+
+  order.payment.transactionId = razorpayOrder.id;
+  await order.save();
+
+  return {
+    order,
+    razorpayOrder,
+    amount: options.amount,
+    key: process.env.RAZORPAY_KEY_ID,
+  };
+};
+
+export const finalizeOnlineOrderPayment = async (
+  userId,
+  orderId,
+  transactionId,
+) => {
+  const order = await Order.findOne({ _id: orderId, userId });
+
+  if (!order) throw new AppError("Order not found.", 404);
+
+  if (order.payment.method !== "Online") {
+    throw new AppError("This order was not placed with online payment.", 400);
+  }
+
+  if (order.payment.status === "Paid") {
+    return order;
+  }
+
+  await ensureOrderItemsAvailable(order.items);
+
+  const stockAdjustments = [];
+
+  try {
+    for (const item of order.items) {
+      const updatedVariant = await ProductVariant.findOneAndUpdate(
+        {
+          _id: item.productVariantId,
+          status: "active",
+          stock: { $gte: item.quantity },
+        },
+        { $inc: { stock: -item.quantity } },
+        { new: true },
+      );
+
+      if (!updatedVariant) {
+        throw new AppError(
+          `Sorry, ${item.productName} is no longer available in the requested quantity.`,
+          409,
+        );
+      }
+
+      stockAdjustments.push({
+        variantId: item.productVariantId,
+        quantity: item.quantity,
+      });
+    }
+
+    order.payment.status = "Paid";
+    order.payment.transactionId = transactionId;
+    await order.save();
+    await removeOrderItemsFromCart(userId, order.items);
+
+    return order;
+  } catch (error) {
+    if (stockAdjustments.length > 0) {
+      await Promise.all(
+        stockAdjustments.map((adjustment) =>
+          ProductVariant.findByIdAndUpdate(adjustment.variantId, {
+            $inc: { stock: adjustment.quantity },
+          }),
+        ),
+      );
+    }
+
+    throw error;
+  }
+};
+
 // -------------------------------
 // 1. CHECKOUT
 // -------------------------------
@@ -335,6 +625,7 @@ export const cancelMultipleItemsService = async (
   const refundAllocations = buildRefundAllocationMap(order);
   const refundableItems = [];
   let totalRefundAmount = 0;
+  const shouldRestoreStock = order.payment?.status !== "Failed";
 
   for (const itemId of itemIds) {
     const item = order.items.id(itemId);
@@ -343,9 +634,11 @@ export const cancelMultipleItemsService = async (
       continue;
     }
 
-    await ProductVariant.findByIdAndUpdate(item.productVariantId, {
-      $inc: { stock: item.quantity },
-    });
+    if (shouldRestoreStock) {
+      await ProductVariant.findByIdAndUpdate(item.productVariantId, {
+        $inc: { stock: item.quantity },
+      });
+    }
 
     item.status = "Cancelled";
     item.cancelReason = reason;

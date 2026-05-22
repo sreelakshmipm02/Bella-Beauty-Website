@@ -3,6 +3,22 @@
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 min-h-screen bg-white">
         <h1 class="text-3xl font-bold font-display text-gray-900 mb-8">Checkout</h1>
 
+        <% if (locals.adjustments && adjustments.length > 0) { %>
+            <div class="mb-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-amber-800">
+                <div class="flex gap-3">
+                    <span class="material-icons-outlined text-amber-600">info</span>
+                    <div>
+                        <p class="font-bold">Cart updated before checkout</p>
+                        <ul class="mt-2 space-y-1 text-sm">
+                            <% adjustments.forEach((adjustment) => { %>
+                                <li><%= adjustment %></li>
+                            <% }) %>
+                        </ul>
+                    </div>
+                </div>
+            </div>
+        <% } %>
+
         <div class="flex flex-col lg:flex-row gap-10">
             <div class="flex-1 space-y-8">
 
@@ -297,10 +313,17 @@
     <script>
         const savedAddresses = <%- JSON.stringify(addresses || []) %>;
         let checkoutCartState = <%- JSON.stringify(cart) %>;
-        const buildPaymentFailureUrl = (message, code = "") => {
+        const escapeHtml = (value) => String(value)
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+        const buildPaymentFailureUrl = (message, code = "", orderId = "") => {
             const params = new URLSearchParams();
             if (message) params.set("message", message);
             if (code) params.set("code", code);
+            if (orderId) params.set("orderId", orderId);
             return `/payments/failure?${params.toString()}`;
         };
 
@@ -510,8 +533,32 @@
             document.getElementById('addressModal').classList.add('hidden');
         }
 
+        const checkoutAddressFieldIds = ['fullName', 'phone', 'addressLine1', 'city', 'state', 'postalCode'];
+        function clearCheckoutAddressErrors() {
+            checkoutAddressFieldIds.forEach((fieldId) => {
+                window.BellaForms?.clearFieldError(document.getElementById(fieldId));
+            });
+        }
+
+        function showCheckoutAddressError(validation) {
+            if (validation.field) {
+                const field = document.getElementById(validation.field);
+                window.BellaForms?.setFieldError(field, validation.message);
+                field?.focus();
+                return;
+            }
+            Swal.fire(validation.title, validation.message, validation.icon);
+        }
+
+        checkoutAddressFieldIds.forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            field.addEventListener('input', () => window.BellaForms?.clearFieldError(field));
+        });
+
         document.getElementById('addressForm').addEventListener('submit', async function (e) {
             e.preventDefault();
+            clearCheckoutAddressErrors();
             const fullName = document.getElementById('fullName').value.trim();
             const phone = document.getElementById('phone').value.trim();
             const addressLine1 = document.getElementById('addressLine1').value.trim();
@@ -531,7 +578,7 @@
             });
 
             if (!validation.isValid) {
-                return Swal.fire(validation.title, validation.message, validation.icon);
+                return showCheckoutAddressError(validation);
             }
 
             const btn = document.getElementById('saveAddressBtn');
@@ -607,6 +654,7 @@
 
         if (data.success) {
             if (data.isOnline) {
+                const pendingOrderId = data.orderId;
                 // Launch Razorpay
                 const options = {
                     key: data.key,
@@ -627,6 +675,7 @@
                                     razorpay_payment_id: response.razorpay_payment_id,
                                     razorpay_order_id: response.razorpay_order_id,
                                     razorpay_signature: response.razorpay_signature,
+                                    orderId: pendingOrderId,
                                     addressId: addressInput.value
                                 })
                             });
@@ -636,16 +685,17 @@
                             } else {
                                 window.location.href = buildPaymentFailureUrl(
                                     verifyData.message || 'Payment verification failed.',
-                                    response.razorpay_payment_id
+                                    response.razorpay_payment_id,
+                                    pendingOrderId
                                 );
                             }
                         } catch (err) {
-                            window.location.href = buildPaymentFailureUrl('Failed to verify your payment. Please try again.');
+                            window.location.href = buildPaymentFailureUrl('Failed to verify your payment. Please try again.', '', pendingOrderId);
                         }
                     },
                     modal: {
                         ondismiss: function () {
-                            window.location.href = buildPaymentFailureUrl('You closed the payment window before completing the transaction.');
+                            window.location.href = buildPaymentFailureUrl('You closed the payment window before completing the transaction.', '', pendingOrderId);
                         }
                     }
                 };
@@ -655,7 +705,8 @@
                     const failure = response.error || {};
                     window.location.href = buildPaymentFailureUrl(
                         failure.description || 'Your payment failed or was cancelled.',
-                        failure.metadata?.payment_id || failure.code || ''
+                        failure.metadata?.payment_id || failure.code || '',
+                        pendingOrderId
                     );
                 });
                 rzp.open();
@@ -665,7 +716,18 @@
                 window.location.href = `/orders/${data.orderId}/success`;
             }
         } else {
-            Swal.fire('Checkout Failed', data.message, 'error');
+            if (data.cartAdjusted && Array.isArray(data.errors)) {
+                const adjustmentHtml = `<ul class="text-left list-disc pl-5 text-sm text-gray-600">${data.errors.map(item => `<li class="mb-1">${escapeHtml(item)}</li>`).join('')}</ul>`;
+                Swal.fire({
+                    icon: 'info',
+                    title: 'Cart Updated',
+                    html: `<p class="mb-3">${data.message}</p>${adjustmentHtml}`,
+                    confirmButtonText: 'Review Cart',
+                    confirmButtonColor: '#E91E63'
+                }).then(() => window.location.reload());
+            } else {
+                Swal.fire('Checkout Failed', data.message, 'error');
+            }
             btn.innerHTML = originalText;
             btn.disabled = false;
         }

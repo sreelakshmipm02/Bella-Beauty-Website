@@ -265,9 +265,12 @@ export const getCartData = async (userId) => {
 
       // Fix quantity if stock reduced
       if (actualQty > variant.stock) {
+        const previousQty = actualQty;
         actualQty = variant.stock;
         item.quantity = actualQty;
-        adjustments.push(`${product.name} quantity reduced due to low stock`);
+        adjustments.push(
+          `${product.name} quantity was reduced from ${previousQty} to ${actualQty} because only ${actualQty} item(s) are available.`,
+        );
         cartModified = true;
       }
 

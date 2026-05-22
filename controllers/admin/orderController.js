@@ -6,6 +6,7 @@ import {
   updatePaymentStatusService,
 } from "../../services/adminServices/orderService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
+import AppError from "../../utils/AppError.js";
 
 /**
  * Show orders page with pagination, search, filter, and sorting.
@@ -39,7 +40,7 @@ export const getOrdersPage = asyncHandler(async (req, res) => {
  */
 export const getAdminOrderDetailPage = asyncHandler(async (req, res) => {
   const order = await getAdminOrderById(req.params.id);
-  if (!order) return res.redirect("/admin/orders");
+  if (!order) throw new AppError("We couldn't find that order.", 404);
   res.render("admin/orderDetail", {
     title: `Order Details - ${order.orderId}`,
     order,

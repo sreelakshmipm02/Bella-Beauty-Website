@@ -17,7 +17,7 @@ export const generateResetToken = async (email) => {
   await user.save();
 
   // 3. Send the email
-  const resetUrl = `https://sreestore.online/reset-password/${token}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/reset-password/${token}`;
   await sendResetEmail(email, resetUrl);
 
   return true;

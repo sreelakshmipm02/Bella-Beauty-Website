@@ -43,6 +43,132 @@ const productTypeContainer = document.getElementById(
   "dynamicProductTypeContainer",
 );
 
+const fieldError = (field, message) => {
+  window.BellaForms?.setFieldError(field, message);
+  return false;
+};
+
+const clearFieldError = (field) => {
+  window.BellaForms?.clearFieldError(field);
+  return true;
+};
+
+const validTextCount = (value) => value.replace(/[^a-zA-Z0-9]/g, "").length;
+
+function validateProductNameField() {
+  const input = document.getElementById("productName");
+  const value = input.value.trim();
+
+  if (validTextCount(value) < 3) {
+    return fieldError(
+      input,
+      "Enter a product name with at least 3 letters or numbers.",
+    );
+  }
+
+  return clearFieldError(input);
+}
+
+function validateBrandField() {
+  const input = document.getElementById("productBrand");
+  const value = input.value.trim();
+
+  if (validTextCount(value) < 2) {
+    return fieldError(
+      input,
+      "Enter a brand name with at least 2 letters or numbers.",
+    );
+  }
+
+  return clearFieldError(input);
+}
+
+function validateDescriptionField() {
+  const input = document.getElementById("productDescription");
+  const value = input ? input.value.trim() : "";
+
+  if (input && value.length > 0 && validTextCount(value) < 10) {
+    return fieldError(
+      input,
+      "Description should contain at least 10 letters or numbers when provided.",
+    );
+  }
+
+  if (input) clearFieldError(input);
+  return true;
+}
+
+function validateProductTypeField() {
+  const input = document.querySelector('select[name="productType"]');
+  if (!input) return true;
+
+  if (!input.value) {
+    return fieldError(input, "Please select a product type.");
+  }
+
+  return clearFieldError(input);
+}
+
+function validateVariantBaseFields() {
+  let isValid = true;
+  const skuInput = tempVariantForm.querySelector('[name="sku"]');
+  const priceInput = tempVariantForm.querySelector('[name="price"]');
+  const stockInput = tempVariantForm.querySelector('[name="stock"]');
+  const skuVal = skuInput.value.trim();
+  const priceVal = parseFloat(priceInput.value);
+  const stockVal = parseInt(stockInput.value);
+
+  if (!skuVal || !/^[A-Za-z0-9-_]+$/.test(skuVal)) {
+    fieldError(
+      skuInput,
+      "SKU must use only letters, numbers, dashes, or underscores.",
+    );
+    isValid = false;
+  } else {
+    clearFieldError(skuInput);
+  }
+
+  if (isNaN(priceVal) || priceVal <= 0) {
+    fieldError(priceInput, "Enter a price greater than 0.");
+    isValid = false;
+  } else {
+    clearFieldError(priceInput);
+  }
+
+  if (isNaN(stockVal) || stockVal < 0) {
+    fieldError(stockInput, "Stock must be 0 or a positive whole number.");
+    isValid = false;
+  } else {
+    clearFieldError(stockInput);
+  }
+
+  return isValid;
+}
+
+function bindProductFieldValidation() {
+  [
+    ["productName", validateProductNameField],
+    ["productBrand", validateBrandField],
+    ["productDescription", validateDescriptionField],
+  ].forEach(([fieldId, validator]) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+    ["input", "change", "blur"].forEach((eventName) => {
+      field.addEventListener(eventName, validator);
+    });
+  });
+
+  tempVariantForm
+    .querySelectorAll('[name="price"], [name="stock"], [name="sku"]')
+    .forEach((field) => {
+      ["input", "blur"].forEach((eventName) => {
+        field.addEventListener(eventName, validateVariantBaseFields);
+      });
+    });
+}
+
+bindProductFieldValidation();
+
 // Pre-fill the product type based on server data (injected via EJS)
 const existingProductType =
   typeof serverProductType !== "undefined" ? serverProductType : "";
@@ -165,6 +291,12 @@ function renderProductTypeDropdown(attribute) {
             ${optionsHtml}
         </select>
     `;
+
+  const productTypeSelect = productTypeContainer.querySelector(
+    'select[name="productType"]',
+  );
+  productTypeSelect.addEventListener("change", validateProductTypeField);
+  productTypeSelect.addEventListener("blur", validateProductTypeField);
 }
 
 // ==========================================
@@ -312,6 +444,19 @@ function renderDynamicAttributes(attributes) {
             </div>
         `;
     dynamicAttributesGrid.insertAdjacentHTML("beforeend", attrHtml);
+  });
+
+  dynamicAttributesGrid.querySelectorAll('[name^="attr_"]').forEach((input) => {
+    input.addEventListener("input", () => {
+      clearFieldError(input);
+      const group = input.closest(".checkbox-group");
+      if (group) clearFieldError(group);
+    });
+    input.addEventListener("change", () => {
+      clearFieldError(input);
+      const group = input.closest(".checkbox-group");
+      if (group) clearFieldError(group);
+    });
   });
 }
 
@@ -462,6 +607,10 @@ function renderImagePreviews() {
     const previewHtml = `<div class="relative group rounded-lg overflow-hidden border border-green-300 aspect-square"><img src="${URL.createObjectURL(file)}" class="w-full h-full object-cover"><button type="button" onclick="removeTempImage(${index})" class="absolute inset-0 bg-red-900/80 text-white opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity"><span class="material-icons-outlined text-2xl">delete</span></button><span class="absolute top-1 left-1 bg-green-500 text-white text-[10px] px-1.5 rounded">New</span></div>`;
     addImageBtn.insertAdjacentHTML("beforebegin", previewHtml);
   });
+
+  if (tempOldImages.length + croppedImagesArray.length >= 3) {
+    clearFieldError(croppedPreviews);
+  }
 }
 
 window.removeTempImage = function (index) {
@@ -491,21 +640,33 @@ document
 
     if (!/^[A-Za-z0-9-_]+$/.test(skuInput.value.trim())) {
       skuInput.classList.add("border-red-500", "error-border");
+      fieldError(
+        skuInput,
+        "SKU must use only letters, numbers, dashes, or underscores.",
+      );
       errorMessage += "• Invalid SKU.<br>";
       isValid = false;
+    } else {
+      clearFieldError(skuInput);
     }
     if (
       isNaN(parseFloat(priceInput.value)) ||
       parseFloat(priceInput.value) <= 0
     ) {
       priceInput.classList.add("border-red-500", "error-border");
+      fieldError(priceInput, "Enter a price greater than 0.");
       errorMessage += "• Invalid Price.<br>";
       isValid = false;
+    } else {
+      clearFieldError(priceInput);
     }
     if (isNaN(parseInt(stockInput.value)) || parseInt(stockInput.value) < 0) {
       stockInput.classList.add("border-red-500", "error-border");
+      fieldError(stockInput, "Stock must be 0 or a positive whole number.");
       errorMessage += "• Invalid Stock.<br>";
       isValid = false;
+    } else {
+      clearFieldError(stockInput);
     }
 
     // --- VALIDATE & CAPTURE DYNAMIC ATTRIBUTES ---
@@ -529,12 +690,17 @@ document
           inputs[0]
             .closest(".checkbox-group")
             .classList.add("border-red-500", "bg-red-50");
+          fieldError(
+            inputs[0].closest(".checkbox-group"),
+            "Choose at least one option, or select N/A.",
+          );
           isValid = false;
           hasAttrError = true;
         } else {
           inputs[0]
             .closest(".checkbox-group")
             .classList.remove("border-red-500", "bg-red-50");
+          clearFieldError(inputs[0].closest(".checkbox-group"));
           attributesMap.push({ attributeId, value: checkedValues.join(", ") });
         }
       } else {
@@ -547,9 +713,14 @@ document
             val.toUpperCase() !== "N/A")
         ) {
           inputs[0].classList.add("border-red-500", "error-border");
+          fieldError(
+            inputs[0],
+            "Enter a valid value, or use N/A when this does not apply.",
+          );
           isValid = false;
           hasAttrError = true;
         } else {
+          clearFieldError(inputs[0]);
           attributesMap.push({ attributeId, value: val });
         }
       }
@@ -562,15 +733,21 @@ document
 
     const totalImages = tempOldImages.length + croppedImagesArray.length;
     if (totalImages < 3) {
+      fieldError(
+        croppedPreviews,
+        `Add at least 3 images. You have ${totalImages}.`,
+      );
       errorMessage += `• Minimum 3 images required. You have ${totalImages}.<br>`;
       isValid = false;
+    } else {
+      clearFieldError(croppedPreviews);
     }
 
     if (!isValid)
       return Swal.fire({
         icon: "error",
-        title: "Fix errors:",
-        html: `<div class="text-left text-sm mt-2">${errorMessage}</div>`,
+        title: "Please fix the highlighted fields",
+        text: "Each issue is shown next to the field that needs attention.",
       });
 
     const formData = new FormData(tempVariantForm);
@@ -665,28 +842,24 @@ mainForm.addEventListener("submit", async function (e) {
   const brandInput = document.getElementById("productBrand");
   const descInput = document.getElementById("productDescription");
 
-  const nameVal = nameInput.value.trim();
-  const brandVal = brandInput.value.trim();
-  const descVal = descInput ? descInput.value.trim() : "";
-
   // ✅ NEW: Look for the dynamically generated Product Type dropdown
   const productTypeSelect = document.querySelector(
     'select[name="productType"]',
   );
 
-  if (nameVal.replace(/[^a-zA-Z0-9]/g, "").length < 3) {
+  if (!validateProductNameField()) {
     nameInput.classList.add("border-red-500", "error-border");
     errorMessage += "• Name needs at least 3 valid chars.<br>";
     isValid = false;
   }
 
-  if (brandVal.replace(/[^a-zA-Z0-9]/g, "").length < 2) {
+  if (!validateBrandField()) {
     brandInput.classList.add("border-red-500", "error-border");
     errorMessage += "• Brand needs at least 2 valid chars.<br>";
     isValid = false;
   }
 
-  if (descVal.length > 0 && descVal.replace(/[^a-zA-Z0-9]/g, "").length < 10) {
+  if (!validateDescriptionField()) {
     if (descInput) descInput.classList.add("border-red-500", "error-border");
     errorMessage +=
       "• If provided, the Description must contain at least 10 valid characters.<br>";
@@ -694,26 +867,23 @@ mainForm.addEventListener("submit", async function (e) {
   }
 
   // ✅ NEW: Strict validation for Product Type
-  if (productTypeSelect && !productTypeSelect.value) {
-    Swal.fire({
-      icon: "warning",
-      title: "Product Type Required",
-      text: "Please select a Product Type from the dropdown.",
-      confirmButtonColor: "#e83e8c",
-    });
-    return;
+  if (productTypeSelect && !validateProductTypeField()) {
+    isValid = false;
   }
 
   if (queuedVariantsArray.length === 0) {
+    fieldError(emptyVariantsMsg, "Add at least one variant before saving.");
     errorMessage += "• Need at least one variant.<br>";
     isValid = false;
+  } else {
+    clearFieldError(emptyVariantsMsg);
   }
 
   if (!isValid)
     return Swal.fire({
       icon: "error",
-      title: "Cannot Update",
-      html: `<div class="text-left text-sm mt-2">${errorMessage}</div>`,
+      title: "Please fix the highlighted fields",
+      text: "Each issue is shown next to the field that needs attention.",
     });
 
   const saveBtn = document.getElementById("updateFinalProductBtn");

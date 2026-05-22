@@ -110,38 +110,62 @@ async function handleProfileUpdate(e) {
 
   // 2. Extract values for validation
   const firstName = formData.get("firstName").trim();
-  const lastName = formData.get("firstName").trim();
+  const lastName = formData.get("lastName").trim();
   const phone = formData.get("phone").trim();
   const email = formData.get("email").trim();
+  const firstNameInput = document.getElementById("editFirstName");
+  const lastNameInput = document.getElementById("editLastName");
+  const phoneInput = document.getElementById("editPhone");
+  const emailInput = document.getElementById("editEmail");
 
   let isValid = true;
 
   // 3. Validate First Name (Letters only, min 2 chars)
   if (!/^[a-zA-Z\s]{2,50}$/.test(firstName)) {
-    document.getElementById("editFirstNameError").innerText =
-      "Must contain only letters (min 2 chars)";
+    window.BellaForms?.setFieldError(
+      firstNameInput,
+      "First name should contain only letters and be at least 2 characters.",
+      "editFirstNameError",
+    );
     isValid = false;
+  } else {
+    window.BellaForms?.clearFieldError(firstNameInput, "editFirstNameError");
   }
 
   // 4. Validate Last Name (Letters only, min 1 char)
   if (!/^[a-zA-Z\s]{1,50}$/.test(lastName)) {
-    document.getElementById("editLastNameError").innerText =
-      "Must contain only letters";
+    window.BellaForms?.setFieldError(
+      lastNameInput,
+      "Last name should contain only letters.",
+      "editLastNameError",
+    );
     isValid = false;
+  } else {
+    window.BellaForms?.clearFieldError(lastNameInput, "editLastNameError");
   }
 
   // 5. Validate Phone (Indian 10-digit)
   if (!/^[6-9]\d{9}$/.test(phone)) {
-    document.getElementById("editPhoneError").innerText =
-      "Enter a valid 10-digit mobile number";
+    window.BellaForms?.setFieldError(
+      phoneInput,
+      "Enter a valid 10-digit mobile number.",
+      "editPhoneError",
+    );
     isValid = false;
+  } else {
+    window.BellaForms?.clearFieldError(phoneInput, "editPhoneError");
   }
 
   // 6. Validate Email
   if (!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) {
-    document.getElementById("editEmailError").innerText =
-      "Please enter a valid email address";
+    window.BellaForms?.setFieldError(
+      emailInput,
+      "Please enter a valid email address.",
+      "editEmailError",
+    );
     isValid = false;
+  } else {
+    window.BellaForms?.clearFieldError(emailInput, "editEmailError");
   }
   // Stop execution if validation fails
   if (!isValid) return;
@@ -187,25 +211,32 @@ document
   .getElementById("editFirstName")
   .addEventListener(
     "input",
-    () => (document.getElementById("editFirstNameError").innerText = ""),
+    (event) =>
+      window.BellaForms?.clearFieldError(
+        event.target,
+        "editFirstNameError",
+      ),
   );
 document
   .getElementById("editLastName")
   .addEventListener(
     "input",
-    () => (document.getElementById("editLastNameError").innerText = ""),
+    (event) =>
+      window.BellaForms?.clearFieldError(event.target, "editLastNameError"),
   ); // <-- ADD THIS LINE
 document
   .getElementById("editPhone")
   .addEventListener(
     "input",
-    () => (document.getElementById("editPhoneError").innerText = ""),
+    (event) =>
+      window.BellaForms?.clearFieldError(event.target, "editPhoneError"),
   );
 document
   .getElementById("editEmail")
   .addEventListener(
     "input",
-    () => (document.getElementById("editEmailError").innerText = ""),
+    (event) =>
+      window.BellaForms?.clearFieldError(event.target, "editEmailError"),
   );
 
 // --- OTP Handling Utilities (Timer & Input Focus) ---

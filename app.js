@@ -13,6 +13,7 @@ import connectDB from "./config/db.js";
 import userRoutes from "./routes/userRoutes.js";
 import adminRoutes from "./routes/adminRoutes.js";
 import { errorHandler, notFound } from "./middlewares/errorMiddleware.js";
+import { syncUserSessionStatus } from "./middlewares/authMiddleware.js";
 import ProductVariant from "./models/productVariant.js";
 
 // Since we are using ES Modules, we need to manually reconstruct __dirname
@@ -54,6 +55,7 @@ app.use(
 configurePassport();
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(syncUserSessionStatus);
 
 // --- Admin Alerts Middleware ---
 // This middleware injects a 'lowStockCount' variable into all admin views.

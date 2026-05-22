@@ -3,6 +3,40 @@ import Cart from "../models/cart.js";
 import Wishlist from "../models/wishlist.js";
 import ProductVariant from "../models/productVariant.js";
 
+const clearUserSession = (req) => {
+  if (!req.session) return;
+
+  delete req.session.userId;
+
+  if (req.session.passport) {
+    delete req.session.passport.user;
+  }
+};
+
+const saveSessionIfPossible = (req, next) => {
+  if (!req.session?.save) return next();
+  req.session.save((err) => next(err));
+};
+
+export const syncUserSessionStatus = async (req, res, next) => {
+  if (!req.session?.userId) return next();
+
+  try {
+    const user = await User.findById(req.session.userId).select("status");
+
+    if (!user || user.status === "suspended") {
+      clearUserSession(req);
+      res.locals.userSessionExpired = true;
+      return saveSessionIfPossible(req, next);
+    }
+
+    next();
+  } catch (error) {
+    console.error("User Session Sync Error:", error);
+    next();
+  }
+};
+
 /**
  * 1. Prevent Browser Caching
  * Ensures that sensitive pages (like checkout or admin dashboard) are
@@ -40,10 +74,9 @@ export const checkUserSession = async (req, res, next) => {
       const user = await User.findById(req.session.userId);
 
       if (!user || user.status === "suspended") {
-        // Targeted deletion to maintain session separation
-        delete req.session.userId;
+        clearUserSession(req);
         return res.render("user/login", {
-          error: "Session expired or account is suspended.",
+          error: "Your session has ended because this account is not active.",
         });
       }
       next();
@@ -76,10 +109,10 @@ export const checkUserSessionAjax = async (req, res, next) => {
     try {
       const user = await User.findById(req.session.userId);
       if (!user || user.status === "suspended") {
-        delete req.session.userId;
+        clearUserSession(req);
         return res.status(401).json({
           success: false,
-          message: "Session expired.",
+          message: "Your session has ended. Please log in again.",
           redirect: "/login",
         });
       }

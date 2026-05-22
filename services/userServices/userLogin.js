@@ -8,18 +8,21 @@ export const loginUser = async (identifier, password) => {
   });
 
   if (!user) {
-    throw new AppError("User not found", 404);
+    throw new AppError("We couldn't find an account with those details.", 404);
   }
 
   // BLOCK CHECK
   if (user.status === "suspended") {
-    throw new AppError("Your account has been suspended by the admin.", 403);
+    throw new AppError(
+      "Your account is currently blocked. Please contact support if you think this is a mistake.",
+      403,
+    );
   }
 
   const isMatch = await bcrypt.compare(password, user.password);
 
   if (!isMatch) {
-    throw new AppError("Invalid password", 401);
+    throw new AppError("The password you entered is incorrect.", 401);
   }
   return user;
 };

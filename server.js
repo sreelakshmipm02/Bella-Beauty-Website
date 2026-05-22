@@ -4,5 +4,5 @@ import app from "./app.js";
 const PORT = process.env.PORT || 3000;
 app.listen(PORT, () => {
   console.log(`server running on port ${PORT}
-        https://sreestore.online`);
+        http://localhost:3000`);
 });

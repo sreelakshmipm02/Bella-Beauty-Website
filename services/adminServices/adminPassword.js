@@ -18,7 +18,7 @@ export const generateAdminResetToken = async (email) => {
   await admin.save();
 
   // Send Email (Admin Link)
-  const resetUrl = `https://sreestore.online/admin/reset-password/${token}`;
+  const resetUrl = `${process.env.FRONTEND_URL}/admin/reset-password/${token}`;
   await sendResetEmail(email, resetUrl);
 
   return true;

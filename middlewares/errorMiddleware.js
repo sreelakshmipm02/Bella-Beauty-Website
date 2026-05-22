@@ -14,12 +14,34 @@ const wantsJsonResponse = (req) => {
 };
 
 export const notFound = (req, res, next) => {
-  next(new AppError(`Route not found: ${req.originalUrl}`, 404));
+  next(new AppError("We couldn't find the page you were looking for.", 404));
 };
 
 export const errorHandler = (err, req, res, next) => {
-  const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  let statusCode = err.statusCode || 500;
+
+  if (err.name === "CastError") {
+    statusCode = 404;
+  }
+
+  const defaultMessages = {
+    400: "That request could not be processed. Please check the details and try again.",
+    401: "Please log in to continue.",
+    403: "You do not have permission to access this page.",
+    404: "We couldn't find the page you were looking for.",
+    409: "Something changed while you were shopping. Please review the latest details and try again.",
+    422: "Please fix the highlighted details and try again.",
+    500: "Something went wrong on our side. Please try again in a moment.",
+  };
+
+  const rawMessage =
+    err.name === "CastError"
+      ? defaultMessages[404]
+      : err.message || defaultMessages[500];
+  const message =
+    statusCode >= 500 && process.env.NODE_ENV !== "development"
+      ? defaultMessages[500]
+      : rawMessage;
   const errorList =
     typeof message === "string" && message.includes("|")
       ? message.split("|")
@@ -42,5 +64,6 @@ export const errorHandler = (err, req, res, next) => {
     title: `${statusCode} Error`,
     message,
     statusCode,
+    errorList,
   });
 };

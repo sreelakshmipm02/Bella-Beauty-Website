@@ -1,6 +1,8 @@
 import { getCartData } from "../../services/userServices/cartService.js";
 import { getUserAddresses } from "../../services/userServices/userAddress.js";
 import {
+  createPendingOnlineOrder,
+  finalizeOnlineOrderPayment,
   getRazorpayInstance,
   processCheckout,
   verifyPaymentSignature,
@@ -33,6 +35,7 @@ export const getCheckoutPage = asyncHandler(async (req, res) => {
     title: "Checkout - Bella Beauty",
     isLoggedIn: true,
     cart: cartData,
+    adjustments: cartData.adjustments || [],
     addresses: addresses || [],
     wallet: {
       ...wallet,
@@ -61,23 +64,39 @@ export const placeOrderAjax = asyncHandler(async (req, res) => {
     throw new AppError("Please select an address and payment method.", 400);
   }
 
+  const latestCartData = await getCartData(userId);
+  if (!latestCartData || latestCartData.items.length === 0) {
+    throw new AppError("Your cart is empty.", 400);
+  }
+
+  if (latestCartData.adjustments?.length) {
+    return res.status(409).json({
+      success: false,
+      message:
+        "We updated your cart because stock changed. Please review the updated quantities before placing the order.",
+      errors: latestCartData.adjustments,
+      cartAdjusted: true,
+    });
+  }
+
   if (paymentMethod === "Online") {
-    const cartData = await getCartData(userId);
-    if (!cartData || cartData.items.length === 0)
-      throw new AppError("Your cart is empty.", 400);
+    const order = await createPendingOnlineOrder(userId, addressId);
 
     // Create the Gateway Order (Amount must be in Paise, so multiply by 100)
     const options = {
-      amount: Math.round(Number(cartData.summary.total) * 100),
+      amount: Math.round(Number(order.summary.total) * 100),
       currency: "INR",
       receipt: `receipt_${Date.now()}`,
     };
     const razorpayOrder = await getRazorpayInstance().orders.create(options);
+    order.payment.transactionId = razorpayOrder.id;
+    await order.save();
 
     // Send this back to the frontend to trigger the popup
     return res.status(200).json({
       success: true,
       isOnline: true,
+      orderId: order._id,
       razorpayOrderId: razorpayOrder.id,
       amount: options.amount,
       key: process.env.RAZORPAY_KEY_ID,
@@ -102,6 +121,7 @@ export const verifyOnlinePayment = asyncHandler(async (req, res) => {
     razorpay_payment_id,
     razorpay_signature,
     addressId,
+    orderId,
   } = req.body;
 
   const isValid = verifyPaymentSignature(
@@ -113,13 +133,10 @@ export const verifyOnlinePayment = asyncHandler(async (req, res) => {
   if (!isValid)
     throw new AppError("Invalid payment signature. Payment failed.", 400);
 
-  // Payment is verified! Now it is safe to clear the cart and reduce stock.
-  const order = await processCheckout(
-    userId,
-    addressId,
-    "Online",
-    razorpay_payment_id,
-  );
+  // Payment is verified! Now it is safe to reduce stock and finalize the order.
+  const order = orderId
+    ? await finalizeOnlineOrderPayment(userId, orderId, razorpay_payment_id)
+    : await processCheckout(userId, addressId, "Online", razorpay_payment_id);
 
   res.status(200).json({
     success: true,

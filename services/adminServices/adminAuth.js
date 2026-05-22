@@ -34,13 +34,13 @@ export const authenticateAdmin = async (email, password) => {
   const admin = await Admin.findOne({ email: email });
 
   if (!admin) {
-    throw new AppError("Invalid email or password", 401);
+    throw new AppError("Please check the admin email and password.", 401);
   }
 
   const isMatch = await bcrypt.compare(password, admin.password);
 
   if (!isMatch) {
-    throw new AppError("Invalid email or password", 401);
+    throw new AppError("Please check the admin email and password.", 401);
   }
 
   return admin;

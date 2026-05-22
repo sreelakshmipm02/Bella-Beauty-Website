@@ -85,46 +85,125 @@ async function softDeleteCategory(categoryId) {
 // ==========================================
 
 // --- Form Validation Helpers ---
+function showFieldValidation(field, message) {
+  window.BellaForms?.setFieldError(field, message);
+  return { field, message };
+}
+
+function clearFieldValidation(field) {
+  window.BellaForms?.clearFieldError(field);
+}
+
 function validateCategoryInput(name, description, imageFile) {
-  if (!name || name.trim().length < 3)
-    return "Category name must be at least 3 characters long.";
-  if (/[^a-zA-Z0-9\s\-_&]/.test(name))
-    return "Category name contains invalid special characters.";
+  if (!name || name.trim().length < 3) {
+    return {
+      fieldName: "name",
+      message: "Category name must be at least 3 characters long.",
+    };
+  }
+  if (/[^a-zA-Z0-9\s\-_&]/.test(name)) {
+    return {
+      fieldName: "name",
+      message:
+        "Category name can only include letters, numbers, spaces, hyphens, underscores, and &.",
+    };
+  }
   // UPDATED: Only validate the description if the admin actually typed something in it
   if (
     description &&
     description.trim().length > 0 &&
     description.trim().length < 10
   ) {
-    return "If you provide a description, it must be at least 10 characters long.";
+    return {
+      fieldName: "description",
+      message:
+        "If you provide a description, it must be at least 10 characters long.",
+    };
   }
   if (imageFile && imageFile.name) {
     const validTypes = ["image/jpeg", "image/png", "image/webp"];
-    if (!validTypes.includes(imageFile.type))
-      return "Please upload a valid image file (JPEG, PNG, WEBP).";
-    if (imageFile.size > 5 * 1024 * 1024)
-      return "Image size must be less than 5MB.";
+    if (!validTypes.includes(imageFile.type)) {
+      return {
+        fieldName: "categoryImage",
+        message: "Please upload a valid image file (JPEG, PNG, WEBP).",
+      };
+    }
+    if (imageFile.size > 5 * 1024 * 1024) {
+      return {
+        fieldName: "categoryImage",
+        message: "Image size must be less than 5MB.",
+      };
+    }
   }
   return null;
 }
 
 function validateAttributeInput(label, internalName, dataType, possibleValues) {
-  if (!label || label.trim().length < 2)
-    return "Display label must be at least 2 characters long.";
+  if (!label || label.trim().length < 2) {
+    return {
+      fieldName: "displayLabel",
+      message: "Display label must be at least 2 characters long.",
+    };
+  }
 
   // NEW: Check if the internal name generated successfully
   if (!internalName || internalName.trim().length === 0) {
-    return "Display label must contain at least one letter or number to generate a valid internal name.";
+    return {
+      fieldName: "internalName",
+      message:
+        "Display label must contain at least one letter or number to generate a valid internal name.",
+    };
   }
 
   if (
     (dataType === "enum" || dataType === "array") &&
     (!possibleValues || !possibleValues.trim())
   ) {
-    return "Possible values are required for Dropdown and Multiple Select data types.";
+    return {
+      fieldName: "possibleValues",
+      message:
+        "Possible values are required for Dropdown and Multiple Select data types.",
+    };
   }
   return null;
 }
+
+function applyValidationError(form, validationError, fallbackErrorText) {
+  if (!validationError) return false;
+
+  const field = form.elements[validationError.fieldName];
+  if (field) {
+    showFieldValidation(field, validationError.message);
+    field.focus?.();
+  }
+
+  if (fallbackErrorText) fallbackErrorText.textContent = validationError.message;
+  return true;
+}
+
+document.addEventListener("DOMContentLoaded", () => {
+  [
+    "name",
+    "description",
+    "categoryImage",
+    "editCategoryName",
+    "editCategoryDescription",
+    "editCategoryImage",
+    "attrDisplayLabel",
+    "attrInternalName",
+    "attrPossibleValues",
+    "editAttrDisplayLabel",
+    "editAttrInternalName",
+    "editAttrPossibleValues",
+  ].forEach((fieldId) => {
+    const field = document.getElementById(fieldId);
+    if (!field) return;
+
+    ["input", "change"].forEach((eventName) => {
+      field.addEventListener(eventName, () => clearFieldValidation(field));
+    });
+  });
+});
 
 // --- Search Attributes (Add Category Modal) ---
 function filterCategoryAttributes() {
@@ -278,7 +357,7 @@ async function submitNewAttribute(e) {
     possibleValues,
   );
   if (validationError) {
-    errorText.textContent = validationError;
+    applyValidationError(form, validationError, errorText);
     errorDiv.classList.remove("hidden");
     return;
   }
@@ -457,7 +536,7 @@ async function submitEditAttributeForm(e) {
     possibleValues,
   );
   if (validationError) {
-    errorText.textContent = validationError;
+    applyValidationError(form, validationError, errorText);
     errorDiv.classList.remove("hidden");
     return;
   }
@@ -619,7 +698,7 @@ async function submitCategoryForm(e) {
 
   const validationError = validateCategoryInput(name, description, imageFile);
   if (validationError) {
-    errorText.textContent = validationError;
+    applyValidationError(form, validationError, errorText);
     errorDiv.classList.remove("hidden");
     return;
   }
@@ -796,7 +875,7 @@ async function submitEditCategoryForm(e) {
 
   const validationError = validateCategoryInput(name, description, imageFile);
   if (validationError) {
-    errorText.textContent = validationError;
+    applyValidationError(form, validationError, errorText);
     errorDiv.classList.remove("hidden");
     return;
   }

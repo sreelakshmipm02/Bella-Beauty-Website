@@ -4,6 +4,7 @@ import {
   getOrderById,
   cancelMultipleItemsService,
   returnMultipleItemsService,
+  prepareRetryOnlinePayment,
 } from "../../services/userServices/orderService.js";
 import { generateInvoicePDF } from "../../services/userServices/invoiceService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
@@ -23,7 +24,7 @@ export const getOrderSuccessPage = asyncHandler(async (req, res) => {
   const order = await Order.findOne({ _id: orderId, userId: userId });
 
   if (!order) {
-    return res.redirect("/shop");
+    throw new AppError("We couldn't find that order.", 404);
   }
 
   res.render("user/orderSuccess", {
@@ -60,12 +61,14 @@ export const getOrderSuccessPage = asyncHandler(async (req, res) => {
 export const getPaymentFailurePage = asyncHandler(async (req, res) => {
   const message = req.query.message || "We couldn't complete your payment.";
   const code = req.query.code || "";
+  const orderId = req.query.orderId || "";
 
   res.render("user/paymentFailure", {
     title: "Payment Failed - Bella Beauty",
     isLoggedIn: true,
     message,
     code,
+    orderId,
   });
 });
 
@@ -83,6 +86,9 @@ export const getOrderHistoryPage = asyncHandler(async (req, res) => {
     isLoggedIn: true,
     orders,
     searchQuery,
+    razorpayEnabled: Boolean(
+      process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET,
+    ),
   });
 });
 
@@ -94,13 +100,32 @@ export const getOrderDetailPage = asyncHandler(async (req, res) => {
   const order = await getOrderById(req.params.orderId, userId);
 
   if (!order) {
-    return res.redirect("/orders");
+    throw new AppError("We couldn't find that order.", 404);
   }
 
   res.render("user/orderDetail", {
     title: `Order ${order.orderId} - Aura`,
     isLoggedIn: true,
     order,
+    razorpayEnabled: Boolean(
+      process.env.RAZORPAY_KEY_ID && process.env.RAZORPAY_KEY_SECRET,
+    ),
+  });
+});
+
+export const retryPaymentAjax = asyncHandler(async (req, res) => {
+  const retry = await prepareRetryOnlinePayment(
+    req.session.userId,
+    req.params.orderId,
+  );
+
+  res.status(200).json({
+    success: true,
+    orderId: retry.order._id,
+    orderNumber: retry.order.orderId,
+    razorpayOrderId: retry.razorpayOrder.id,
+    amount: retry.amount,
+    key: retry.key,
   });
 });
 

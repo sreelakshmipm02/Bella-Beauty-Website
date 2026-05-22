@@ -15,6 +15,7 @@ import { getUserCartVariantIds } from "../../services/userServices/cartService.j
 
 import { getUserWishlistProductIds } from "../../services/userServices/wishlistService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
+import AppError from "../../utils/AppError.js";
 
 // Serves as the brain for the main "Shop All" page.
 // This controller gathers the user's search terms, filters, and page numbers,
@@ -59,19 +60,48 @@ export const getProductDetails = asyncHandler(async (req, res) => {
   const slug = req.params.slug;
   const product = await getProductBySlug(slug);
 
-  if (!product || product.status !== "active") {
-    return res.redirect("/shop");
+  if (!product) {
+    throw new AppError("We couldn't find that product.", 404);
   }
 
   const category = await getCategoryById(product.categoryId);
-  if (!category || category.status !== "active") {
-    return res.redirect("/shop");
+  const isProductUnavailable =
+    product.status !== "active" || !category || category.status !== "active";
+
+  if (isProductUnavailable) {
+    return res.status(200).render("user/productDetail", {
+      title: "Item not available - Bella Beauty",
+      isLoggedIn: !!req.session.userId,
+      product,
+      category,
+      isUnavailable: true,
+      unavailableMessage: "Item not available",
+      variants: [],
+      attributesInfo: [],
+      variantsJSON: "[]",
+      cartVariantIdsJSON: "[]",
+      wishlistProductIdsJSON: "[]",
+      relatedProducts: [],
+    });
   }
 
   const rawVariants = await getActiveVariants(product._id);
   const variants = await enrichVariantsWithOffers(product, rawVariants);
   if (!variants || variants.length === 0) {
-    return res.redirect("/shop");
+    return res.status(200).render("user/productDetail", {
+      title: "Item not available - Bella Beauty",
+      isLoggedIn: !!req.session.userId,
+      product,
+      category,
+      isUnavailable: true,
+      unavailableMessage: "Item not available",
+      variants: [],
+      attributesInfo: [],
+      variantsJSON: "[]",
+      cartVariantIdsJSON: "[]",
+      wishlistProductIdsJSON: "[]",
+      relatedProducts: [],
+    });
   }
 
   let cartVariantIds = [];

@@ -45,9 +45,9 @@
                 <% } %>
 
                 <div class="flex flex-col sm:flex-row gap-4">
-                    <a href="/checkout" class="bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 px-7 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
+                    <a href="<%= orderId ? '/orders' : '/checkout' %>" class="bg-gray-900 hover:bg-gray-800 text-white font-bold py-4 px-7 rounded-xl transition shadow-lg flex items-center justify-center gap-2">
                         <span class="material-icons-outlined text-sm">restart_alt</span>
-                        <span>Retry Payment</span>
+                        <span><%= orderId ? 'Retry from Orders' : 'Retry Payment' %></span>
                     </a>
                     <a href="/shop" class="bg-primary/10 text-primary hover:bg-primary/20 font-bold py-4 px-7 rounded-xl transition border border-primary/20 flex items-center justify-center gap-2">
                         <span class="material-icons-outlined text-sm">shopping_bag</span>

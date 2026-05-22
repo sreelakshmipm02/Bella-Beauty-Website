@@ -66,6 +66,7 @@ import {
   returnOrderAjax,
   returnItemAjax,
   downloadInvoice,
+  retryPaymentAjax,
 } from "../controllers/user/orderController.js";
 
 // Middleware imports
@@ -211,6 +212,11 @@ router.get(
   getOrderSuccessPage,
 );
 router.get("/orders", checkUserSession, preventCache, getOrderHistoryPage);
+router.post(
+  "/orders/:orderId/retry-payment",
+  checkUserSessionAjax,
+  retryPaymentAjax,
+);
 router.get(
   "/orders/:orderId",
   checkUserSession,

@@ -1,11 +1,46 @@
 let autocomplete;
 
 const form = document.getElementById("addressForm");
+const addressFieldIds = [
+  "fullName",
+  "phone",
+  "addressLine1",
+  "city",
+  "state",
+  "postalCode",
+];
+
+function clearAddressFieldErrors() {
+  addressFieldIds.forEach((fieldId) => {
+    const field = document.getElementById(fieldId);
+    window.BellaForms?.clearFieldError(field);
+  });
+}
+
+function showAddressValidationError(validation) {
+  if (validation.field) {
+    const field = document.getElementById(validation.field);
+    window.BellaForms?.setFieldError(field, validation.message);
+    field?.focus();
+    return;
+  }
+
+  Swal.fire(validation.title, validation.message, validation.icon);
+}
 
 form.addEventListener("submit", function (event) {
   event.preventDefault();
 
   handleAddressSubmit(event);
+});
+
+addressFieldIds.forEach((fieldId) => {
+  const field = document.getElementById(fieldId);
+  if (!field) return;
+
+  field.addEventListener("input", () => {
+    window.BellaForms?.clearFieldError(field);
+  });
 });
 // 1. Initialize Google Autocomplete
 function initAutocomplete() {
@@ -109,14 +144,19 @@ async function handleAddressSubmit(event) {
   const postalCode = document.getElementById("postalCode").value.trim();
 
   // 2. Comprehensive Validation Layer
+  clearAddressFieldErrors();
 
   // Check for empty required fields
   if (!fullName || !addressLine1 || !city || !state || !postalCode || !phone) {
-    return Swal.fire(
-      "Missing Fields",
-      "Please fill in all required fields.",
-      "warning",
-    );
+    const validation = window.validateAddressFields({
+      fullName,
+      phone,
+      addressLine1,
+      city,
+      state,
+      postalCode,
+    });
+    return showAddressValidationError(validation);
   }
 
   const validation = window.validateAddressFields({
@@ -129,7 +169,7 @@ async function handleAddressSubmit(event) {
   });
 
   if (!validation.isValid) {
-    return Swal.fire(validation.title, validation.message, validation.icon);
+    return showAddressValidationError(validation);
   }
 
   // 3. Collect Data
