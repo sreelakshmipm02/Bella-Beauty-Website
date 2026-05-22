@@ -221,6 +221,109 @@
     const couponForm = document.getElementById('couponForm');
     const couponModalTitle = document.getElementById('couponModalTitle');
     const saveCouponBtn = document.getElementById('saveCouponBtn');
+    const couponFieldIds = [
+        'couponCode',
+        'couponExpiresAt',
+        'discountType',
+        'discountValue',
+        'minOrderAmount',
+        'maxDiscount',
+        'usageLimit'
+    ];
+
+    function clearCouponFormErrors() {
+        couponFieldIds.forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            window.BellaForms?.clearFieldError(field, `${fieldId}Error`);
+        });
+    }
+
+    function showCouponFieldError(fieldId, message) {
+        const field = document.getElementById(fieldId);
+        if (!field) return false;
+        window.BellaForms?.setFieldError(field, message, `${fieldId}Error`);
+        field.focus();
+        return false;
+    }
+
+    function validateCouponPayload(payload) {
+        clearCouponFormErrors();
+
+        const today = new Date().toISOString().split('T')[0];
+        const discountValue = Number(payload.discountValue);
+        const minOrderAmount = Number(payload.minOrderAmount);
+        const maxDiscount = Number(payload.maxDiscount);
+        const usageLimit = Number(payload.usageLimit);
+
+        if (!payload.code) {
+            return showCouponFieldError('couponCode', 'Coupon code is required.');
+        }
+
+        if (!/^[A-Z0-9_-]{3,20}$/.test(payload.code.toUpperCase())) {
+            return showCouponFieldError('couponCode', 'Coupon code must be 3 to 20 characters and can contain letters, numbers, hyphens, or underscores.');
+        }
+
+        if (!payload.discountValue) {
+            return showCouponFieldError('discountValue', 'Discount value is required.');
+        }
+
+        if (Number.isNaN(discountValue) || discountValue <= 0) {
+            return showCouponFieldError('discountValue', 'Discount value must be greater than 0.');
+        }
+
+        if (payload.discountType === 'percentage' && discountValue > 100) {
+            return showCouponFieldError('discountValue', 'Percentage discount cannot exceed 100.');
+        }
+
+        if (payload.minOrderAmount === '') {
+            return showCouponFieldError('minOrderAmount', 'Minimum purchase value is required.');
+        }
+
+        if (Number.isNaN(minOrderAmount) || minOrderAmount < 0) {
+            return showCouponFieldError('minOrderAmount', 'Minimum purchase value must be 0 or greater.');
+        }
+
+        if (!payload.maxDiscount) {
+            return showCouponFieldError('maxDiscount', 'Maximum discount value is required.');
+        }
+
+        if (Number.isNaN(maxDiscount) || maxDiscount <= 0) {
+            return showCouponFieldError('maxDiscount', 'Maximum discount value must be greater than 0.');
+        }
+
+        if (maxDiscount > minOrderAmount && minOrderAmount > 0) {
+            return showCouponFieldError('maxDiscount', 'Maximum discount value cannot be greater than the minimum purchase value.');
+        }
+
+        if (!payload.expiresAt) {
+            return showCouponFieldError('couponExpiresAt', 'Offer validity is required.');
+        }
+
+        if (payload.expiresAt < today) {
+            return showCouponFieldError('couponExpiresAt', 'Offer validity must be today or a future date.');
+        }
+
+        if (!payload.usageLimit) {
+            return showCouponFieldError('usageLimit', 'Usage limit is required.');
+        }
+
+        if (Number.isNaN(usageLimit) || usageLimit < 1 || !Number.isInteger(usageLimit)) {
+            return showCouponFieldError('usageLimit', 'Usage limit must be a whole number greater than or equal to 1.');
+        }
+
+        return true;
+    }
+
+    couponFieldIds.forEach((fieldId) => {
+        const field = document.getElementById(fieldId);
+        if (!field) return;
+        ['input', 'change', 'blur'].forEach((eventName) => {
+            field.addEventListener(eventName, () =>
+                window.BellaForms?.clearFieldError(field, `${fieldId}Error`)
+            );
+        });
+    });
 
     function clearSearch() {
         window.location.href = '/admin/coupons';
@@ -236,6 +339,7 @@
 
     function openCouponModal(couponId = '') {
         couponForm.reset();
+        clearCouponFormErrors();
         document.getElementById('couponId').value = '';
         couponModalTitle.innerText = couponId ? 'Edit Coupon' : 'Add Coupon';
         couponModal.classList.remove('hidden');
@@ -283,46 +387,8 @@
             usageLimit: document.getElementById('usageLimit').value
         };
 
-        const today = new Date().toISOString().split('T')[0];
-        const discountValue = Number(payload.discountValue);
-        const minOrderAmount = Number(payload.minOrderAmount);
-        const maxDiscount = Number(payload.maxDiscount);
-        const usageLimit = Number(payload.usageLimit);
-
-        if (!payload.code || !payload.discountType || !payload.discountValue || !payload.minOrderAmount || !payload.maxDiscount || !payload.expiresAt || !payload.usageLimit) {
-            return Swal.fire('Missing Fields', 'Please fill in all coupon fields.', 'warning');
-        }
-
-        if (!/^[A-Z0-9_-]{3,20}$/.test(payload.code.toUpperCase())) {
-            return Swal.fire('Invalid Coupon Code', 'Coupon code must be 3 to 20 characters and can contain letters, numbers, hyphens, or underscores.', 'warning');
-        }
-
-        if (Number.isNaN(discountValue) || discountValue <= 0) {
-            return Swal.fire('Invalid Discount', 'Discount value must be greater than 0.', 'warning');
-        }
-
-        if (payload.discountType === 'percentage' && discountValue > 100) {
-            return Swal.fire('Invalid Discount', 'Percentage discount cannot exceed 100.', 'warning');
-        }
-
-        if (Number.isNaN(minOrderAmount) || minOrderAmount < 0) {
-            return Swal.fire('Invalid Minimum Purchase', 'Minimum purchase value must be 0 or greater.', 'warning');
-        }
-
-        if (Number.isNaN(maxDiscount) || maxDiscount <= 0) {
-            return Swal.fire('Invalid Maximum Discount', 'Maximum discount value must be greater than 0.', 'warning');
-        }
-
-        if (maxDiscount > minOrderAmount && minOrderAmount > 0) {
-            return Swal.fire('Invalid Maximum Discount', 'Maximum discount value cannot be greater than the minimum purchase value.', 'warning');
-        }
-
-        if (!payload.expiresAt || payload.expiresAt < today) {
-            return Swal.fire('Invalid Validity', 'Offer validity must be today or a future date.', 'warning');
-        }
-
-        if (Number.isNaN(usageLimit) || usageLimit < 1 || !Number.isInteger(usageLimit)) {
-            return Swal.fire('Invalid Usage Limit', 'Usage limit must be a whole number greater than or equal to 1.', 'warning');
+        if (!validateCouponPayload(payload)) {
+            return;
         }
 
         const originalText = saveCouponBtn.innerText;

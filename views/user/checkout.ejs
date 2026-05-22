@@ -42,7 +42,7 @@
                             <div class="grid gap-4">
                                 <% addresses.forEach((addr, index)=> { %>
                                     <label class="cursor-pointer relative block">
-                                        <input type="radio" name="selectedAddress" value="<%= addr._id %>" class="peer sr-only">
+                                        <input type="radio" name="selectedAddress" value="<%= addr._id %>" class="peer sr-only" <%= selectedAddressId === addr._id.toString() ? 'checked' : '' %>>
                                         <div class="p-4 bg-white rounded-xl border-2 border-gray-200 peer-checked:border-primary peer-checked:bg-primary/5 hover:border-gray-300 transition">
                                             <div class="flex justify-between items-start">
                                                 <div>
@@ -67,6 +67,7 @@
                                     <% }) %>
                             </div>
                         <% } %>
+                    <p id="checkoutAddressSelectionError" class="hidden text-sm text-red-500 mt-3"></p>
                 </div>
 
                 <div class="bg-gray-50 p-6 rounded-2xl border border-gray-200">
@@ -115,6 +116,7 @@
                             </div>
                         </label>
                     </div>
+                    <p id="checkoutPaymentSelectionError" class="hidden text-sm text-red-500 mt-4"></p>
 
                     <% if (!razorpayEnabled) { %>
                         <p class="mt-3 text-sm text-amber-600">Online payment is temporarily unavailable because Razorpay is not configured.</p>
@@ -154,6 +156,7 @@
                                 <%= cart.appliedCoupon ? 'Remove' : 'Apply' %>
                             </button>
                         </div>
+                        <p id="checkoutCouponCodeError" class="hidden text-xs text-red-500"></p>
 
                         <div>
                             <div class="flex items-center justify-between mb-2">
@@ -413,6 +416,7 @@
             const badgeCode = document.getElementById('checkoutCouponBadgeCode');
 
             if (!input || !button || !badge || !badgeCode) return;
+            window.BellaForms?.clearFieldError(input, 'checkoutCouponCodeError');
 
             if (cart.appliedCoupon) {
                 input.value = cart.appliedCoupon.code;
@@ -439,9 +443,16 @@
             const input = document.getElementById('checkoutCouponCode');
             const button = document.getElementById('checkoutCouponBtn');
             const couponCode = (code || input.value).trim().toUpperCase();
+            window.BellaForms?.clearFieldError(input, 'checkoutCouponCodeError');
 
             if (!couponCode) {
-                return Swal.fire('Coupon Required', 'Please enter or select a coupon code.', 'warning');
+                window.BellaForms?.setFieldError(
+                    input,
+                    'Please enter or select a coupon code.',
+                    'checkoutCouponCodeError'
+                );
+                input.focus();
+                return;
             }
 
             const originalText = button.textContent;
@@ -462,7 +473,12 @@
                         window.location.reload();
                     });
                 } else {
-                    Swal.fire('Coupon Error', data.message, 'warning');
+                    window.BellaForms?.setFieldError(
+                        input,
+                        data.message || 'Unable to apply this coupon.',
+                        'checkoutCouponCodeError'
+                    );
+                    input.focus();
                 }
             } catch (error) {
                 Swal.fire('Error', 'Failed to apply coupon.', 'error');
@@ -508,6 +524,7 @@
             document.getElementById('addressForm').reset();
             document.getElementById('addressId').value = '';
             document.getElementById('country').value = 'India';
+            clearCheckoutAddressErrors();
             document.getElementById('addressModal').classList.remove('hidden');
         }
 
@@ -526,6 +543,7 @@
             document.getElementById('state').value = address.state;
             document.getElementById('postalCode').value = address.postalCode;
             document.getElementById('country').value = address.country || 'India';
+            clearCheckoutAddressErrors();
             document.getElementById('addressModal').classList.remove('hidden');
         }
 
@@ -541,19 +559,44 @@
         }
 
         function showCheckoutAddressError(validation) {
-            if (validation.field) {
-                const field = document.getElementById(validation.field);
-                window.BellaForms?.setFieldError(field, validation.message);
-                field?.focus();
-                return;
-            }
-            Swal.fire(validation.title, validation.message, validation.icon);
+            const field = document.getElementById(validation.field || checkoutAddressFieldIds[0]);
+            if (!field) return;
+            window.BellaForms?.setFieldError(field, validation.message, `${field.id}Error`);
+            field.focus();
+        }
+
+        function setCheckoutSelectionError(type, message = '') {
+            const errorElement = document.getElementById(
+                type === 'address' ? 'checkoutAddressSelectionError' : 'checkoutPaymentSelectionError'
+            );
+            if (!errorElement) return;
+            errorElement.textContent = message;
+            errorElement.classList.toggle('hidden', !message);
+        }
+
+        function clearCheckoutSelectionErrors() {
+            setCheckoutSelectionError('address');
+            setCheckoutSelectionError('payment');
         }
 
         checkoutAddressFieldIds.forEach((fieldId) => {
             const field = document.getElementById(fieldId);
             if (!field) return;
-            field.addEventListener('input', () => window.BellaForms?.clearFieldError(field));
+            field.addEventListener('input', () =>
+                window.BellaForms?.clearFieldError(field, `${field.id}Error`)
+            );
+        });
+
+        document.querySelectorAll('input[name="selectedAddress"]').forEach((input) => {
+            input.addEventListener('change', () => setCheckoutSelectionError('address'));
+        });
+
+        document.querySelectorAll('input[name="paymentMethod"]').forEach((input) => {
+            input.addEventListener('change', () => setCheckoutSelectionError('payment'));
+        });
+
+        document.getElementById('checkoutCouponCode')?.addEventListener('input', (event) => {
+            window.BellaForms?.clearFieldError(event.target, 'checkoutCouponCodeError');
         });
 
         document.getElementById('addressForm').addEventListener('submit', async function (e) {
@@ -622,17 +665,18 @@
         document.getElementById('placeOrderBtn').addEventListener('click', async function () {
     const addressInput = document.querySelector('input[name="selectedAddress"]:checked');
     const paymentInput = document.querySelector('input[name="paymentMethod"]:checked');
-
-    if (!addressInput && !paymentInput) {
-        return Swal.fire('Selection Required', 'Please select a delivery address and payment method to continue.', 'warning');
-    }
+    clearCheckoutSelectionErrors();
 
     if (!addressInput) {
-        return Swal.fire('Address Required', 'Please select a delivery address to continue.', 'warning');
+        setCheckoutSelectionError('address', 'Please select a delivery address to continue.');
     }
 
     if (!paymentInput) {
-        return Swal.fire('Payment Required', 'Please select a payment method to continue.', 'warning');
+        setCheckoutSelectionError('payment', 'Please select a payment method to continue.');
+    }
+
+    if (!addressInput || !paymentInput) {
+        return;
     }
 
     const btn = this;

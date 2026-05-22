@@ -2,6 +2,10 @@ import { jsPDF } from "jspdf";
 import autoTable from "jspdf-autotable";
 import Order from "../../models/order.js";
 import Coupon from "../../models/coupon.js";
+import {
+  getAdminOrderDisplayStatus,
+  ORDER_NOT_PLACED_STATUS,
+} from "./orderService.js";
 
 const VALID_PERIODS = new Set([
   "daily",
@@ -11,6 +15,7 @@ const VALID_PERIODS = new Set([
   "custom",
 ]);
 const ORDER_STATUS_ORDER = [
+  ORDER_NOT_PLACED_STATUS,
   "Pending",
   "Processing",
   "Shipped",
@@ -600,7 +605,7 @@ export const getSalesAnalytics = async ({
       couponUsageMap.set(couponCode, existingCoupon);
     }
 
-    const currentOrderStatus = order.orderStatus || "Pending";
+    const currentOrderStatus = getAdminOrderDisplayStatus(order);
     const existingStatus = orderStatusMap.get(currentOrderStatus) || {
       count: 0,
     };

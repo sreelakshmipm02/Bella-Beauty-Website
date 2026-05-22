@@ -36,6 +36,8 @@
         : "Operations look healthy and up to date.";
         const getOrderStatusClass = (status = "") => {
         switch (status.toLowerCase()) {
+        case "order not placed":
+        return "bg-rose-50 text-rose-700 ring-1 ring-rose-100";
         case "delivered":
         return "bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100";
         case "pending":
@@ -738,7 +740,8 @@
                                     <% let customerName="Guest User" ; if (order.userId && order.userId.firstName) {
                                         customerName=`${order.userId.firstName} ${order.userId.lastName || "" }`.trim();
                                         } else if (order.shippingAddress && order.shippingAddress.fullName) {
-                                        customerName=order.shippingAddress.fullName.trim(); } %>
+                                        customerName=order.shippingAddress.fullName.trim(); }
+                                        const recentOrderStatus = order.adminDisplayStatus || order.orderStatus || "Pending"; %>
                                         <tr>
                                             <td class="py-4 pr-4">
                                                 <span class="font-semibold text-primary">
@@ -752,8 +755,8 @@
                                             </td>
                                             <td class="py-4 px-4">
                                                 <span
-                                                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold <%= getOrderStatusClass(order.orderStatus) %>">
-                                                    <%= order.orderStatus %>
+                                                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold <%= getOrderStatusClass(recentOrderStatus) %>">
+                                                    <%= recentOrderStatus %>
                                                 </span>
                                             </td>
                                             <td class="py-4 px-4 font-semibold text-slate-900">

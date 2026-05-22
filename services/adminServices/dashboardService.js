@@ -2,6 +2,7 @@ import Order from "../../models/order.js";
 import User from "../../models/user.js";
 import ProductVariant from "../../models/productVariant.js";
 import { getSalesAnalytics } from "./analyticsService.js";
+import { getAdminOrderDisplayStatus } from "./orderService.js";
 
 /**
  * Fetches dynamic dashboard data for both operational monitoring and sales insights.
@@ -22,12 +23,20 @@ export const getDashboardMetrics = async ({
   ] = await Promise.all([
     getSalesAnalytics({ period, from, to }),
     Order.aggregate([
-      { $match: { orderStatus: { $nin: ["Cancelled", "Returned"] } } },
+      {
+        $match: {
+          orderStatus: { $nin: ["Cancelled", "Returned"] },
+          "payment.status": { $ne: "Failed" },
+        },
+      },
       { $group: { _id: null, totalRevenue: { $sum: "$summary.total" } } },
     ]),
     Order.countDocuments(),
     User.countDocuments({ status: { $ne: "suspended" } }),
-    Order.countDocuments({ orderStatus: "Pending" }),
+    Order.countDocuments({
+      orderStatus: "Pending",
+      "payment.status": { $ne: "Failed" },
+    }),
     ProductVariant.countDocuments({ status: "active", stock: { $lt: 10 } }),
     Order.find()
       .populate("userId", "firstName lastName")
@@ -45,7 +54,10 @@ export const getDashboardMetrics = async ({
     activeUsers,
     pendingOrdersCount,
     lowStockCount,
-    recentOrders,
+    recentOrders: recentOrders.map((order) => ({
+      ...order,
+      adminDisplayStatus: getAdminOrderDisplayStatus(order),
+    })),
     filters: analytics.filters,
     periodSummary: analytics.summary,
     salesTrend: analytics.salesTrend,

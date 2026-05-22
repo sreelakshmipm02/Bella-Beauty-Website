@@ -26,6 +26,8 @@ export const getCheckoutPage = asyncHandler(async (req, res) => {
   const addresses = await getUserAddresses(userId);
   const wallet = await getWalletSnapshot(userId, 5);
   const cartTotal = Number(cartData?.summary?.total || 0);
+  const defaultAddress =
+    addresses.find((address) => address.isDefault) || addresses[0] || null;
 
   if (!cartData || cartData.items.length === 0) {
     return res.redirect("/cart");
@@ -37,6 +39,7 @@ export const getCheckoutPage = asyncHandler(async (req, res) => {
     cart: cartData,
     adjustments: cartData.adjustments || [],
     addresses: addresses || [],
+    selectedAddressId: defaultAddress?._id?.toString() || "",
     wallet: {
       ...wallet,
       isSufficient: wallet.balance >= cartTotal,

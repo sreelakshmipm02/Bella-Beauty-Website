@@ -5,6 +5,7 @@ import {
   cancelMultipleItemsService,
   returnMultipleItemsService,
   prepareRetryOnlinePayment,
+  restoreFailedOrderItemsToCart,
 } from "../../services/userServices/orderService.js";
 import { generateInvoicePDF } from "../../services/userServices/invoiceService.js";
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
@@ -127,6 +128,11 @@ export const retryPaymentAjax = asyncHandler(async (req, res) => {
     amount: retry.amount,
     key: retry.key,
   });
+});
+
+export const purchaseFailedOrderAgain = asyncHandler(async (req, res) => {
+  await restoreFailedOrderItemsToCart(req.session.userId, req.params.orderId);
+  res.redirect("/checkout");
 });
 
 // ---------------------------------------------------------

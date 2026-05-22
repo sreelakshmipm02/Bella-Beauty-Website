@@ -168,6 +168,7 @@ function bindProductFieldValidation() {
 }
 
 bindProductFieldValidation();
+categorySelect?.addEventListener("change", () => clearFieldError(categorySelect));
 
 // Pre-fill the product type based on server data (injected via EJS)
 const existingProductType =
@@ -309,14 +310,21 @@ document
   .addEventListener("click", async function () {
     const nameVal = document.getElementById("productName").value.trim();
     const brandVal = document.getElementById("productBrand").value.trim();
+    const categoryVal = document.getElementById("productCategory").value;
 
-    if (!nameVal || !brandVal) {
-      return Swal.fire({
-        icon: "warning",
-        title: "Hold on!",
-        text: "Please enter the Product Name and Brand before adding variants.",
-        confirmButtonColor: "#e83e8c",
-      });
+    if (!nameVal || !brandVal || !categoryVal) {
+      validateProductNameField();
+      validateBrandField();
+
+      if (!categoryVal) {
+        fieldError(categorySelect, "Please select a category before adding variants.");
+      } else {
+        clearFieldError(categorySelect);
+      }
+
+      const firstInvalid = mainForm.querySelector("[aria-invalid='true']");
+      firstInvalid?.focus();
+      return;
     }
 
     // Reset everything for a brand new variant!
@@ -743,12 +751,11 @@ document
       clearFieldError(croppedPreviews);
     }
 
-    if (!isValid)
-      return Swal.fire({
-        icon: "error",
-        title: "Please fix the highlighted fields",
-        text: "Each issue is shown next to the field that needs attention.",
-      });
+    if (!isValid) {
+      const firstInvalid = tempVariantForm.querySelector("[aria-invalid='true']");
+      firstInvalid?.focus();
+      return;
+    }
 
     const formData = new FormData(tempVariantForm);
     const variantData = { attributes: attributesMap };
@@ -879,12 +886,13 @@ mainForm.addEventListener("submit", async function (e) {
     clearFieldError(emptyVariantsMsg);
   }
 
-  if (!isValid)
-    return Swal.fire({
-      icon: "error",
-      title: "Please fix the highlighted fields",
-      text: "Each issue is shown next to the field that needs attention.",
-    });
+  if (!isValid) {
+    const firstInvalid =
+      mainForm.querySelector("[aria-invalid='true']") ||
+      mainForm.querySelector(".error-border");
+    firstInvalid?.focus();
+    return;
+  }
 
   const saveBtn = document.getElementById("updateFinalProductBtn");
   saveBtn.disabled = true;

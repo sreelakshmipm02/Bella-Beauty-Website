@@ -1,6 +1,7 @@
 <%- include("../partials/header") %>
 
     <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 min-h-screen">
+        <% const isFailedOrder = order.payment && order.payment.status === 'Failed'; %>
 
         <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8 border-b border-gray-200 pb-6">
             <div>
@@ -13,13 +14,13 @@
                 <p class="text-sm text-gray-500 ml-9">
                     Order ID: <span class="font-bold text-gray-900">
                         <%= order.orderId %>
-                    </span> • Placed on <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric' ,
+                    </span> • <%= isFailedOrder ? 'Payment attempted on' : 'Placed on' %> <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric' ,
                         month: 'short' , year: 'numeric' }) %>
                 </p>
             </div>
 
             <div class="flex items-center gap-3 ml-9 md:ml-0">
-                <% if (order.orderStatus==='Delivered' ) { %>
+                <% if (order.orderStatus==='Delivered' && !isFailedOrder ) { %>
                     <button onclick="downloadInvoice('<%= order._id %>')"
                         class="bg-gray-100 hover:bg-gray-200 text-gray-900 font-bold py-2 px-4 rounded-lg transition flex items-center gap-2 text-sm">
                         <span class="material-icons-outlined text-sm">download</span> Invoice
@@ -28,20 +29,21 @@
                         <span class="text-xs text-gray-400 italic">Invoice available after delivery</span>
                         <% } %>
 
-                            <% let statusColor='bg-yellow-100 text-yellow-800 border-yellow-200' ; if
+                            <% let statusLabel = order.orderStatus; let statusColor='bg-yellow-100 text-yellow-800 border-yellow-200' ; if
+                                (isFailedOrder) { statusLabel='Order Not Placed'; statusColor='bg-red-100 text-red-700 border-red-200'; } else if
                                 (order.orderStatus==='Delivered' )
-                                statusColor='bg-green-100 text-green-800 border-green-200' ; if
+                                statusColor='bg-green-100 text-green-800 border-green-200' ; else if
                                 (order.orderStatus==='Cancelled' || order.orderStatus==='Returned' )
-                                statusColor='bg-gray-100 text-gray-800 border-gray-200' ; if
+                                statusColor='bg-gray-100 text-gray-800 border-gray-200' ; else if
                                 (order.orderStatus==='Shipped' ) statusColor='bg-blue-100 text-blue-800 border-blue-200'
-                                ; if (order.orderStatus==='Return Requested' )
-                                statusColor='bg-blue-100 text-blue-800 border-blue-200' ; if
+                                ; else if (order.orderStatus==='Return Requested' )
+                                statusColor='bg-blue-100 text-blue-800 border-blue-200' ; else if
                                 (order.orderStatus==='Return Approved' )
-                                statusColor='bg-orange-100 text-orange-800 border-orange-200' ; if
+                                statusColor='bg-orange-100 text-orange-800 border-orange-200' ; else if
                                 (order.orderStatus==='Return Rejected' )
                                 statusColor='bg-red-100 text-red-800 border-red-200' ; %>
                                 <span class="px-4 py-2 rounded-lg font-bold text-sm border <%= statusColor %>">
-                                    <%= order.orderStatus %>
+                                    <%= statusLabel %>
                                 </span>
             </div>
         </div>
@@ -68,18 +70,19 @@
                                     <p class="text-sm text-gray-500 mb-2">Qty: <%= item.quantity %> × ₹<%= item.price %>
                                     </p>
 
-                                    <% let itemStatusColor='text-yellow-600 bg-yellow-50 border-yellow-200' ; if
+                                    <% let itemStatusLabel = item.status; let itemStatusColor='text-yellow-600 bg-yellow-50 border-yellow-200' ; if
+                                        (isFailedOrder) { itemStatusLabel='Order Not Placed'; itemStatusColor='text-red-600 bg-red-50 border-red-200'; } else if
                                         (item.status==='Delivered' )
-                                        itemStatusColor='text-green-600 bg-green-50 border-green-200' ; if
+                                        itemStatusColor='text-green-600 bg-green-50 border-green-200' ; else if
                                         (item.status==='Cancelled' || item.status==='Returned' )
-                                        itemStatusColor='text-gray-600 bg-gray-100 border-gray-200' ; if
+                                        itemStatusColor='text-gray-600 bg-gray-100 border-gray-200' ; else if
                                         (item.status==='Return Requested' )
-                                        itemStatusColor='text-blue-600 bg-blue-50 border-blue-200' ; if
+                                        itemStatusColor='text-blue-600 bg-blue-50 border-blue-200' ; else if
                                         (item.status==='Return Rejected' )
                                         itemStatusColor='text-red-600 bg-red-50 border-red-200' ; %>
                                         <span
                                             class="inline-block px-2 py-1 rounded text-xs font-bold <%= itemStatusColor %>">
-                                            <%= item.status %>
+                                            <%= itemStatusLabel %>
                                         </span>
 
                                         <% if (item.status==='Return Rejected' && item.adminRejectReason) { %>
@@ -138,6 +141,18 @@
             </div>
 
             <div class="w-full lg:w-1/3 space-y-6">
+                <% if (isFailedOrder) { %>
+                    <div class="bg-red-50 border border-red-100 rounded-2xl p-6 shadow-sm">
+                        <h3 class="text-sm font-bold text-red-500 uppercase tracking-wider mb-2">Order Not Placed</h3>
+                        <p class="text-sm text-red-700 mb-4">Payment failed, so this order was not placed. You can start checkout again with the same items.</p>
+                        <form method="POST" action="/orders/<%= order._id %>/purchase-again">
+                            <button type="submit"
+                                class="w-full bg-primary hover:bg-pink-700 text-white font-bold py-4 rounded-xl transition flex justify-center items-center gap-2">
+                                <span class="material-icons-outlined">shopping_bag</span> Purchase Again
+                            </button>
+                        </form>
+                    </div>
+                <% } %>
 
                 <div class="bg-gray-50 border border-gray-200 rounded-2xl p-6 shadow-sm">
                     <div class="mb-6">
@@ -265,7 +280,9 @@
                         <option value="" disabled selected>Choose a reason...</option>
                         ${optionsHtml}
                     </select>
+                    <p id="reasonSelectError" class="hidden text-xs text-red-500 mb-3"></p>
                     <textarea id="customReason" class="w-full p-3 border border-gray-300 rounded-lg outline-none focus:ring-2 focus:ring-primary focus:border-primary transition hidden text-sm" rows="3" placeholder="Please tell us more..."></textarea>
+                    <p id="customReasonError" class="hidden text-xs text-red-500 mt-2"></p>
                 </div>
             `,
                 showCancelButton: true,
@@ -274,22 +291,46 @@
                 didOpen: () => {
                     const select = document.getElementById('reasonSelect');
                     const customInput = document.getElementById('customReason');
+                    const selectError = document.getElementById('reasonSelectError');
+                    const customError = document.getElementById('customReasonError');
                     select.addEventListener('change', (e) => {
+                        select.classList.remove('border-red-500');
+                        selectError.textContent = '';
+                        selectError.classList.add('hidden');
                         if (e.target.value === 'Others') {
                             customInput.classList.remove('hidden');
                             customInput.focus();
                         } else {
                             customInput.classList.add('hidden');
+                            customInput.classList.remove('border-red-500');
+                            customError.textContent = '';
+                            customError.classList.add('hidden');
                         }
+                    });
+                    customInput.addEventListener('input', () => {
+                        customInput.classList.remove('border-red-500');
+                        customError.textContent = '';
+                        customError.classList.add('hidden');
                     });
                 },
                 preConfirm: () => {
                     const select = document.getElementById('reasonSelect');
                     const customInput = document.getElementById('customReason');
+                    const selectError = document.getElementById('reasonSelectError');
+                    const customError = document.getElementById('customReasonError');
+
+                    select.classList.remove('border-red-500');
+                    customInput.classList.remove('border-red-500');
+                    selectError.textContent = '';
+                    selectError.classList.add('hidden');
+                    customError.textContent = '';
+                    customError.classList.add('hidden');
 
                     // 1. Dropdown Validation
                     if (!select.value) {
-                        Swal.showValidationMessage('Please select a reason from the dropdown.');
+                        select.classList.add('border-red-500');
+                        selectError.textContent = 'Please select a reason from the dropdown.';
+                        selectError.classList.remove('hidden');
                         return false;
                     }
 
@@ -299,19 +340,25 @@
 
                         // Check if empty
                         if (!reasonText) {
-                            Swal.showValidationMessage('Please type your custom reason.');
+                            customInput.classList.add('border-red-500');
+                            customError.textContent = 'Please type your custom reason.';
+                            customError.classList.remove('hidden');
                             return false;
                         }
 
                         // Check minimum length
                         if (reasonText.length < 10) {
-                            Swal.showValidationMessage('Please provide a bit more detail (at least 10 characters).');
+                            customInput.classList.add('border-red-500');
+                            customError.textContent = 'Please provide a bit more detail (at least 10 characters).';
+                            customError.classList.remove('hidden');
                             return false;
                         }
 
                         // Check maximum length
                         if (reasonText.length > 250) {
-                            Swal.showValidationMessage('Your reason is too long (maximum 250 characters).');
+                            customInput.classList.add('border-red-500');
+                            customError.textContent = 'Your reason is too long (maximum 250 characters).';
+                            customError.classList.remove('hidden');
                             return false;
                         }
 

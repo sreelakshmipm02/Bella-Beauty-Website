@@ -26,33 +26,36 @@
     <% } else { %>
         <div class="space-y-6">
             <% orders.forEach(order => { %>
+                <% const isFailedOrder = order.payment && order.payment.status === 'Failed'; %>
                 <div class="bg-white border border-gray-200 rounded-2xl p-6 shadow-sm hover:shadow-md transition">
                     <div class="flex flex-col md:flex-row justify-between md:items-center gap-4 border-b border-gray-100 pb-4 mb-4">
                         <div>
                             <div class="flex items-center gap-3 mb-1">
                                 <span class="font-bold text-lg text-gray-900"><%= order.orderId %></span>
                                 <% 
+                                    let orderStatusLabel = order.orderStatus;
                                     let statusColor = 'bg-yellow-100 text-yellow-800'; 
-                                    if (order.orderStatus === 'Delivered') statusColor = 'bg-green-100 text-green-800';
-                                    if (order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned') statusColor = 'bg-red-100 text-red-800';
-                                    if (order.orderStatus === 'Shipped') statusColor = 'bg-blue-100 text-blue-800';
-                                    if (order.orderStatus === 'Return Requested' || order.orderStatus === 'Return Approved') statusColor = 'bg-orange-100 text-orange-800';
-                                    if (order.orderStatus === 'Return Rejected') statusColor = 'bg-gray-100 text-gray-800';
+                                    if (isFailedOrder) {
+                                        orderStatusLabel = 'Order Not Placed';
+                                        statusColor = 'bg-red-100 text-red-700';
+                                    } else {
+                                        if (order.orderStatus === 'Delivered') statusColor = 'bg-green-100 text-green-800';
+                                        if (order.orderStatus === 'Cancelled' || order.orderStatus === 'Returned') statusColor = 'bg-red-100 text-red-800';
+                                        if (order.orderStatus === 'Shipped') statusColor = 'bg-blue-100 text-blue-800';
+                                        if (order.orderStatus === 'Return Requested' || order.orderStatus === 'Return Approved') statusColor = 'bg-orange-100 text-orange-800';
+                                        if (order.orderStatus === 'Return Rejected') statusColor = 'bg-gray-100 text-gray-800';
+                                    }
                                 %>
                                 <span class="px-3 py-1 rounded-full text-xs font-bold <%= statusColor %>">
-                                    <%= order.orderStatus %>
+                                    <%= orderStatusLabel %>
                                 </span>
-                                <% if (order.payment && order.payment.status === 'Failed') { %>
-                                    <span class="px-3 py-1 rounded-full text-xs font-bold bg-red-100 text-red-700">
-                                        Payment Failed
-                                    </span>
-                                <% } %>
                             </div>
                             <p class="text-sm text-gray-500">
-                                Placed on <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %>
+                                <%= isFailedOrder ? 'Payment attempted on' : 'Placed on' %>
+                                <%= new Date(order.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' }) %>
                             </p>
-                            <% if (order.payment && order.payment.status === 'Failed') { %>
-                                <p class="text-sm text-red-600 mt-2">Your order is saved, but payment was not completed.</p>
+                            <% if (isFailedOrder) { %>
+                                <p class="text-sm text-red-600 mt-2">Payment failed, so this order was not placed. Use Purchase Again to continue with these items.</p>
                             <% } %>
                         </div>
                         <div class="text-left md:text-right">
@@ -75,15 +78,15 @@
                     </div>
 
                     <div class="flex flex-col sm:flex-row sm:items-center sm:justify-end gap-3 border-t border-gray-100 pt-4">
-                        <% if (order.payment && order.payment.method === 'Online' && order.payment.status === 'Failed' && order.orderStatus !== 'Cancelled') { %>
-                            <button
-                                type="button"
-                                onclick="retryOrderPayment('<%= order._id %>')"
-                                <%= razorpayEnabled ? '' : 'disabled' %>
-                                class="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition <%= razorpayEnabled ? 'bg-primary text-white hover:bg-pink-700' : 'bg-gray-200 text-gray-400 cursor-not-allowed' %>">
-                                <span class="material-icons-outlined text-sm">restart_alt</span>
-                                Retry Payment
-                            </button>
+                        <% if (isFailedOrder) { %>
+                            <form method="POST" action="/orders/<%= order._id %>/purchase-again">
+                                <button
+                                    type="submit"
+                                    class="inline-flex items-center justify-center gap-2 rounded-xl px-5 py-2.5 text-sm font-bold transition bg-primary text-white hover:bg-pink-700">
+                                    <span class="material-icons-outlined text-sm">shopping_bag</span>
+                                    Purchase Again
+                                </button>
+                            </form>
                         <% } %>
                         <a href="/orders/<%= order._id %>" class="text-gray-900 font-bold hover:text-primary transition flex items-center gap-1">
                             View Details <span class="material-icons-outlined text-sm">arrow_forward</span>
@@ -94,86 +97,5 @@
         </div>
     <% } %>
 </main>
-
-<% if (razorpayEnabled) { %>
-    <script src="https://checkout.razorpay.com/v1/checkout.js"></script>
-<% } %>
-<script>
-    const buildOrderPaymentFailureUrl = (message, code = "", orderId = "") => {
-        const params = new URLSearchParams();
-        if (message) params.set("message", message);
-        if (code) params.set("code", code);
-        if (orderId) params.set("orderId", orderId);
-        return `/payments/failure?${params.toString()}`;
-    };
-
-    async function retryOrderPayment(orderId) {
-        try {
-            const response = await fetch(`/orders/${orderId}/retry-payment`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' }
-            });
-            const data = await response.json();
-
-            if (!data.success) {
-                return Swal.fire('Payment Retry Unavailable', data.message || 'Please try again later.', 'warning');
-            }
-
-            const options = {
-                key: data.key,
-                amount: data.amount,
-                currency: 'INR',
-                name: 'Bella',
-                description: `Retry payment for ${data.orderNumber}`,
-                order_id: data.razorpayOrderId,
-                theme: { color: '#ec4899' },
-                handler: async function (paymentResponse) {
-                    try {
-                        const verifyRes = await fetch('/orders/verify-payment', {
-                            method: 'POST',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                razorpay_payment_id: paymentResponse.razorpay_payment_id,
-                                razorpay_order_id: paymentResponse.razorpay_order_id,
-                                razorpay_signature: paymentResponse.razorpay_signature,
-                                orderId: data.orderId
-                            })
-                        });
-                        const verifyData = await verifyRes.json();
-                        if (verifyData.success) {
-                            window.location.href = `/orders/${verifyData.orderId}/success`;
-                        } else {
-                            window.location.href = buildOrderPaymentFailureUrl(
-                                verifyData.message || 'Payment verification failed.',
-                                paymentResponse.razorpay_payment_id,
-                                data.orderId
-                            );
-                        }
-                    } catch (error) {
-                        window.location.href = buildOrderPaymentFailureUrl('Failed to verify your payment. Please try again.', '', data.orderId);
-                    }
-                },
-                modal: {
-                    ondismiss: function () {
-                        window.location.href = buildOrderPaymentFailureUrl('You closed the payment window before completing the transaction.', '', data.orderId);
-                    }
-                }
-            };
-
-            const rzp = new Razorpay(options);
-            rzp.on('payment.failed', function (paymentResponse) {
-                const failure = paymentResponse.error || {};
-                window.location.href = buildOrderPaymentFailureUrl(
-                    failure.description || 'Your payment failed or was cancelled.',
-                    failure.metadata?.payment_id || failure.code || '',
-                    data.orderId
-                );
-            });
-            rzp.open();
-        } catch (error) {
-            Swal.fire('Error', 'Unable to start payment retry. Please try again.', 'error');
-        }
-    }
-</script>
 
 <%- include("../partials/footer") %>

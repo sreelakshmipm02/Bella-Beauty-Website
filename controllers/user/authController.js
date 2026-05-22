@@ -1,5 +1,17 @@
 import passport from "passport";
 
+const USER_SUSPENDED_REDIRECT = "/login?reason=suspended";
+
+const clearUserSession = (req) => {
+  if (!req.session) return;
+
+  delete req.session.userId;
+
+  if (req.session.passport) {
+    delete req.session.passport.user;
+  }
+};
+
 export const googleAuthCallback = (req, res, next) => {
   // 1. CAPTURE Admin ID before session rotation
   const existingAdminId = req.session.adminId;
@@ -26,9 +38,11 @@ export const googleAuthCallback = (req, res, next) => {
 
         // 5. Status Check
         if (user.status === "suspended") {
-          delete req.session.userId;
-          return res.render("user/login", {
-            error: "This Google account has been suspended.",
+          clearUserSession(req);
+
+          return req.session.save((saveErr) => {
+            if (saveErr) return next(saveErr);
+            return res.redirect(USER_SUSPENDED_REDIRECT);
           });
         }
 

@@ -67,6 +67,7 @@ import {
   returnItemAjax,
   downloadInvoice,
   retryPaymentAjax,
+  purchaseFailedOrderAgain,
 } from "../controllers/user/orderController.js";
 
 // Middleware imports
@@ -111,6 +112,9 @@ router.post("/referrals/verify", verifyReferralAjax);
 router.get("/login", preventCache, isGuest, loginPage);
 router.post("/login", loginSubmit);
 router.get("/logout", userLogout);
+router.get("/session/status", checkUserSessionAjax, (req, res) =>
+  res.status(200).json({ success: true }),
+);
 
 // Google Sign-In logic
 router.get(
@@ -216,6 +220,11 @@ router.post(
   "/orders/:orderId/retry-payment",
   checkUserSessionAjax,
   retryPaymentAjax,
+);
+router.post(
+  "/orders/:orderId/purchase-again",
+  checkUserSession,
+  purchaseFailedOrderAgain,
 );
 router.get(
   "/orders/:orderId",

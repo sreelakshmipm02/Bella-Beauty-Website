@@ -56,6 +56,10 @@ configurePassport();
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(syncUserSessionStatus);
+app.use((req, res, next) => {
+  res.locals.hasUserSession = Boolean(req.session?.userId);
+  next();
+});
 
 // --- Admin Alerts Middleware ---
 // This middleware injects a 'lowStockCount' variable into all admin views.

@@ -37,6 +37,22 @@ import {
 import { asyncHandler } from "../../middlewares/asyncHandler.js";
 import AppError from "../../utils/AppError.js";
 
+const USER_SUSPENDED_REDIRECT = "/login?reason=suspended";
+
+const getLoginPageState = (reason = "") => {
+  if (reason === "suspended") {
+    return {
+      error: "Admin suspended your account. Please contact support.",
+      message: null,
+    };
+  }
+
+  return {
+    error: null,
+    message: null,
+  };
+};
+
 //----------------------------------------------------------------------
 //get signup page
 export const signupPage = asyncHandler(async (req, res) => {
@@ -124,7 +140,7 @@ export const resendSignupOtp = asyncHandler(async (req, res) => {
 //----------------------------------------------------------------------
 //get login page
 export const loginPage = (req, res) => {
-  res.render("user/login", { error: null });
+  res.render("user/login", getLoginPageState(req.query.reason));
 };
 
 //post login page
@@ -148,7 +164,11 @@ export const loginSubmit = async (req, res) => {
 
     res.redirect("/");
   } catch (error) {
-    res.render("user/login", { error: error.message });
+    if (error instanceof AppError && error.statusCode === 403) {
+      return res.redirect(USER_SUSPENDED_REDIRECT);
+    }
+
+    res.render("user/login", { error: error.message, message: null });
   }
 };
 

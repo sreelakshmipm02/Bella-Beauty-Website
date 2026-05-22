@@ -311,11 +311,109 @@
         const offerModal = document.getElementById('offerModal');
         const offerForm = document.getElementById('offerForm');
         const saveOfferBtn = document.getElementById('saveOfferBtn');
+        const offerFieldIds = [
+            'offerName',
+            'offerType',
+            'targetId',
+            'offerDiscountType',
+            'offerDiscountValue',
+            'offerMaxDiscountValue',
+            'offerStartDate',
+            'offerEndDate'
+        ];
 
         // Parse the data sent from the backend[cite: 3]
         // Note: ensure your backend Product.find query includes "categoryId"[cite: 4]
         const offerProducts = <%- JSON.stringify(products) %>;
         const offerCategories = <%- JSON.stringify(categories) %>;
+
+        function clearOfferFormErrors() {
+            offerFieldIds.forEach((fieldId) => {
+                const field = document.getElementById(fieldId);
+                if (!field) return;
+                window.BellaForms?.clearFieldError(field, `${fieldId}Error`);
+            });
+        }
+
+        function showOfferFieldError(fieldId, message) {
+            const field = document.getElementById(fieldId);
+            if (!field) return false;
+            window.BellaForms?.setFieldError(field, message, `${fieldId}Error`);
+            field.focus();
+            return false;
+        }
+
+        function validateOfferPayload(payload) {
+            clearOfferFormErrors();
+
+            const validNameChars = payload.offerName.replace(/[^a-zA-Z0-9]/g, '').length;
+            const discountValue = Number(payload.discountValue);
+            const maxDiscountValue = Number(payload.maxDiscountValue);
+
+            if (!payload.offerName) {
+                return showOfferFieldError('offerName', 'Offer name is required.');
+            }
+
+            if (validNameChars < 3) {
+                return showOfferFieldError('offerName', 'Offer name must contain at least 3 letters or numbers.');
+            }
+
+            if (!payload.offerType) {
+                return showOfferFieldError('offerType', 'Please select an offer type.');
+            }
+
+            if (!payload.targetId) {
+                return showOfferFieldError('targetId', 'Please select a target.');
+            }
+
+            if (!payload.discountType) {
+                return showOfferFieldError('offerDiscountType', 'Please select a discount type.');
+            }
+
+            if (!payload.discountValue) {
+                return showOfferFieldError('offerDiscountValue', 'Discount value is required.');
+            }
+
+            if (Number.isNaN(discountValue) || discountValue <= 0) {
+                return showOfferFieldError('offerDiscountValue', 'Discount value must be greater than 0.');
+            }
+
+            if (payload.discountType === 'percentage' && discountValue > 100) {
+                return showOfferFieldError('offerDiscountValue', 'Percentage discount cannot exceed 100.');
+            }
+
+            if (!payload.maxDiscountValue) {
+                return showOfferFieldError('offerMaxDiscountValue', 'Maximum discount value is required.');
+            }
+
+            if (Number.isNaN(maxDiscountValue) || maxDiscountValue <= 0) {
+                return showOfferFieldError('offerMaxDiscountValue', 'Maximum discount value must be greater than 0.');
+            }
+
+            if (!payload.startDate) {
+                return showOfferFieldError('offerStartDate', 'Offer start date is required.');
+            }
+
+            if (!payload.endDate) {
+                return showOfferFieldError('offerEndDate', 'Offer end date is required.');
+            }
+
+            if (payload.endDate < payload.startDate) {
+                return showOfferFieldError('offerEndDate', 'Offer end date must be on or after the start date.');
+            }
+
+            return true;
+        }
+
+        offerFieldIds.forEach((fieldId) => {
+            const field = document.getElementById(fieldId);
+            if (!field) return;
+            ['input', 'change', 'blur'].forEach((eventName) => {
+                field.addEventListener(eventName, () =>
+                    window.BellaForms?.clearFieldError(field, `${fieldId}Error`)
+                );
+            });
+        });
 
         // --- Search & Pagination Helper ---
         function clearOfferSearch() {
@@ -400,6 +498,7 @@
 
         function openOfferModal(offerId = '') {
             offerForm.reset();
+            clearOfferFormErrors();
             document.getElementById('offerId').value = '';
             document.getElementById('offerModalTitle').innerText = offerId ? 'Edit Offer' : 'Create Offer';
 
@@ -459,18 +558,8 @@
                 endDate: document.getElementById('offerEndDate').value
             };
 
-            // Validation Logic[cite: 3, 4]
-            if (!payload.offerName || !payload.offerType || !payload.targetId || !payload.discountType || !payload.discountValue || !payload.maxDiscountValue || !payload.startDate || !payload.endDate) {
-                return Swal.fire('Missing Fields', 'Please fill in all offer fields.', 'warning');
-            }
-
-            const discountValue = Number(payload.discountValue);
-            if (payload.discountType === 'percentage' && discountValue > 100) {
-                return Swal.fire('Invalid Discount', 'Percentage discount cannot exceed 100.', 'warning');
-            }
-
-            if (payload.endDate < payload.startDate) {
-                return Swal.fire('Invalid Validity', 'Offer end date must be on or after the start date.', 'warning');
+            if (!validateOfferPayload(payload)) {
+                return;
             }
 
             saveOfferBtn.innerText = 'Saving...';

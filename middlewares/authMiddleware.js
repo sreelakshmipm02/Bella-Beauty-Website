@@ -3,6 +3,10 @@ import Cart from "../models/cart.js";
 import Wishlist from "../models/wishlist.js";
 import ProductVariant from "../models/productVariant.js";
 
+const USER_SUSPENDED_MESSAGE =
+  "Admin suspended your account. Please contact support.";
+const USER_SUSPENDED_REDIRECT = "/login?reason=suspended";
+
 const clearUserSession = (req) => {
   if (!req.session) return;
 
@@ -18,16 +22,67 @@ const saveSessionIfPossible = (req, next) => {
   req.session.save((err) => next(err));
 };
 
+const isProgrammaticRequest = (req) => {
+  const secFetchMode = req.get("sec-fetch-mode");
+
+  if (secFetchMode && secFetchMode !== "navigate") {
+    return true;
+  }
+
+  if (req.xhr) return true;
+
+  const acceptHeader = req.get("accept") || "";
+  return acceptHeader.includes("application/json");
+};
+
 export const syncUserSessionStatus = async (req, res, next) => {
   if (!req.session?.userId) return next();
 
   try {
     const user = await User.findById(req.session.userId).select("status");
 
-    if (!user || user.status === "suspended") {
+    if (!user) {
       clearUserSession(req);
-      res.locals.userSessionExpired = true;
-      return saveSessionIfPossible(req, next);
+
+      return saveSessionIfPossible(req, (saveError) => {
+        if (saveError) return next(saveError);
+
+        if (req.path.startsWith("/admin")) {
+          return next();
+        }
+
+        if (isProgrammaticRequest(req)) {
+          return res.status(401).json({
+            success: false,
+            message: "Your session has ended. Please log in again.",
+            redirect: "/login",
+          });
+        }
+
+        return res.redirect("/login");
+      });
+    }
+
+    if (user.status === "suspended") {
+      clearUserSession(req);
+
+      return saveSessionIfPossible(req, (saveError) => {
+        if (saveError) return next(saveError);
+
+        if (req.path.startsWith("/admin")) {
+          return next();
+        }
+
+        if (isProgrammaticRequest(req)) {
+          return res.status(401).json({
+            success: false,
+            message: USER_SUSPENDED_MESSAGE,
+            redirect: USER_SUSPENDED_REDIRECT,
+          });
+        }
+
+        return res.redirect(USER_SUSPENDED_REDIRECT);
+      });
     }
 
     next();
@@ -71,13 +126,16 @@ export const checkAdminSession = (req, res, next) => {
 export const checkUserSession = async (req, res, next) => {
   if (req.session && req.session.userId) {
     try {
-      const user = await User.findById(req.session.userId);
+      const user = await User.findById(req.session.userId).select("status");
 
-      if (!user || user.status === "suspended") {
+      if (!user) {
         clearUserSession(req);
-        return res.render("user/login", {
-          error: "Your session has ended because this account is not active.",
-        });
+        return res.redirect("/login");
+      }
+
+      if (user.status === "suspended") {
+        clearUserSession(req);
+        return res.redirect(USER_SUSPENDED_REDIRECT);
       }
       next();
     } catch (error) {
@@ -107,13 +165,22 @@ export const isGuest = (req, res, next) => {
 export const checkUserSessionAjax = async (req, res, next) => {
   if (req.session && req.session.userId) {
     try {
-      const user = await User.findById(req.session.userId);
-      if (!user || user.status === "suspended") {
+      const user = await User.findById(req.session.userId).select("status");
+      if (!user) {
         clearUserSession(req);
         return res.status(401).json({
           success: false,
           message: "Your session has ended. Please log in again.",
           redirect: "/login",
+        });
+      }
+
+      if (user.status === "suspended") {
+        clearUserSession(req);
+        return res.status(401).json({
+          success: false,
+          message: USER_SUSPENDED_MESSAGE,
+          redirect: USER_SUSPENDED_REDIRECT,
         });
       }
       next();

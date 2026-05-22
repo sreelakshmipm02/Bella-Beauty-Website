@@ -96,4 +96,21 @@
             window.location.reload();
         }
     });
+
+    if (<%= locals.hasUserSession ? 'true' : 'false' %>) {
+        const sessionHeartbeat = async () => {
+            try {
+                await fetch('/session/status', {
+                    method: 'GET',
+                    headers: { Accept: 'application/json' },
+                    cache: 'no-store'
+                });
+            } catch (error) {
+                console.error('Session heartbeat failed:', error);
+            }
+        };
+
+        sessionHeartbeat();
+        window.setInterval(sessionHeartbeat, 30000);
+    }
 </script>

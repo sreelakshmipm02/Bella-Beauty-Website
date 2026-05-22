@@ -138,6 +138,65 @@
     return null;
   };
 
+  const redirectWithReasonPopup = async (payload) => {
+    if (!payload?.redirect) return false;
+
+    if (!window.Swal || !payload.message) {
+      window.location.replace(payload.redirect);
+      return true;
+    }
+
+    try {
+      window.sessionStorage?.setItem("skipLoginReasonPopup", "1");
+    } catch (error) {
+      console.error("Unable to cache login popup state:", error);
+    }
+
+    await Swal.fire({
+      icon: "warning",
+      title: "Account Suspended",
+      text: payload.message,
+      confirmButtonColor: "#e83e8c",
+      allowOutsideClick: false,
+    });
+
+    window.location.replace(payload.redirect);
+    return true;
+  };
+
+  if (
+    typeof window !== "undefined" &&
+    window.fetch &&
+    !window.__bellaFetchWrapped
+  ) {
+    const originalFetch = window.fetch.bind(window);
+
+    window.fetch = async (...args) => {
+      const response = await originalFetch(...args);
+
+      try {
+        const contentType = response.headers.get("content-type") || "";
+
+        if (
+          response.status === 401 &&
+          contentType.includes("application/json")
+        ) {
+          const payload = await response.clone().json();
+
+          if (await redirectWithReasonPopup(payload)) {
+            return new Promise(() => {});
+          }
+        }
+      } catch (error) {
+        console.error("Bella fetch redirect handler error:", error);
+      }
+
+      return response;
+    };
+
+    window.__bellaFetchWrapped = true;
+  }
+
   window.BellaForms = {
     setFieldError,
     clearFieldError,

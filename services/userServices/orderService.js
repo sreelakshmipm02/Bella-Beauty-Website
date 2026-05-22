@@ -320,6 +320,59 @@ export const prepareRetryOnlinePayment = async (userId, orderId) => {
   };
 };
 
+export const restoreFailedOrderItemsToCart = async (userId, orderId) => {
+  const order = await Order.findOne({ _id: orderId, userId });
+
+  if (!order) {
+    throw new AppError("Order not found.", 404);
+  }
+
+  if (order.payment.method !== "Online" || order.payment.status !== "Failed") {
+    throw new AppError(
+      "Only failed online payment orders can be purchased again.",
+      400,
+    );
+  }
+
+  const itemsByVariantId = new Map();
+
+  order.items.forEach((item) => {
+    const variantId = item.productVariantId?.toString();
+    if (!variantId) return;
+
+    const currentQty = itemsByVariantId.get(variantId) || 0;
+    itemsByVariantId.set(variantId, currentQty + Number(item.quantity || 0));
+  });
+
+  const restoredItems = Array.from(itemsByVariantId.entries())
+    .filter(([, quantity]) => quantity > 0)
+    .map(([productVariantId, quantity]) => ({
+      productVariantId,
+      quantity,
+    }));
+
+  if (!restoredItems.length) {
+    throw new AppError("There are no valid items available for repurchase.", 400);
+  }
+
+  await Cart.findOneAndUpdate(
+    { userId },
+    {
+      $set: {
+        items: restoredItems,
+        appliedCoupon: { ...EMPTY_COUPON },
+      },
+    },
+    {
+      new: true,
+      upsert: true,
+      setDefaultsOnInsert: true,
+    },
+  );
+
+  return order;
+};
+
 export const finalizeOnlineOrderPayment = async (
   userId,
   orderId,

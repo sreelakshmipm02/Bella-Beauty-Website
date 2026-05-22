@@ -139,6 +139,7 @@
                                                 <%= cart.appliedCoupon ? 'Remove' : 'Apply' %>
                                             </button>
                                         </div>
+                                        <p id="couponCodeInputError" class="hidden text-xs text-red-500"></p>
 
                                         <div>
                                             <div class="flex items-center justify-between mb-2">
@@ -256,7 +257,7 @@
                     icon: 'info',
                     title: 'Cart Updated',
                     html: messageHtml,
-                    confirmButtonText: 'Understood',
+                    confirmButtonText: 'OK',
                     confirmButtonColor: '#E91E63'
                 });
             }
@@ -437,6 +438,7 @@
         const badgeCode = document.getElementById('couponBadgeCode');
 
         if (!input || !button || !badge || !badgeCode) return;
+        window.BellaForms?.clearFieldError(input, 'couponCodeInputError');
 
         if (cart.appliedCoupon) {
             input.value = cart.appliedCoupon.code;
@@ -463,9 +465,16 @@
         const input = document.getElementById('couponCodeInput');
         const button = document.getElementById('applyCouponBtn');
         const couponCode = (code || input.value).trim().toUpperCase();
+        window.BellaForms?.clearFieldError(input, 'couponCodeInputError');
 
         if (!couponCode) {
-            return Swal.fire('Coupon Required', 'Please enter or select a coupon code.', 'warning');
+            window.BellaForms?.setFieldError(
+                input,
+                'Please enter or select a coupon code.',
+                'couponCodeInputError'
+            );
+            input.focus();
+            return;
         }
 
         const originalText = button.textContent;
@@ -486,7 +495,12 @@
                     window.location.reload();
                 });
             } else {
-                Swal.fire('Coupon Error', data.message, 'warning');
+                window.BellaForms?.setFieldError(
+                    input,
+                    data.message || 'Unable to apply this coupon.',
+                    'couponCodeInputError'
+                );
+                input.focus();
             }
         } catch (error) {
             Swal.fire('Error', 'Failed to apply coupon.', 'error');
@@ -571,4 +585,8 @@
             Swal.fire('Error', 'Verification failed.', 'error');
         }
     }
+
+    document.getElementById('couponCodeInput')?.addEventListener('input', (event) => {
+        window.BellaForms?.clearFieldError(event.target, 'couponCodeInputError');
+    });
 </script>

@@ -261,12 +261,12 @@ document
     const brandVal = document.getElementById("productBrand").value.trim();
 
     if (!nameVal || !brandVal || !categoryId) {
-      Swal.fire({
-        icon: "warning",
-        title: "Hold on!",
-        text: "Please enter the Product Name, Brand, and select a Category before adding variants.",
-        confirmButtonColor: "#e83e8c",
-      });
+      validateProductNameField();
+      validateBrandField();
+      validateCategoryField();
+
+      const firstInvalid = mainForm.querySelector("[aria-invalid='true']");
+      firstInvalid?.focus();
       return;
     }
 
@@ -660,12 +660,9 @@ document
     }
 
     if (!isValid) {
-      return Swal.fire({
-        icon: "error",
-        title: "Please fix the following errors:",
-        html: `<div class="text-left text-sm text-slate-600 mt-2">${errorMessage}</div>`,
-        confirmButtonColor: "#e83e8c",
-      });
+      const firstInvalid = tempVariantForm.querySelector("[aria-invalid='true']");
+      firstInvalid?.focus();
+      return;
     }
 
     // --- BUILD FINAL DATA & SAVE ---
@@ -887,12 +884,10 @@ mainForm.addEventListener("submit", async function (e) {
   }
 
   if (!isValid) {
-    Swal.fire({
-      icon: "error",
-      title: "Please fix the highlighted fields",
-      text: "Each issue is shown next to the field that needs attention.",
-      confirmButtonColor: "#e83e8c",
-    });
+    const firstInvalid =
+      mainForm.querySelector("[aria-invalid='true']") ||
+      mainForm.querySelector(".error-border");
+    firstInvalid?.focus();
     return;
   }
 

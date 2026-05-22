@@ -11,6 +11,32 @@ import AppError from "../../utils/AppError.js";
 
 // Order status should follow this step-by-step flow
 const MANUAL_STATUS_FLOW = ["Pending", "Processing", "Shipped", "Delivered"];
+export const ORDER_NOT_PLACED_STATUS = "Order Not Placed";
+
+export const isOrderNotPlaced = (order = {}) =>
+  order?.payment?.status === "Failed";
+
+export const getAdminOrderDisplayStatus = (order = {}) =>
+  isOrderNotPlaced(order)
+    ? ORDER_NOT_PLACED_STATUS
+    : order?.orderStatus || "Pending";
+
+const buildAdminStatusFilterQuery = (statusFilter = "all") => {
+  if (!statusFilter || statusFilter === "all") return {};
+
+  if (statusFilter === ORDER_NOT_PLACED_STATUS) {
+    return { "payment.status": "Failed" };
+  }
+
+  if (statusFilter === "Pending") {
+    return {
+      orderStatus: "Pending",
+      "payment.status": { $ne: "Failed" },
+    };
+  }
+
+  return { orderStatus: statusFilter };
+};
 
 export const getAdminOrdersList = async (
   page = 1,
@@ -22,7 +48,7 @@ export const getAdminOrdersList = async (
   const query = {};
 
   if (search) query.orderId = { $regex: search, $options: "i" };
-  if (statusFilter && statusFilter !== "all") query.orderStatus = statusFilter;
+  Object.assign(query, buildAdminStatusFilterQuery(statusFilter));
 
   let sortQuery = { createdAt: -1 };
 
@@ -53,6 +79,12 @@ export const updateOrderStatusService = async (orderId, newStatus) => {
   const order = await Order.findById(orderId);
 
   if (!order) throw new AppError("Order not found", 404);
+  if (isOrderNotPlaced(order)) {
+    throw new AppError(
+      "This order was not placed because the payment failed.",
+      400,
+    );
+  }
 
   const currentIdx = MANUAL_STATUS_FLOW.indexOf(order.orderStatus);
   const newIdx = MANUAL_STATUS_FLOW.indexOf(newStatus);

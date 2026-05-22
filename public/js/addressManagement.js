@@ -18,14 +18,14 @@ function clearAddressFieldErrors() {
 }
 
 function showAddressValidationError(validation) {
-  if (validation.field) {
-    const field = document.getElementById(validation.field);
-    window.BellaForms?.setFieldError(field, validation.message);
-    field?.focus();
-    return;
-  }
+  const targetField = document.getElementById(
+    validation.field || addressFieldIds[0],
+  );
 
-  Swal.fire(validation.title, validation.message, validation.icon);
+  if (!targetField) return;
+
+  window.BellaForms?.setFieldError(targetField, validation.message);
+  targetField.focus();
 }
 
 form.addEventListener("submit", function (event) {
@@ -123,6 +123,7 @@ function openAddressModal() {
   form.reset();
   document.getElementById("addressId").value = "";
   title.innerText = "Add New Address";
+  clearAddressFieldErrors();
 
   modal.classList.remove("hidden");
 }
@@ -241,6 +242,7 @@ async function editAddress(addressId) {
 
       // Update UI text
       document.getElementById("modalTitle").innerText = "Edit Address";
+      clearAddressFieldErrors();
 
       // Show Modal
       document.getElementById("addressModal").classList.remove("hidden");

@@ -2,6 +2,7 @@ import Coupon from "../../models/coupon.js";
 import AppError from "../../utils/AppError.js";
 
 const normalizeCode = (code) => code.trim().toUpperCase();
+const couponCodePattern = /^[A-Z0-9_-]{3,20}$/;
 
 export const getAdminCouponsList = async (page = 1, limit = 6, search = "") => {
   const skip = (page - 1) * limit;
@@ -44,6 +45,14 @@ export const createCouponByAdmin = async (couponData) => {
   }
 
   const normalizedCode = normalizeCode(code);
+
+  if (!couponCodePattern.test(normalizedCode)) {
+    throw new AppError(
+      "Coupon code must be 3 to 20 characters and can contain letters, numbers, hyphens, or underscores.",
+      400,
+    );
+  }
+
   const existingCoupon = await Coupon.findOne({ code: normalizedCode });
 
   if (existingCoupon) {
@@ -68,16 +77,38 @@ export const createCouponByAdmin = async (couponData) => {
     throw new AppError("Maximum discount value must be greater than 0.", 400);
   }
 
+  if (parsedMaxDiscount > parsedMinOrderAmount && parsedMinOrderAmount > 0) {
+    throw new AppError(
+      "Maximum discount value cannot be greater than the minimum purchase value.",
+      400,
+    );
+  }
+
   if (discountType === "percentage" && parsedDiscountValue > 100) {
     throw new AppError("Percentage discount cannot exceed 100.", 400);
   }
 
-  if (Number.isNaN(parsedUsageLimit) || parsedUsageLimit < 1) {
-    throw new AppError("Usage limit must be at least 1.", 400);
+  if (
+    Number.isNaN(parsedUsageLimit) ||
+    parsedUsageLimit < 1 ||
+    !Number.isInteger(parsedUsageLimit)
+  ) {
+    throw new AppError(
+      "Usage limit must be a whole number greater than or equal to 1.",
+      400,
+    );
   }
 
   if (Number.isNaN(parsedExpiresAt.getTime())) {
     throw new AppError("Offer validity date is invalid.", 400);
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsedExpiresAt.setHours(0, 0, 0, 0);
+
+  if (parsedExpiresAt < today) {
+    throw new AppError("Offer validity must be today or a future date.", 400);
   }
 
   const coupon = new Coupon({
@@ -128,6 +159,14 @@ export const updateCouponById = async (couponId, couponData) => {
   }
 
   const normalizedCode = normalizeCode(code);
+
+  if (!couponCodePattern.test(normalizedCode)) {
+    throw new AppError(
+      "Coupon code must be 3 to 20 characters and can contain letters, numbers, hyphens, or underscores.",
+      400,
+    );
+  }
+
   const existingCoupon = await Coupon.findOne({
     code: normalizedCode,
     _id: { $ne: couponId },
@@ -158,16 +197,38 @@ export const updateCouponById = async (couponId, couponData) => {
     throw new AppError("Maximum discount value must be greater than 0.", 400);
   }
 
+  if (parsedMaxDiscount > parsedMinOrderAmount && parsedMinOrderAmount > 0) {
+    throw new AppError(
+      "Maximum discount value cannot be greater than the minimum purchase value.",
+      400,
+    );
+  }
+
   if (discountType === "percentage" && parsedDiscountValue > 100) {
     throw new AppError("Percentage discount cannot exceed 100.", 400);
   }
 
-  if (Number.isNaN(parsedUsageLimit) || parsedUsageLimit < 1) {
-    throw new AppError("Usage limit must be at least 1.", 400);
+  if (
+    Number.isNaN(parsedUsageLimit) ||
+    parsedUsageLimit < 1 ||
+    !Number.isInteger(parsedUsageLimit)
+  ) {
+    throw new AppError(
+      "Usage limit must be a whole number greater than or equal to 1.",
+      400,
+    );
   }
 
   if (Number.isNaN(parsedExpiresAt.getTime())) {
     throw new AppError("Offer validity date is invalid.", 400);
+  }
+
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  parsedExpiresAt.setHours(0, 0, 0, 0);
+
+  if (parsedExpiresAt < today) {
+    throw new AppError("Offer validity must be today or a future date.", 400);
   }
 
   const coupon = await Coupon.findByIdAndUpdate(

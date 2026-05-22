@@ -2,9 +2,30 @@ document.addEventListener("DOMContentLoaded", () => {
   const identifierInput = document.getElementById("identifier");
   const passwordInput = document.getElementById("password");
   const submitBtn = document.getElementById("submitBtn");
+  const loginErrorMessage = document.getElementById("loginErrorMessage");
 
   const identifierError = document.getElementById("identifierError");
   const passwordError = document.getElementById("passwordError");
+  const loginReason = new URLSearchParams(window.location.search).get("reason");
+  const skipLoginReasonPopup =
+    window.sessionStorage?.getItem("skipLoginReasonPopup") === "1";
+
+  if (skipLoginReasonPopup) {
+    window.sessionStorage.removeItem("skipLoginReasonPopup");
+  }
+
+  if (loginReason === "suspended" && window.Swal && !skipLoginReasonPopup) {
+    Swal.fire({
+      icon: "warning",
+      title: "Account Suspended",
+      text:
+        loginErrorMessage?.textContent?.trim() ||
+        "Admin suspended your account. Please contact support.",
+      confirmButtonColor: "#e83e8c",
+    });
+
+    window.history.replaceState({}, document.title, window.location.pathname);
+  }
 
   // Validation Function
   function checkValidity() {

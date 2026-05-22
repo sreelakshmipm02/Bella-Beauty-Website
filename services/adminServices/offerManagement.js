@@ -3,6 +3,8 @@ import Product from "../../models/product.js";
 import Category from "../../models/category.js";
 import AppError from "../../utils/AppError.js";
 
+const validNameCount = (value = "") => value.replace(/[^a-zA-Z0-9]/g, "").length;
+
 const normalizeOfferPayload = (payload) => {
   const {
     offerName,
@@ -35,6 +37,13 @@ const normalizeOfferPayload = (payload) => {
 
   if (!["product", "category"].includes(offerType)) {
     throw new AppError("Offer type must be product or category.", 400);
+  }
+
+  if (validNameCount(offerName.trim()) < 3) {
+    throw new AppError(
+      "Offer name must contain at least 3 letters or numbers.",
+      400,
+    );
   }
 
   if (!["flat", "percentage"].includes(discountType)) {

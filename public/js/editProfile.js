@@ -171,11 +171,13 @@ async function handleProfileUpdate(e) {
   if (!isValid) return;
 
   if (isEmailChanged) {
-    return Swal.fire(
-      "Verify Email",
+    window.BellaForms?.setFieldError(
+      emailInput,
       "Please verify your new email address before saving.",
-      "warning",
+      "editEmailError",
     );
+    emailInput.focus();
+    return;
   }
 
   try {

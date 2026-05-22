@@ -14,7 +14,7 @@ export const loginUser = async (identifier, password) => {
   // BLOCK CHECK
   if (user.status === "suspended") {
     throw new AppError(
-      "Your account is currently blocked. Please contact support if you think this is a mistake.",
+      "Admin suspended your account. Please contact support.",
       403,
     );
   }
