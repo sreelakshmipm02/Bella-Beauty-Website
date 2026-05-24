@@ -38,18 +38,17 @@ import { asyncHandler } from "../../middlewares/asyncHandler.js";
 import AppError from "../../utils/AppError.js";
 
 const USER_SUSPENDED_REDIRECT = "/login?reason=suspended";
+const USER_SUSPENDED_MESSAGE = "Admin suspended your account.";
 
 const getLoginPageState = (reason = "") => {
-  if (reason === "suspended") {
-    return {
-      error: "Admin suspended your account. Please contact support.",
-      message: null,
-    };
-  }
-
   return {
-    error: null,
+    error: reason === "suspended" ? USER_SUSPENDED_MESSAGE : null,
     message: null,
+    isSuspended: reason === "suspended",
+    googleAuthUrl:
+      reason === "suspended"
+        ? "/auth/google?prompt=select_account"
+        : "/auth/google",
   };
 };
 
@@ -168,7 +167,11 @@ export const loginSubmit = async (req, res) => {
       return res.redirect(USER_SUSPENDED_REDIRECT);
     }
 
-    res.render("user/login", { error: error.message, message: null });
+    res.render("user/login", {
+      ...getLoginPageState(),
+      error: error.message,
+      message: null,
+    });
   }
 };
 

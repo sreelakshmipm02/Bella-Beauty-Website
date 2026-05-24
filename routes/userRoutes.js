@@ -1,5 +1,4 @@
 import express from "express";
-import passport from "passport";
 
 // Controller imports
 import {
@@ -31,7 +30,10 @@ import {
   signupInvitePage,
   verifyReferralAjax,
 } from "../controllers/user/userController.js";
-import { googleAuthCallback } from "../controllers/user/authController.js";
+import {
+  googleAuthCallback,
+  startGoogleAuth,
+} from "../controllers/user/authController.js";
 import { getHomePage } from "../controllers/user/homeController.js";
 import {
   getShopPage,
@@ -117,10 +119,7 @@ router.get("/session/status", checkUserSessionAjax, (req, res) =>
 );
 
 // Google Sign-In logic
-router.get(
-  "/auth/google",
-  passport.authenticate("google", { scope: ["profile", "email"] }),
-);
+router.get("/auth/google", startGoogleAuth);
 router.get("/auth/google/callback", googleAuthCallback);
 
 // --- Public Password Recovery ---
