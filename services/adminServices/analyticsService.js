@@ -27,6 +27,12 @@ const ORDER_STATUS_ORDER = [
   "Cancelled",
 ];
 const PAYMENT_METHOD_ORDER = ["Wallet", "Online", "COD"];
+const RETURN_ITEM_STATUSES = new Set([
+  "Return Requested",
+  "Return Approved",
+  "Returned",
+  "Return Rejected",
+]);
 
 const toNumber = (value) => Number(value || 0);
 const roundCurrency = (value) => Number(toNumber(value).toFixed(2));
@@ -397,6 +403,25 @@ const getOrderFinancials = (order) => {
   };
 };
 
+const getItemStatusCounts = (items = []) => {
+  return (items || []).reduce(
+    (counts, item) => {
+      const quantity = Math.max(toNumber(item?.quantity), 0);
+
+      if (item?.status === "Cancelled") {
+        counts.cancelledItems += quantity;
+      }
+
+      if (RETURN_ITEM_STATUSES.has(item?.status)) {
+        counts.returnItems += quantity;
+      }
+
+      return counts;
+    },
+    { returnItems: 0, cancelledItems: 0 },
+  );
+};
+
 const buildDistributionArray = (inputMap, baseOrder = []) => {
   const seen = new Set();
   const rows = [];
@@ -546,6 +571,8 @@ export const getSalesAnalytics = async ({
   let refundedAmount = 0;
   let paidOrdersCount = 0;
   let totalItemsOrdered = 0;
+  let totalReturnItems = 0;
+  let totalCancelledItems = 0;
 
   const reportRows = [];
   const couponUsageMap = new Map();
@@ -557,6 +584,7 @@ export const getSalesAnalytics = async ({
 
   orders.forEach((order) => {
     const financials = getOrderFinancials(order);
+    const itemStatusCounts = getItemStatusCounts(order.items);
     const customerName = getCustomerName(order);
     const couponSnapshot = resolveCouponSnapshot(
       order,
@@ -584,6 +612,8 @@ export const getSalesAnalytics = async ({
       (sum, item) => sum + toNumber(item.quantity),
       0,
     );
+    totalReturnItems += itemStatusCounts.returnItems;
+    totalCancelledItems += itemStatusCounts.cancelledItems;
 
     if (financials.isPaidOrder) {
       paidOrdersCount += 1;
@@ -657,6 +687,8 @@ export const getSalesAnalytics = async ({
         (sum, item) => sum + toNumber(item.quantity),
         0,
       ),
+      returnItems: itemStatusCounts.returnItems,
+      cancelledItems: itemStatusCounts.cancelledItems,
       grossOrderAmount: financials.grossOrderAmount,
       offerDiscount: financials.offerDiscount,
       couponDiscount: financials.couponDiscount,
@@ -673,6 +705,7 @@ export const getSalesAnalytics = async ({
 
     (order.items || []).forEach((item) => {
       const itemId = String(item._id);
+      const itemQuantity = Math.max(toNumber(item.quantity), 0);
       const key = item.productName || "Unknown Product";
       const originalItemTotal = getItemOriginalTotal(item);
       const currentOfferDiscount = roundCurrency(
@@ -698,11 +731,11 @@ export const getSalesAnalytics = async ({
         grossAmount: 0,
         discount: 0,
         netRevenue: 0,
-        returnOrders: 0,
-        cancelled: 0,
+        returnItems: 0,
+        cancelledItems: 0,
       };
 
-      existingProduct.unitsOrdered += toNumber(item.quantity);
+      existingProduct.unitsOrdered += itemQuantity;
       existingProduct.grossAmount = roundCurrency(
         existingProduct.grossAmount + originalItemTotal,
       );
@@ -714,18 +747,11 @@ export const getSalesAnalytics = async ({
       );
 
       if (item.status === "Cancelled") {
-        existingProduct.cancelled += 1;
+        existingProduct.cancelledItems += itemQuantity;
       }
 
-      if (
-        [
-          "Return Requested",
-          "Return Approved",
-          "Returned",
-          "Return Rejected",
-        ].includes(item.status)
-      ) {
-        existingProduct.returnOrders += 1;
+      if (RETURN_ITEM_STATUSES.has(item.status)) {
+        existingProduct.returnItems += itemQuantity;
       }
 
       productBreakdownMap.set(key, existingProduct);
@@ -742,6 +768,8 @@ export const getSalesAnalytics = async ({
     netRevenue: roundCurrency(netRevenue),
     refundedAmount: roundCurrency(refundedAmount),
     paidOrdersCount,
+    totalReturnItems,
+    totalCancelledItems,
     averageOrderValue:
       salesCount > 0 ? roundCurrency(grossOrderAmount / salesCount) : 0,
   };
@@ -800,6 +828,10 @@ const buildSummaryRows = (report) => [
   ["Coupon Deductions", formatCurrency(report.summary.couponDiscount)],
   ["Overall Discount", formatCurrency(report.summary.totalDiscount)],
   ["Net Revenue", formatCurrency(report.summary.netRevenue)],
+  ["Items Sold", String(report.summary.totalItemsOrdered || 0)],
+  ["Return Items", String(report.summary.totalReturnItems || 0)],
+  ["Cancelled Items", String(report.summary.totalCancelledItems || 0)],
+  ["Paid Orders", String(report.summary.paidOrdersCount || 0)],
   ["Refunded Amount", formatCurrency(report.summary.refundedAmount)],
 ];
 
@@ -870,6 +902,8 @@ export const generateSalesReportPdfBuffer = async (report) => {
         "Order ID",
         "Customer",
         "Items",
+        "Return Items",
+        "Cancelled Items",
         "Gross",
         "Discount",
         "Coupon",
@@ -883,13 +917,15 @@ export const generateSalesReportPdfBuffer = async (report) => {
           row.orderId,
           row.customerName,
           String(row.totalItems),
+          String(row.returnItems || 0),
+          String(row.cancelledItems || 0),
           formatCurrency(row.grossOrderAmount),
           formatCurrency(row.totalDiscount),
           row.couponCode || "-",
           formatCurrency(row.netRevenue),
           row.orderStatus,
         ])
-      : [["No orders found", "", "", "", "", "", "", "", ""]],
+      : [["No orders found", "", "", "", "", "", "", "", "", "", ""]],
     theme: "grid",
     headStyles: { fillColor: [31, 41, 55] },
     styles: { fontSize: 8 },
@@ -909,8 +945,8 @@ export const generateSalesReportPdfBuffer = async (report) => {
         "Gross Amount",
         "Discount",
         "Net Revenue",
-        "Return Orders",
-        "Cancelled",
+        "Return Items",
+        "Cancelled Items",
       ],
     ],
     body: report.productBreakdown.length
@@ -920,8 +956,8 @@ export const generateSalesReportPdfBuffer = async (report) => {
           formatCurrency(row.grossAmount),
           formatCurrency(row.discount),
           formatCurrency(row.netRevenue),
-          String(row.returnOrders),
-          String(row.cancelled),
+          String(row.returnItems || 0),
+          String(row.cancelledItems || 0),
         ])
       : [["No product data found", "", "", "", "", "", ""]],
     theme: "striped",
@@ -1047,6 +1083,8 @@ export const generateSalesReportExcelBuffer = async (report) => {
                     "Order ID",
                     "Customer",
                     "Items",
+                    "Return Items",
+                    "Cancelled Items",
                     "Gross",
                     "Discount",
                     "Coupon",
@@ -1059,13 +1097,15 @@ export const generateSalesReportExcelBuffer = async (report) => {
                         row.orderId,
                         row.customerName,
                         String(row.totalItems),
+                        String(row.returnItems || 0),
+                        String(row.cancelledItems || 0),
                         formatCurrency(row.grossOrderAmount),
                         formatCurrency(row.totalDiscount),
                         row.couponCode || "-",
                         formatCurrency(row.netRevenue),
                         row.orderStatus,
                       ])
-                    : [["No orders found", "", "", "", "", "", "", "", ""]],
+                    : [["No orders found", "", "", "", "", "", "", "", "", "", ""]],
                 )}
 
                 ${buildHtmlTable(
@@ -1076,8 +1116,8 @@ export const generateSalesReportExcelBuffer = async (report) => {
                     "Gross Amount",
                     "Discount",
                     "Net Revenue",
-                    "Return Orders",
-                    "Cancelled",
+                    "Return Items",
+                    "Cancelled Items",
                   ],
                   report.productBreakdown.length
                     ? report.productBreakdown.map((row) => [
@@ -1086,8 +1126,8 @@ export const generateSalesReportExcelBuffer = async (report) => {
                         formatCurrency(row.grossAmount),
                         formatCurrency(row.discount),
                         formatCurrency(row.netRevenue),
-                        String(row.returnOrders),
-                        String(row.cancelled),
+                        String(row.returnItems || 0),
+                        String(row.cancelledItems || 0),
                       ])
                     : [["No product data found", "", "", "", "", "", ""]],
                 )}

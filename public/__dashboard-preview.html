@@ -1,0 +1,1374 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bella Admin - Dashboard Overview</title>
+
+    <script src="https://cdn.tailwindcss.com?plugins=forms,typography"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <script src="/js/formValidation.js"></script>
+
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.css" rel="stylesheet">
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/cropperjs/1.5.13/cropper.min.js"></script>
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Playfair+Display:wght@700&family=Material+Icons+Outlined&display=swap"
+        rel="stylesheet" />
+    <link href="https://fonts.googleapis.com/css2?family=Material+Icons+Outlined&display=swap" rel="stylesheet" />
+
+    <link
+        href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200"
+        rel="stylesheet" />
+
+    <link rel="stylesheet" href="/css/style.css">
+    <script>
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        primary: "#E91E63",
+                        "background-light": "#F8F9FA",
+                        "background-dark": "#111827",
+                    },
+                    fontFamily: {
+                        display: ["Playfair Display", "serif"],
+                        sans: ["Inter", "sans-serif"],
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.75rem",
+                    },
+                },
+            },
+        };
+    </script>
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+
+        .font-display {
+            font-family: 'Playfair Display', serif;
+        }
+
+        .material-icons-outlined {
+            font-size: 20px;
+        }
+
+        /* Sidebar active link styling */
+        .sidebar-link.active {
+            background-color: #E91E63;
+            color: white !important;
+        }
+    </style>
+</head>
+
+<body class="bg-background-light dark:bg-background-dark text-slate-800 dark:text-slate-200 min-h-screen flex flex-col">
+    <header
+        class="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-30">
+        <div class="flex items-center gap-4">
+            <button id="mobile-menu-toggle"
+                class="md:hidden p-2 text-slate-500 hover:bg-slate-100 rounded-lg transition-colors">
+                <span class="material-icons-outlined">menu</span>
+            </button>
+
+            <div class="flex items-center gap-2">
+                <div class="w-8 h-8 bg-primary rounded-full flex items-center justify-center text-white">
+                    <span class="material-icons-outlined">spa</span>
+                </div>
+                <h1 class="text-2xl font-display text-primary font-bold hidden sm:block">Bella Admin</h1>
+            </div>
+
+            <nav
+                class="hidden lg:flex items-center gap-2 text-xs font-medium text-slate-400 ml-4 border-l border-slate-200 pl-4">
+                <a href="/admin/dashboard" class="hover:text-primary transition-colors">Admin</a>
+                <span class="material-icons-outlined !text-xs">chevron_right</span>
+                <span id="breadcrumb-current" class="text-slate-600 dark:text-slate-300 capitalize">Dashboard</span>
+            </nav>
+        </div>
+
+        <div class="flex items-center gap-6">
+            <div class="relative group">
+                <button onclick="toggleNotificationDropdown(event)"
+                    class="relative p-2 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-all outline-none">
+                    <span class="material-icons-outlined">notifications</span>
+
+                    
+                        <span class="absolute top-2 right-2 w-2.5 h-2.5 bg-red-500 border-2 border-white dark:border-slate-900 rounded-full animate-pulse"></span>
+                    
+                </button>
+
+                <div id="notification-dropdown"
+                    class="hidden absolute right-0 mt-3 w-80 bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl shadow-xl z-50 overflow-hidden">
+                    <div class="p-4 border-b border-slate-100 dark:border-slate-800 flex justify-between items-center">
+                        <h3 class="font-bold text-sm">Notifications</h3>
+                        
+                            <span class="text-[10px] bg-red-100 text-red-600 px-2 py-0.5 rounded-full font-bold">Action Required</span>
+                        
+                    </div>
+                    
+                    <div class="max-h-64 overflow-y-auto">
+                        
+                            <a href="/admin/inventory?lowStock=true"
+                                class="flex items-start gap-3 p-4 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                <div class="w-8 h-8 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-600 shrink-0">
+                                    <span class="material-icons-outlined text-sm">inventory</span>
+                                </div>
+                                <div>
+                                    <p class="text-xs font-bold text-slate-800 dark:text-slate-200">Critical Stock Alert</p>
+                                    <p class="text-[11px] text-slate-500 mt-0.5">
+                                        8 Items are running low.
+                                    </p>
+                                    <p class="text-[10px] text-primary mt-1 font-bold underline">Restock Now</p>
+                                </div>
+                            </a>
+                        
+                    </div>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 bg-pink-100 dark:bg-pink-900/30 text-primary flex items-center justify-center rounded-full font-bold">
+                    AD
+                </div>
+                <span class="text-sm font-medium hidden sm:block">Admin User</span>
+            </div>
+        </div>
+    </header>
+
+    <div class="flex flex-1 overflow-hidden relative">
+        <div id="sidebar-overlay" class="fixed inset-0 bg-black/50 z-30 hidden transition-opacity"></div>
+
+        <aside id="sidebar"
+            class="fixed inset-y-0 left-0 z-40 w-72 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-800 transform -translate-x-full md:relative md:translate-x-0 transition-transform duration-300 ease-in-out flex flex-col">
+            
+            <nav class="flex-1 overflow-y-auto p-4 space-y-1">
+                <a href="/admin/dashboard" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">dashboard</span>
+                    <span class="font-medium">Dashboard</span>
+                </a>
+
+                <a href="/admin/orders" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">shopping_cart</span>
+                    Order Management
+                </a>
+                <a href="/admin/category" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">category</span>
+                    Category Management
+                </a>
+                <a href="/admin/products" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">inventory_2</span>
+                    Product Management
+                </a>
+                <a href="/admin/inventory" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">inventory</span>
+                    Stock Management
+                </a>
+                <a href="/admin/coupons" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">confirmation_number</span>
+                    Coupon Management
+                </a>
+                <a href="/admin/offers" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">local_offer</span>
+                    Offer Management
+                </a>
+                <a href="/admin/user" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">people</span>
+                    User Management
+                </a>
+                <a href="/admin/analytics" class="sidebar-link group flex items-center gap-3 px-4 py-3 rounded-xl transition-all hover:bg-slate-50 dark:hover:bg-slate-800">
+                    <span class="material-icons-outlined">payments</span>
+                    Analysis
+                </a>
+            </nav>
+
+            <script src="/js/logoutPopup.js"></script>
+            <div class="p-4 border-t border-slate-200 dark:border-slate-800">
+                <button onclick="confirmLogout('/admin/logout')"
+                    class="w-full flex items-center justify-center gap-3 px-4 py-3 rounded-xl bg-red-500 hover:bg-red-600 text-white font-semibold transition shadow-lg shadow-red-500/20">
+                    <span class="material-icons-outlined">logout</span>
+                    Sign Out
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 overflow-y-auto p-8 relative">
+
+        <script>
+            document.addEventListener("DOMContentLoaded", () => {
+                // Handle Active Sidebar State
+                const currentPath = window.location.pathname;
+                const links = document.querySelectorAll(".sidebar-link");
+
+                links.forEach(link => {
+                    const linkPath = link.getAttribute("href");
+                    if (currentPath === linkPath) {
+                        link.classList.add("active");
+                    }
+                });
+
+                // Mobile Menu Logic
+                const mobileMenuToggle = document.getElementById('mobile-menu-toggle');
+                const sidebar = document.getElementById('sidebar');
+                const overlay = document.getElementById('sidebar-overlay');
+
+                if (mobileMenuToggle) {
+                    mobileMenuToggle.addEventListener('click', () => {
+                        sidebar.classList.remove('-translate-x-full');
+                        overlay.classList.remove('hidden');
+                    });
+                }
+
+                if (overlay) {
+                    overlay.addEventListener('click', () => {
+                        sidebar.classList.add('-translate-x-full');
+                        overlay.classList.add('hidden');
+                    });
+                }
+            });
+
+            // Notification Dropdown Toggle
+            function toggleNotificationDropdown(event) {
+                event.stopPropagation();
+                const dropdown = document.getElementById('notification-dropdown');
+                dropdown.classList.toggle('hidden');
+
+                // Close dropdown when clicking anywhere else
+                const closeHandler = (e) => {
+                    if (!dropdown.contains(e.target)) {
+                        dropdown.classList.add('hidden');
+                        document.removeEventListener('click', closeHandler);
+                    }
+                };
+                document.addEventListener('click', closeHandler);
+            }
+        </script>
+
+
+    
+
+        <div class="space-y-8">
+            <section
+                class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-emerald-200 via-lime-100 to-teal-200 p-[1px] shadow-[0_24px_60px_-24px_rgba(16,185,129,0.25)]">
+                <div class="absolute -left-12 top-10 h-32 w-32 rounded-full bg-emerald-300/25 blur-3xl"></div>
+                <div class="absolute right-0 top-0 h-52 w-52 rounded-full bg-lime-300/25 blur-3xl"></div>
+                <div class="relative rounded-[27px] bg-gradient-to-br from-emerald-50 via-white to-teal-50 text-slate-900 font-sans">
+                    <div class="grid grid-cols-1 xl:grid-cols-[1.6fr_0.9fr] gap-6 p-6 lg:p-8">
+                        <div class="space-y-6">
+                            <div
+                                class="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-800">
+                                <span class="rounded-full border border-emerald-200 bg-white/80 px-3 py-1">Admin
+                                    dashboard</span>
+                                <span
+                                    class="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-teal-800">
+                                    Last 7 Days
+                                </span>
+                                
+                                    <span class="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-slate-600">
+                                        Top status: Delivered
+                                    </span>
+                                    
+                            </div>
+
+                            <div class="max-w-3xl">
+                                <h2 class="text-3xl lg:text-4xl font-semibold leading-tight text-slate-950">
+                                    A friendlier snapshot of how Bella is performing right now.
+                                </h2>
+                                <p class="mt-3 max-w-2xl text-sm lg:text-base text-slate-600 leading-7">
+                                    Track revenue, order flow, stock pressure, and customer activity from one place
+                                    without jumping into the analytics screen.
+                                </p>
+                            </div>
+
+                            <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                                <div class="rounded-2xl border border-emerald-100 bg-white/85 p-4 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Lifetime Revenue</p>
+                                    <p class="mt-2 text-2xl font-semibold text-slate-950">
+                                        ₹2,45,760.00
+                                    </p>
+                                    <p class="mt-1 text-sm text-slate-600">Total retained sales across the store.</p>
+                                </div>
+                                <div class="rounded-2xl border border-emerald-100 bg-white/85 p-4 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Active Users</p>
+                                    <p class="mt-2 text-2xl font-semibold text-slate-950">
+                                        92
+                                    </p>
+                                    <p class="mt-1 text-sm text-slate-600">Customers currently eligible to shop.</p>
+                                </div>
+                                <div class="rounded-2xl border border-emerald-100 bg-white/85 p-4 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Ops Alert</p>
+                                    <p class="mt-2 text-lg font-semibold text-slate-950">
+                                        8 low stock
+                                    </p>
+                                    <p class="mt-1 text-sm text-slate-600">
+                                        8 low stock variants need your attention.
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div class="flex flex-wrap gap-3">
+                                <a href="/admin/analytics?period=weekly"
+                                    class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                    <span class="material-icons-outlined text-[18px]">insights</span>
+                                    Open full analysis
+                                </a>
+                                <a href="/admin/inventory?lowStock=true"
+                                    class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/85 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50">
+                                    <span class="material-icons-outlined text-[18px]">inventory_2</span>
+                                    Review low stock
+                                </a>
+                                <a href="/admin/orders"
+                                    class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/85 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50">
+                                    <span class="material-icons-outlined text-[18px]">receipt_long</span>
+                                    View orders
+                                </a>
+                            </div>
+                        </div>
+
+                        <div class="rounded-3xl border border-emerald-100 bg-white/90 p-5 shadow-sm">
+                            <div class="flex items-start justify-between gap-4">
+                                <div>
+                                    <p class="text-xs uppercase tracking-[0.24em] text-emerald-700">Dashboard Filters</p>
+                                    <h3 class="mt-2 text-xl font-semibold text-slate-950">Refine this view</h3>
+                                </div>
+                                <div class="rounded-2xl bg-emerald-50 px-3 py-2 text-right">
+                                    <p class="text-[11px] uppercase tracking-[0.2em] text-emerald-700">Focus</p>
+                                    <p class="mt-1 text-sm font-semibold text-slate-800">
+                                        Last 7 Days
+                                    </p>
+                                </div>
+                            </div>
+
+                            <form action="/admin/dashboard" method="GET" class="mt-6 space-y-4"
+                                id="dashboardFilterForm">
+                                <div>
+                                    <label
+                                        class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">Time
+                                        Period</label>
+                                    <select name="period" id="dashboardPeriodSelect"
+                                        class="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100">
+                                        <option value="daily" >Today
+                                        </option>
+                                        <option value="weekly" selected>Last 7
+                                            Days</option>
+                                        <option value="monthly" >This
+                                            Month</option>
+                                        <option value="yearly" >This
+                                            Year</option>
+                                        <option value="custom" >Custom
+                                            Range</option>
+                                    </select>
+                                </div>
+
+                                <div id="dashboardCustomDates"
+                                    class="grid grid-cols-1 sm:grid-cols-2 gap-4 hidden">
+                                    <div>
+                                        <label
+                                            class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">From</label>
+                                        <input type="date" name="from" value="2026-05-21"
+                                            class="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100">
+                                    </div>
+                                    <div>
+                                        <label
+                                            class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">To</label>
+                                        <input type="date" name="to" value="2026-05-27"
+                                            class="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100">
+                                    </div>
+                                </div>
+
+                                <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
+                                    <button type="submit"
+                                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
+                                        <span class="material-icons-outlined text-[18px]">tune</span>
+                                        Apply filters
+                                    </button>
+                                    <a href="/admin/dashboard"
+                                        class="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
+                                        <span class="material-icons-outlined text-[18px]">restart_alt</span>
+                                        Reset
+                                    </a>
+                                </div>
+                            </form>
+
+                            <div class="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                                <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Quick Notes</p>
+                                <ul class="mt-3 space-y-2 text-sm text-slate-700">
+                                    <li class="flex items-start gap-2">
+                                        <span class="mt-0.5 h-2 w-2 rounded-full bg-emerald-500"></span>
+                                        <span>
+                                            18 orders were created in this
+                                                selected window.
+                                        </span>
+                                    </li>
+                                    <li class="flex items-start gap-2">
+                                        <span class="mt-0.5 h-2 w-2 rounded-full bg-teal-500"></span>
+                                        <span>
+                                            Online is the leading payment
+                                                mode.
+                                        </span>
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-5">
+                <div
+                    class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Net Revenue</p>
+                            <h3 class="mt-3 text-2xl font-semibold text-slate-900">
+                                ₹54,620.00
+                            </h3>
+                        </div>
+                        <span
+                            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-emerald-50 text-emerald-600">
+                            <span class="material-icons-outlined">payments</span>
+                        </span>
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500">Retained after returns, discounts, and refund deductions.</p>
+                </div>
+
+                <div
+                    class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Orders In Period</p>
+                            <h3 class="mt-3 text-2xl font-semibold text-slate-900">
+                                18
+                            </h3>
+                        </div>
+                        <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-sky-50 text-sky-600">
+                            <span class="material-icons-outlined">shopping_bag</span>
+                        </span>
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500">New orders recorded within the selected time range.</p>
+                </div>
+
+                <div
+                    class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Paid Orders</p>
+                            <h3 class="mt-3 text-2xl font-semibold text-slate-900">
+                                16
+                            </h3>
+                        </div>
+                        <span
+                            class="flex h-11 w-11 items-center justify-center rounded-2xl bg-violet-50 text-violet-600">
+                            <span class="material-icons-outlined">task_alt</span>
+                        </span>
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500">Orders that successfully contributed to collected revenue.
+                    </p>
+                </div>
+
+                <div
+                    class="rounded-3xl border border-slate-200 bg-white p-5 shadow-sm transition hover:-translate-y-0.5 hover:shadow-lg">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Average Order Value
+                            </p>
+                            <h3 class="mt-3 text-2xl font-semibold text-slate-900">
+                                ₹3,413.75
+                            </h3>
+                        </div>
+                        <span class="flex h-11 w-11 items-center justify-center rounded-2xl bg-amber-50 text-amber-600">
+                            <span class="material-icons-outlined">sell</span>
+                        </span>
+                    </div>
+                    <p class="mt-4 text-sm text-slate-500">Average gross order amount across the selected period.</p>
+                </div>
+            </section>
+
+            <!-- Revenue Canvas Board -->
+            <section class="dashboard-panel overflow-hidden rounded-[30px] bg-slate-950 p-6 text-white shadow-xl">
+                <div class="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.24em] text-white/50">Revenue Canvas</p>
+                        <h3 class="mt-2 text-2xl font-semibold text-white">Net Revenue across Last 7 Days
+                        </h3>
+                        <p class="mt-2 max-w-2xl text-sm leading-7 text-white/65">
+                            Visualizing retained sales movement after discounts and cancellations.
+                        </p>
+                    </div>
+                    <div class="flex items-center gap-2 rounded-full bg-white/5 p-1 border border-white/10">
+                        <span class="px-3 py-1 text-xs font-bold text-emerald-400">LIVE TREND</span>
+                    </div>
+                </div>
+
+                <div class="mt-8 grid grid-cols-1 gap-6 lg:grid-cols-[1fr_280px]">
+                    
+
+                        <div class="relative overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] p-4">
+                            
+                                <svg viewBox="0 0 800 300"
+                                    class="min-w-[600px] w-full h-auto">
+                                    <defs>
+                                        <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="0%" stop-color="#34d399" stop-opacity="0.3" />
+                                            <stop offset="100%" stop-color="#34d399" stop-opacity="0" />
+                                        </linearGradient>
+                                    </defs>
+
+                                    <!-- Grid Lines -->
+                                    
+                                        <line x1="60" y1="20"
+                                            x2="770" y2="20"
+                                            stroke="rgba(255,255,255,0.05)" />
+                                        
+                                        <line x1="60" y1="80"
+                                            x2="770" y2="80"
+                                            stroke="rgba(255,255,255,0.05)" />
+                                        
+                                        <line x1="60" y1="140"
+                                            x2="770" y2="140"
+                                            stroke="rgba(255,255,255,0.05)" />
+                                        
+                                        <line x1="60" y1="200"
+                                            x2="770" y2="200"
+                                            stroke="rgba(255,255,255,0.05)" />
+                                        
+                                        <line x1="60" y1="260"
+                                            x2="770" y2="260"
+                                            stroke="rgba(255,255,255,0.05)" />
+                                        
+
+                                            <!-- Area & Line -->
+                                            <path d="M 60 122.27848101265823 L 178.33333333333331 86.22784810126583 L 296.66666666666663 200.86075949367088 L 415 20 L 533.3333333333333 140.91139240506328 L 651.6666666666666 74.48101265822785 L 770 69.0126582278481 L 770 260 L
+                        60 260 Z" fill="url(#areaGrad)" />
+                                            <path d="M 60 122.27848101265823 L 178.33333333333331 86.22784810126583 L 296.66666666666663 200.86075949367088 L 415 20 L 533.3333333333333 140.91139240506328 L 651.6666666666666 74.48101265822785 L 770 69.0126582278481" fill="none" stroke="#34d399" stroke-width="3"
+                                                stroke-linecap="round" stroke-linejoin="round" />
+
+                                            <!-- Data Points -->
+                                            
+                                                <circle cx="60" cy="122.27848101265823" r="4" fill="#0f172a"
+                                                    stroke="#34d399" stroke-width="2" />
+                                                
+                                                <circle cx="178.33333333333331" cy="86.22784810126583" r="4" fill="#0f172a"
+                                                    stroke="#34d399" stroke-width="2" />
+                                                
+                                                <circle cx="296.66666666666663" cy="200.86075949367088" r="4" fill="#0f172a"
+                                                    stroke="#34d399" stroke-width="2" />
+                                                
+                                                <circle cx="415" cy="20" r="4" fill="#0f172a"
+                                                    stroke="#34d399" stroke-width="2" />
+                                                
+                                                <circle cx="533.3333333333333" cy="140.91139240506328" r="4" fill="#0f172a"
+                                                    stroke="#34d399" stroke-width="2" />
+                                                
+                                                <circle cx="651.6666666666666" cy="74.48101265822785" r="4" fill="#0f172a"
+                                                    stroke="#34d399" stroke-width="2" />
+                                                
+                                                <circle cx="770" cy="69.0126582278481" r="4" fill="#0f172a"
+                                                    stroke="#34d399" stroke-width="2" />
+                                                
+
+                                                    <!-- X-Axis Labels -->
+                                                    
+                                                        <text x="60" y="290"
+                                                            fill="rgba(255,255,255,0.4)" font-size="10"
+                                                            text-anchor="middle">
+                                                            May 21
+                                                        </text>
+                                                        
+                                                        <text x="296.66666666666663" y="290"
+                                                            fill="rgba(255,255,255,0.4)" font-size="10"
+                                                            text-anchor="middle">
+                                                            May 23
+                                                        </text>
+                                                        
+                                                        <text x="533.3333333333333" y="290"
+                                                            fill="rgba(255,255,255,0.4)" font-size="10"
+                                                            text-anchor="middle">
+                                                            May 25
+                                                        </text>
+                                                        
+                                                        <text x="770" y="290"
+                                                            fill="rgba(255,255,255,0.4)" font-size="10"
+                                                            text-anchor="middle">
+                                                            May 27
+                                                        </text>
+                                                        
+                                </svg>
+                                
+                        </div>
+
+                        <div class="space-y-4">
+                            <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+                                <p class="text-[11px] font-bold uppercase tracking-wider text-white/40">Peak Revenue</p>
+                                <h4 class="mt-2 text-2xl font-semibold text-white">
+                                    ₹11,850.00
+                                </h4>
+                                <p class="mt-1 text-xs text-emerald-400">Highest period performance</p>
+                            </div>
+                            <div class="rounded-2xl border border-white/10 bg-white/5 p-5">
+                                <p class="text-[11px] font-bold uppercase tracking-wider text-white/40">Period Average
+                                </p>
+                                <h4 class="mt-2 text-2xl font-semibold text-white">
+                                    ₹7,802.86
+                                </h4>
+                                <p class="mt-1 text-xs text-white/50">Average per time slice</p>
+                            </div>
+                        </div>
+                </div>
+            </section>
+            <section class="grid grid-cols-1 xl:grid-cols-[1.3fr_0.7fr] gap-6">
+                <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Sales Trend</p>
+                            <h3 class="mt-2 text-xl font-semibold text-slate-900">Revenue and order movement across Last 7 Days
+                            </h3>
+                        </div>
+                        <a href="/admin/analytics?period=weekly"
+                            class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+                            Open full analysis
+                            <span class="material-icons-outlined text-[18px]">north_east</span>
+                        </a>
+                    </div>
+
+                    <div class="mt-6 overflow-x-auto">
+                        <table class="w-full min-w-[680px] text-left">
+                            <thead class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
+                                <tr>
+                                    <th class="pb-4 pr-4">Period</th>
+                                    <th class="pb-4 px-4">Orders</th>
+                                    <th class="pb-4 px-4">Gross</th>
+                                    <th class="pb-4 px-4">Discount</th>
+                                    <th class="pb-4 pl-4">Net Revenue</th>
+                                </tr>
+                            </thead>
+                            <tbody class="divide-y divide-slate-100 text-sm">
+                                
+                                    
+                                        <tr class="align-top">
+                                            <td class="py-4 pr-4">
+                                                <p class="font-semibold text-slate-900">
+                                                    May 21
+                                                </p>
+                                                <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                                    <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                        style="width: 57%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 font-medium text-slate-700">
+                                                2
+                                            </td>
+                                            <td class="py-4 px-4 text-slate-700">
+                                                ₹7,200.00
+                                            </td>
+                                            <td class="py-4 px-4 text-rose-500">
+                                                ₹400.00
+                                            </td>
+                                            <td class="py-4 pl-4">
+                                                <span
+                                                    class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                    ₹6,800.00
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="align-top">
+                                            <td class="py-4 pr-4">
+                                                <p class="font-semibold text-slate-900">
+                                                    May 22
+                                                </p>
+                                                <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                                    <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                        style="width: 72%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 font-medium text-slate-700">
+                                                3
+                                            </td>
+                                            <td class="py-4 px-4 text-slate-700">
+                                                ₹9,200.00
+                                            </td>
+                                            <td class="py-4 px-4 text-rose-500">
+                                                ₹620.00
+                                            </td>
+                                            <td class="py-4 pl-4">
+                                                <span
+                                                    class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                    ₹8,580.00
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="align-top">
+                                            <td class="py-4 pr-4">
+                                                <p class="font-semibold text-slate-900">
+                                                    May 23
+                                                </p>
+                                                <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                                    <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                        style="width: 25%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 font-medium text-slate-700">
+                                                1
+                                            </td>
+                                            <td class="py-4 px-4 text-slate-700">
+                                                ₹3,100.00
+                                            </td>
+                                            <td class="py-4 px-4 text-rose-500">
+                                                ₹180.00
+                                            </td>
+                                            <td class="py-4 pl-4">
+                                                <span
+                                                    class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                    ₹2,920.00
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="align-top">
+                                            <td class="py-4 pr-4">
+                                                <p class="font-semibold text-slate-900">
+                                                    May 24
+                                                </p>
+                                                <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                                    <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                        style="width: 100%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 font-medium text-slate-700">
+                                                4
+                                            </td>
+                                            <td class="py-4 px-4 text-slate-700">
+                                                ₹12,800.00
+                                            </td>
+                                            <td class="py-4 px-4 text-rose-500">
+                                                ₹950.00
+                                            </td>
+                                            <td class="py-4 pl-4">
+                                                <span
+                                                    class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                    ₹11,850.00
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="align-top">
+                                            <td class="py-4 pr-4">
+                                                <p class="font-semibold text-slate-900">
+                                                    May 25
+                                                </p>
+                                                <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                                    <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                        style="width: 50%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 font-medium text-slate-700">
+                                                2
+                                            </td>
+                                            <td class="py-4 px-4 text-slate-700">
+                                                ₹6,200.00
+                                            </td>
+                                            <td class="py-4 px-4 text-rose-500">
+                                                ₹320.00
+                                            </td>
+                                            <td class="py-4 pl-4">
+                                                <span
+                                                    class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                    ₹5,880.00
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="align-top">
+                                            <td class="py-4 pr-4">
+                                                <p class="font-semibold text-slate-900">
+                                                    May 26
+                                                </p>
+                                                <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                                    <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                        style="width: 77%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 font-medium text-slate-700">
+                                                3
+                                            </td>
+                                            <td class="py-4 px-4 text-slate-700">
+                                                ₹9,700.00
+                                            </td>
+                                            <td class="py-4 px-4 text-rose-500">
+                                                ₹540.00
+                                            </td>
+                                            <td class="py-4 pl-4">
+                                                <span
+                                                    class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                    ₹9,160.00
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        
+                                        <tr class="align-top">
+                                            <td class="py-4 pr-4">
+                                                <p class="font-semibold text-slate-900">
+                                                    May 27
+                                                </p>
+                                                <div class="mt-3 h-2 w-32 rounded-full bg-emerald-100">
+                                                    <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                        style="width: 80%">
+                                                    </div>
+                                                </div>
+                                            </td>
+                                            <td class="py-4 px-4 font-medium text-slate-700">
+                                                3
+                                            </td>
+                                            <td class="py-4 px-4 text-slate-700">
+                                                ₹10,200.00
+                                            </td>
+                                            <td class="py-4 px-4 text-rose-500">
+                                                ₹770.00
+                                            </td>
+                                            <td class="py-4 pl-4">
+                                                <span
+                                                    class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                    ₹9,430.00
+                                                </span>
+                                            </td>
+                                        </tr>
+                                        
+                                            
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <div class="space-y-6">
+                    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Store Snapshot</p>
+                        <h3 class="mt-2 text-xl font-semibold text-slate-900">Operational pulse</h3>
+
+                        <div class="mt-5 space-y-4">
+                            <div class="rounded-2xl bg-slate-50 p-4">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-500">Total Orders</p>
+                                        <p class="mt-1 text-2xl font-semibold text-slate-900">
+                                            126
+                                        </p>
+                                    </div>
+                                    <span
+                                        class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-slate-700 shadow-sm">
+                                        <span class="material-icons-outlined">receipt_long</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 p-4">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-500">Pending Orders</p>
+                                        <p class="mt-1 text-2xl font-semibold text-slate-900">
+                                            4
+                                        </p>
+                                    </div>
+                                    <span
+                                        class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-amber-600 shadow-sm">
+                                        <span class="material-icons-outlined">pending_actions</span>
+                                    </span>
+                                </div>
+                            </div>
+
+                            <div class="rounded-2xl bg-slate-50 p-4">
+                                <div class="flex items-center justify-between gap-4">
+                                    <div>
+                                        <p class="text-sm font-medium text-slate-500">Low Stock Variants</p>
+                                        <p class="mt-1 text-2xl font-semibold text-slate-900">
+                                            8
+                                        </p>
+                                    </div>
+                                    <span
+                                        class="flex h-10 w-10 items-center justify-center rounded-2xl bg-white text-rose-600 shadow-sm">
+                                        <span class="material-icons-outlined">inventory</span>
+                                    </span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                        <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Quick Actions</p>
+                        <h3 class="mt-2 text-xl font-semibold text-slate-900">Jump to what needs attention</h3>
+
+                        <div class="mt-5 space-y-3">
+                            <a href="/admin/orders"
+                                class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-primary hover:bg-rose-50/50">
+                                <div>
+                                    <p class="font-semibold text-slate-900">Recent Orders</p>
+                                    <p class="text-sm text-slate-500">Review the latest customer activity.</p>
+                                </div>
+                                <span class="material-icons-outlined text-slate-400">arrow_forward</span>
+                            </a>
+                            <a href="/admin/inventory?lowStock=true"
+                                class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-primary hover:bg-rose-50/50">
+                                <div>
+                                    <p class="font-semibold text-slate-900">Low Stock Review</p>
+                                    <p class="text-sm text-slate-500">Prioritize items that may need restocking.</p>
+                                </div>
+                                <span class="material-icons-outlined text-slate-400">arrow_forward</span>
+                            </a>
+                            <a href="/admin/analytics?period=weekly"
+                                class="flex items-center justify-between rounded-2xl border border-slate-200 px-4 py-3 transition hover:border-primary hover:bg-rose-50/50">
+                                <div>
+                                    <p class="font-semibold text-slate-900">Deep Analysis</p>
+                                    <p class="text-sm text-slate-500">Open the detailed reporting workspace.</p>
+                                </div>
+                                <span class="material-icons-outlined text-slate-400">arrow_forward</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </section>
+
+            <section class="grid grid-cols-1 xl:grid-cols-2 gap-6">
+                <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Order Status</p>
+                            <h3 class="mt-2 text-xl font-semibold text-slate-900">Distribution by workflow stage</h3>
+                        </div>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                            18 orders
+                        </span>
+                    </div>
+
+                    <div class="mt-6 space-y-4">
+                        
+                            
+                                <div class="rounded-2xl bg-slate-50 p-4">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p class="font-semibold text-slate-900">
+                                                Delivered
+                                            </p>
+                                            <p class="mt-1 text-sm text-slate-500">
+                                                50% of period orders
+                                            </p>
+                                        </div>
+                                        <span
+                                            class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm">
+                                            9
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                        <div class="h-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400"
+                                            style="width: 50%">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="rounded-2xl bg-slate-50 p-4">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p class="font-semibold text-slate-900">
+                                                Processing
+                                            </p>
+                                            <p class="mt-1 text-sm text-slate-500">
+                                                28% of period orders
+                                            </p>
+                                        </div>
+                                        <span
+                                            class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm">
+                                            5
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                        <div class="h-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400"
+                                            style="width: 28%">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="rounded-2xl bg-slate-50 p-4">
+                                    <div class="flex items-center justify-between gap-4">
+                                        <div>
+                                            <p class="font-semibold text-slate-900">
+                                                Pending
+                                            </p>
+                                            <p class="mt-1 text-sm text-slate-500">
+                                                22% of period orders
+                                            </p>
+                                        </div>
+                                        <span
+                                            class="rounded-full bg-white px-3 py-1 text-sm font-semibold text-slate-700 shadow-sm">
+                                            4
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                        <div class="h-2 rounded-full bg-gradient-to-r from-rose-500 to-orange-400"
+                                            style="width: 22%">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                    
+                    </div>
+                </div>
+
+                <div class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                    <div class="flex items-start justify-between gap-4">
+                        <div>
+                            <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Payment Methods</p>
+                            <h3 class="mt-2 text-xl font-semibold text-slate-900">Revenue split by checkout preference
+                            </h3>
+                        </div>
+                        <span class="rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-600">
+                            18 orders
+                        </span>
+                    </div>
+
+                    <div class="mt-6 space-y-4">
+                        
+                            
+                                <div class="rounded-2xl bg-slate-50 p-4">
+                                    <div class="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <p class="font-semibold text-slate-900">
+                                                Online
+                                            </p>
+                                            <p class="mt-1 text-sm text-slate-500">
+                                                10 orders • ₹34,200.00 order amount
+                                            </p>
+                                        </div>
+                                        <span
+                                            class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                            ₹31,800.00
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                        <div class="h-2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                                            style="width: 100%">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="rounded-2xl bg-slate-50 p-4">
+                                    <div class="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <p class="font-semibold text-slate-900">
+                                                COD
+                                            </p>
+                                            <p class="mt-1 text-sm text-slate-500">
+                                                5 orders • ₹14,800.00 order amount
+                                            </p>
+                                        </div>
+                                        <span
+                                            class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                            ₹12,820.00
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                        <div class="h-2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                                            style="width: 40%">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                <div class="rounded-2xl bg-slate-50 p-4">
+                                    <div class="flex flex-wrap items-start justify-between gap-3">
+                                        <div>
+                                            <p class="font-semibold text-slate-900">
+                                                Wallet
+                                            </p>
+                                            <p class="mt-1 text-sm text-slate-500">
+                                                3 orders • ₹10,200.00 order amount
+                                            </p>
+                                        </div>
+                                        <span
+                                            class="rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                            ₹10,000.00
+                                        </span>
+                                    </div>
+                                    <div class="mt-3 h-2 w-full rounded-full bg-slate-200">
+                                        <div class="h-2 rounded-full bg-gradient-to-r from-sky-500 to-cyan-400"
+                                            style="width: 31%">
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                    
+                    </div>
+                </div>
+            </section>
+
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Top Products</p>
+                        <h3 class="mt-2 text-xl font-semibold text-slate-900">Best performers in the selected range</h3>
+                    </div>
+                    <span class="text-sm text-slate-500">Sorted by contribution and units ordered.</span>
+                </div>
+
+                <div class="mt-6 overflow-x-auto">
+                    <table class="w-full min-w-[760px] text-left">
+                        <thead class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
+                            <tr>
+                                <th class="pb-4 pr-4">Rank</th>
+                                <th class="pb-4 px-4">Product</th>
+                                <th class="pb-4 px-4">Units</th>
+                                <th class="pb-4 px-4">Gross</th>
+                                <th class="pb-4 px-4">Discount</th>
+                                <th class="pb-4 pl-4">Net</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                            
+                                
+                                    <tr class="align-top">
+                                        <td class="py-4 pr-4">
+                                            <span
+                                                class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
+                                                1
+                                            </span>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <p class="font-semibold text-slate-900">
+                                                Plum Green Tea Toner
+                                            </p>
+                                            <div class="mt-3 h-2 w-40 rounded-full bg-emerald-100">
+                                                <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                    style="width: 82%">
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4 px-4 font-medium text-slate-700">
+                                            12
+                                        </td>
+                                        <td class="py-4 px-4 text-slate-700">
+                                            ₹9,600.00
+                                        </td>
+                                        <td class="py-4 px-4 text-rose-500">
+                                            ₹700.00
+                                        </td>
+                                        <td class="py-4 pl-4">
+                                            <span
+                                                class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                ₹8,900.00
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    
+                                    <tr class="align-top">
+                                        <td class="py-4 pr-4">
+                                            <span
+                                                class="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-slate-900 text-sm font-semibold text-white">
+                                                2
+                                            </span>
+                                        </td>
+                                        <td class="py-4 px-4">
+                                            <p class="font-semibold text-slate-900">
+                                                Foxtale Sunscreen
+                                            </p>
+                                            <div class="mt-3 h-2 w-40 rounded-full bg-emerald-100">
+                                                <div class="h-2 rounded-full bg-gradient-to-r from-emerald-500 to-lime-400"
+                                                    style="width: 100%">
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td class="py-4 px-4 font-medium text-slate-700">
+                                            9
+                                        </td>
+                                        <td class="py-4 px-4 text-slate-700">
+                                            ₹11,700.00
+                                        </td>
+                                        <td class="py-4 px-4 text-rose-500">
+                                            ₹850.00
+                                        </td>
+                                        <td class="py-4 pl-4">
+                                            <span
+                                                class="inline-flex rounded-full bg-emerald-50 px-3 py-1 text-sm font-semibold text-emerald-700">
+                                                ₹10,850.00
+                                            </span>
+                                        </td>
+                                    </tr>
+                                    
+                                        
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+
+            <section class="rounded-3xl border border-slate-200 bg-white p-6 shadow-sm">
+                <div class="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+                    <div>
+                        <p class="text-xs font-bold uppercase tracking-[0.24em] text-slate-400">Recent Orders</p>
+                        <h3 class="mt-2 text-xl font-semibold text-slate-900">Latest store activity</h3>
+                        <p class="mt-1 text-sm text-slate-500">Keep an eye on customer flow without leaving the
+                            dashboard.</p>
+                    </div>
+                    <a href="/admin/orders"
+                        class="inline-flex items-center gap-2 text-sm font-semibold text-primary hover:underline">
+                        View all orders
+                        <span class="material-icons-outlined text-[18px]">east</span>
+                    </a>
+                </div>
+
+                <div class="mt-6 overflow-x-auto">
+                    <table class="w-full min-w-[760px] text-left">
+                        <thead class="text-[11px] font-bold uppercase tracking-[0.24em] text-slate-400">
+                            <tr>
+                                <th class="pb-4 pr-4">Order ID</th>
+                                <th class="pb-4 px-4">Customer</th>
+                                <th class="pb-4 px-4">Status</th>
+                                <th class="pb-4 px-4">Amount</th>
+                                <th class="pb-4 pl-4 text-center">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody class="divide-y divide-slate-100 text-sm">
+                            
+                                
+                                    
+                                        <tr>
+                                            <td class="py-4 pr-4">
+                                                <span class="font-semibold text-primary">
+                                                    ORD-TEST1
+                                                </span>
+                                            </td>
+                                            <td class="py-4 px-4">
+                                                <p class="font-medium text-slate-900">
+                                                    Ananya R
+                                                </p>
+                                            </td>
+                                            <td class="py-4 px-4">
+                                                <span
+                                                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-100">
+                                                    Processing
+                                                </span>
+                                            </td>
+                                            <td class="py-4 px-4 font-semibold text-slate-900">
+                                                ₹1,899.00
+                                            </td>
+                                            <td class="py-4 pl-4 text-center">
+                                                <a href="/admin/orders/1"
+                                                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-primary hover:text-primary">
+                                                    View
+                                                    <span
+                                                        class="material-icons-outlined text-[16px]">arrow_forward</span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        
+                                    
+                                        <tr>
+                                            <td class="py-4 pr-4">
+                                                <span class="font-semibold text-primary">
+                                                    ORD-TEST2
+                                                </span>
+                                            </td>
+                                            <td class="py-4 px-4">
+                                                <p class="font-medium text-slate-900">
+                                                    Maya Menon
+                                                </p>
+                                            </td>
+                                            <td class="py-4 px-4">
+                                                <span
+                                                    class="inline-flex rounded-full px-3 py-1 text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-100">
+                                                    Delivered
+                                                </span>
+                                            </td>
+                                            <td class="py-4 px-4 font-semibold text-slate-900">
+                                                ₹2,499.00
+                                            </td>
+                                            <td class="py-4 pl-4 text-center">
+                                                <a href="/admin/orders/2"
+                                                    class="inline-flex items-center gap-2 rounded-full border border-slate-200 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-primary hover:text-primary">
+                                                    View
+                                                    <span
+                                                        class="material-icons-outlined text-[16px]">arrow_forward</span>
+                                                </a>
+                                            </td>
+                                        </tr>
+                                        
+                                            
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </div>
+
+        <script>
+            const dashboardPeriodSelect = document.getElementById("dashboardPeriodSelect");
+            const dashboardCustomDates = document.getElementById("dashboardCustomDates");
+
+            if (dashboardPeriodSelect && dashboardCustomDates) {
+                dashboardPeriodSelect.addEventListener("change", function () {
+                    if (this.value === "custom") {
+                        dashboardCustomDates.classList.remove("hidden");
+                        return;
+                    }
+
+                    dashboardCustomDates.classList.add("hidden");
+                    this.form.submit();
+                });
+            }
+        </script>
+
+        <footer class="mt-12 py-8 text-center border-t border-slate-100 dark:border-slate-800">
+    <p class="text-xs text-slate-400 dark:text-slate-500">© 2026 Bella Beauty Admin. Internal Use Only.</p>
+</footer>
+</main>
+</div>
+<script>
+    document.addEventListener("DOMContentLoaded", () => {
+        const currentPath = window.location.pathname;
+        const links = document.querySelectorAll(".sidebar-link");
+        const breadcrumbCurrent = document.getElementById("breadcrumb-current");
+
+        // MOBILE MENU ELEMENTS
+        const toggleBtn = document.getElementById("mobile-menu-toggle");
+        const sidebar = document.getElementById("sidebar");
+        const overlay = document.getElementById("sidebar-overlay");
+
+        // 1. HIGHLIGHT ACTIVE LINK & SET BREADCRUMBS
+        links.forEach(link => {
+            const linkPath = link.getAttribute("href");
+
+            if (currentPath === linkPath) {
+                link.classList.add("active");
+
+                if (breadcrumbCurrent) {
+                    // FIX: Get only the text that IS NOT inside the <span> icon
+                    // cloneNode ensures we don't mess with the actual sidebar
+                    const linkClone = link.cloneNode(true);
+                    const icon = linkClone.querySelector('.material-icons-outlined');
+                    if (icon) icon.remove(); // Remove the icon text ("people", "dashboard", etc)
+
+                    breadcrumbCurrent.innerText = linkClone.innerText.trim();
+                }
+            } else {
+                link.classList.remove("active");
+            }
+        });
+
+        // 2. MOBILE SIDEBAR LOGIC
+        const toggleSidebar = () => {
+            sidebar.classList.toggle("-translate-x-full");
+            overlay.classList.toggle("hidden");
+        };
+
+        if (toggleBtn) toggleBtn.addEventListener("click", toggleSidebar);
+        if (overlay) overlay.addEventListener("click", toggleSidebar);
+    });
+</script>
+</body>
+
+</html>
+

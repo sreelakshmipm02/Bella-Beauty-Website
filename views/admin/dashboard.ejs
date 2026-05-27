@@ -58,58 +58,58 @@
 
         <div class="space-y-8">
             <section
-                class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-rose-500 via-pink-500 to-orange-400 p-[1px] shadow-[0_24px_60px_-24px_rgba(244,63,94,0.5)]">
-                <div class="absolute -left-12 top-10 h-32 w-32 rounded-full bg-white/15 blur-3xl"></div>
-                <div class="absolute right-0 top-0 h-52 w-52 rounded-full bg-amber-200/20 blur-3xl"></div>
-                <div class="relative rounded-[27px] bg-slate-950 text-white">
+                class="relative overflow-hidden rounded-[28px] bg-gradient-to-br from-emerald-200 via-lime-100 to-teal-200 p-[1px] shadow-[0_24px_60px_-24px_rgba(16,185,129,0.25)]">
+                <div class="absolute -left-12 top-10 h-32 w-32 rounded-full bg-emerald-300/25 blur-3xl"></div>
+                <div class="absolute right-0 top-0 h-52 w-52 rounded-full bg-lime-300/25 blur-3xl"></div>
+                <div class="relative rounded-[27px] bg-gradient-to-br from-emerald-50 via-white to-teal-50 text-slate-900 font-sans">
                     <div class="grid grid-cols-1 xl:grid-cols-[1.6fr_0.9fr] gap-6 p-6 lg:p-8">
                         <div class="space-y-6">
                             <div
-                                class="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-white/70">
-                                <span class="rounded-full border border-white/15 bg-white/10 px-3 py-1">Admin
+                                class="flex flex-wrap items-center gap-3 text-xs font-semibold uppercase tracking-[0.24em] text-emerald-800">
+                                <span class="rounded-full border border-emerald-200 bg-white/80 px-3 py-1">Admin
                                     dashboard</span>
                                 <span
-                                    class="rounded-full border border-emerald-300/20 bg-emerald-400/10 px-3 py-1 text-emerald-100">
+                                    class="rounded-full border border-teal-200 bg-teal-50 px-3 py-1 text-teal-800">
                                     <%= filters.label %>
                                 </span>
                                 <% if (topStatus) { %>
-                                    <span class="rounded-full border border-white/10 bg-white/5 px-3 py-1">
+                                    <span class="rounded-full border border-slate-200 bg-white/70 px-3 py-1 text-slate-600">
                                         Top status: <%= topStatus.label %>
                                     </span>
                                     <% } %>
                             </div>
 
                             <div class="max-w-3xl">
-                                <h2 class="text-3xl lg:text-4xl font-display font-bold leading-tight">
+                                <h2 class="text-3xl lg:text-4xl font-semibold leading-tight text-slate-950">
                                     A friendlier snapshot of how Bella is performing right now.
                                 </h2>
-                                <p class="mt-3 max-w-2xl text-sm lg:text-base text-white/75 leading-7">
+                                <p class="mt-3 max-w-2xl text-sm lg:text-base text-slate-600 leading-7">
                                     Track revenue, order flow, stock pressure, and customer activity from one place
                                     without jumping into the analytics screen.
                                 </p>
                             </div>
 
                             <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                                <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-                                    <p class="text-xs uppercase tracking-[0.2em] text-white/60">Lifetime Revenue</p>
-                                    <p class="mt-2 text-2xl font-semibold">
+                                <div class="rounded-2xl border border-emerald-100 bg-white/85 p-4 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Lifetime Revenue</p>
+                                    <p class="mt-2 text-2xl font-semibold text-slate-950">
                                         <%= formatCurrency(totalRevenue) %>
                                     </p>
-                                    <p class="mt-1 text-sm text-white/70">Total retained sales across the store.</p>
+                                    <p class="mt-1 text-sm text-slate-600">Total retained sales across the store.</p>
                                 </div>
-                                <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-                                    <p class="text-xs uppercase tracking-[0.2em] text-white/60">Active Users</p>
-                                    <p class="mt-2 text-2xl font-semibold">
+                                <div class="rounded-2xl border border-emerald-100 bg-white/85 p-4 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Active Users</p>
+                                    <p class="mt-2 text-2xl font-semibold text-slate-950">
                                         <%= formatNumber(activeUsers) %>
                                     </p>
-                                    <p class="mt-1 text-sm text-white/70">Customers currently eligible to shop.</p>
+                                    <p class="mt-1 text-sm text-slate-600">Customers currently eligible to shop.</p>
                                 </div>
-                                <div class="rounded-2xl border border-white/10 bg-white/10 p-4 backdrop-blur-sm">
-                                    <p class="text-xs uppercase tracking-[0.2em] text-white/60">Ops Alert</p>
-                                    <p class="mt-2 text-lg font-semibold">
+                                <div class="rounded-2xl border border-emerald-100 bg-white/85 p-4 shadow-sm">
+                                    <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Ops Alert</p>
+                                    <p class="mt-2 text-lg font-semibold text-slate-950">
                                         <%= formatNumber(lowStockCount || 0) %> low stock
                                     </p>
-                                    <p class="mt-1 text-sm text-white/70">
+                                    <p class="mt-1 text-sm text-slate-600">
                                         <%= storeAlert %>
                                     </p>
                                 </div>
@@ -117,32 +117,32 @@
 
                             <div class="flex flex-wrap gap-3">
                                 <a href="/admin/analytics?<%= filters.queryString %>"
-                                    class="inline-flex items-center gap-2 rounded-full bg-white px-4 py-2 text-sm font-semibold text-slate-900 transition hover:bg-rose-50">
+                                    class="inline-flex items-center gap-2 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-emerald-700">
                                     <span class="material-icons-outlined text-[18px]">insights</span>
                                     Open full analysis
                                 </a>
                                 <a href="/admin/inventory?lowStock=true"
-                                    class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15">
+                                    class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/85 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50">
                                     <span class="material-icons-outlined text-[18px]">inventory_2</span>
                                     Review low stock
                                 </a>
                                 <a href="/admin/orders"
-                                    class="inline-flex items-center gap-2 rounded-full border border-white/15 bg-white/10 px-4 py-2 text-sm font-semibold text-white transition hover:bg-white/15">
+                                    class="inline-flex items-center gap-2 rounded-full border border-emerald-200 bg-white/85 px-4 py-2 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-50">
                                     <span class="material-icons-outlined text-[18px]">receipt_long</span>
                                     View orders
                                 </a>
                             </div>
                         </div>
 
-                        <div class="rounded-3xl border border-white/10 bg-white/10 p-5 backdrop-blur-md">
+                        <div class="rounded-3xl border border-emerald-100 bg-white/90 p-5 shadow-sm">
                             <div class="flex items-start justify-between gap-4">
                                 <div>
-                                    <p class="text-xs uppercase tracking-[0.24em] text-white/60">Dashboard Filters</p>
-                                    <h3 class="mt-2 text-xl font-semibold">Refine this view</h3>
+                                    <p class="text-xs uppercase tracking-[0.24em] text-emerald-700">Dashboard Filters</p>
+                                    <h3 class="mt-2 text-xl font-semibold text-slate-950">Refine this view</h3>
                                 </div>
-                                <div class="rounded-2xl bg-white/10 px-3 py-2 text-right">
-                                    <p class="text-[11px] uppercase tracking-[0.2em] text-white/60">Focus</p>
-                                    <p class="mt-1 text-sm font-semibold text-white">
+                                <div class="rounded-2xl bg-emerald-50 px-3 py-2 text-right">
+                                    <p class="text-[11px] uppercase tracking-[0.2em] text-emerald-700">Focus</p>
+                                    <p class="mt-1 text-sm font-semibold text-slate-800">
                                         <%= filters.label %>
                                     </p>
                                 </div>
@@ -152,10 +152,10 @@
                                 id="dashboardFilterForm">
                                 <div>
                                     <label
-                                        class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-white/60">Time
+                                        class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">Time
                                         Period</label>
                                     <select name="period" id="dashboardPeriodSelect"
-                                        class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10">
+                                        class="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100">
                                         <option value="daily" <%=filters.period==="daily" ? "selected" : "" %>>Today
                                         </option>
                                         <option value="weekly" <%=filters.period==="weekly" ? "selected" : "" %>>Last 7
@@ -173,44 +173,44 @@
                                     class="grid grid-cols-1 sm:grid-cols-2 gap-4 <%= filters.period === 'custom' ? '' : 'hidden' %>">
                                     <div>
                                         <label
-                                            class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-white/60">From</label>
+                                            class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">From</label>
                                         <input type="date" name="from" value="<%= filters.from %>"
-                                            class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10">
+                                            class="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100">
                                     </div>
                                     <div>
                                         <label
-                                            class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-white/60">To</label>
+                                            class="mb-2 block text-xs font-bold uppercase tracking-[0.24em] text-emerald-700">To</label>
                                         <input type="date" name="to" value="<%= filters.to %>"
-                                            class="w-full rounded-2xl border border-white/10 bg-slate-900/70 px-4 py-3 text-sm text-white outline-none transition focus:border-white/30 focus:ring-2 focus:ring-white/10">
+                                            class="w-full rounded-2xl border border-emerald-100 bg-white px-4 py-3 text-sm text-slate-900 outline-none transition focus:border-emerald-400 focus:ring-2 focus:ring-emerald-100">
                                     </div>
                                 </div>
 
                                 <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2">
                                     <button type="submit"
-                                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-white px-4 py-3 text-sm font-semibold text-slate-900 transition hover:bg-rose-50">
+                                        class="inline-flex items-center justify-center gap-2 rounded-2xl bg-emerald-600 px-4 py-3 text-sm font-semibold text-white transition hover:bg-emerald-700">
                                         <span class="material-icons-outlined text-[18px]">tune</span>
                                         Apply filters
                                     </button>
                                     <a href="/admin/dashboard"
-                                        class="inline-flex items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/5 px-4 py-3 text-sm font-semibold text-white transition hover:bg-white/10">
+                                        class="inline-flex items-center justify-center gap-2 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm font-semibold text-emerald-800 transition hover:bg-emerald-100">
                                         <span class="material-icons-outlined text-[18px]">restart_alt</span>
                                         Reset
                                     </a>
                                 </div>
                             </form>
 
-                            <div class="mt-5 rounded-2xl border border-white/10 bg-slate-900/50 p-4">
-                                <p class="text-xs uppercase tracking-[0.2em] text-white/55">Quick Notes</p>
-                                <ul class="mt-3 space-y-2 text-sm text-white/75">
+                            <div class="mt-5 rounded-2xl border border-emerald-100 bg-emerald-50/70 p-4">
+                                <p class="text-xs uppercase tracking-[0.2em] text-emerald-700">Quick Notes</p>
+                                <ul class="mt-3 space-y-2 text-sm text-slate-700">
                                     <li class="flex items-start gap-2">
-                                        <span class="mt-0.5 h-2 w-2 rounded-full bg-emerald-400"></span>
+                                        <span class="mt-0.5 h-2 w-2 rounded-full bg-emerald-500"></span>
                                         <span>
                                             <%= formatNumber(periodSummary.salesCount) %> orders were created in this
                                                 selected window.
                                         </span>
                                     </li>
                                     <li class="flex items-start gap-2">
-                                        <span class="mt-0.5 h-2 w-2 rounded-full bg-amber-300"></span>
+                                        <span class="mt-0.5 h-2 w-2 rounded-full bg-teal-500"></span>
                                         <span>
                                             <%= topPaymentMethod ? `${topPaymentMethod.label} is the leading payment
                                                 mode.` : "No dominant payment method in this range yet." %>

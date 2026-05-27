@@ -96,6 +96,16 @@
                     <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Total item quantity sold</td>
                 </tr>
                 <tr>
+                    <td class="px-6 py-4 font-medium">Return Items</td>
+                    <td class="px-6 py-4 font-semibold text-amber-600"><%= Number(analytics.summary.totalReturnItems || 0).toLocaleString("en-IN") %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Item quantity currently in a return status</td>
+                </tr>
+                <tr>
+                    <td class="px-6 py-4 font-medium">Cancelled Items</td>
+                    <td class="px-6 py-4 font-semibold text-rose-600"><%= Number(analytics.summary.totalCancelledItems || 0).toLocaleString("en-IN") %></td>
+                    <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Item quantity cancelled in this period</td>
+                </tr>
+                <tr>
                     <td class="px-6 py-4 font-medium">Paid Orders</td>
                     <td class="px-6 py-4 font-semibold"><%= Number(analytics.summary.paidOrdersCount).toLocaleString("en-IN") %></td>
                     <td class="px-6 py-4 text-slate-500 dark:text-slate-400">Orders with successful payment contribution</td>
@@ -322,6 +332,8 @@
                     <th class="px-6 py-4">Order ID</th>
                     <th class="px-6 py-4">Customer</th>
                     <th class="px-6 py-4">Items</th>
+                    <th class="px-6 py-4">Return Items</th>
+                    <th class="px-6 py-4">Cancelled Items</th>
                     <th class="px-6 py-4">Gross</th>
                     <th class="px-6 py-4">Discount</th>
                     <th class="px-6 py-4">Net Revenue</th>
@@ -336,6 +348,8 @@
                             <td class="px-6 py-4 font-semibold"><%= row.orderId %></td>
                             <td class="px-6 py-4"><%= row.customerName %></td>
                             <td class="px-6 py-4"><%= row.totalItems %></td>
+                            <td class="px-6 py-4 text-amber-600"><%= row.returnItems || 0 %></td>
+                            <td class="px-6 py-4 text-rose-600"><%= row.cancelledItems || 0 %></td>
                             <td class="px-6 py-4">₹<%= Number(row.grossOrderAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
                             <td class="px-6 py-4 text-red-500">₹<%= Number(row.totalDiscount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
                             <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(row.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
@@ -344,7 +358,7 @@
                     <% }) %>
                 <% } else { %>
                     <tr>
-                        <td colspan="8" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No orders found for this period.</td>
+                        <td colspan="10" class="px-6 py-8 text-center text-slate-500 dark:text-slate-400">No orders found for this period.</td>
                     </tr>
                 <% } %>
             </tbody>
@@ -365,8 +379,8 @@
                     <th class="px-6 py-4">Gross Amount</th>
                     <th class="px-6 py-4">Discount</th>
                     <th class="px-6 py-4">Net Revenue</th>
-                    <th class="px-6 py-4">Return Orders</th>
-                    <th class="px-6 py-4">Cancelled</th>
+                    <th class="px-6 py-4">Return Items</th>
+                    <th class="px-6 py-4">Cancelled Items</th>
                 </tr>
             </thead>
             <tbody class="divide-y divide-slate-100 dark:divide-slate-800 text-sm">
@@ -378,8 +392,8 @@
                             <td class="px-6 py-4">₹<%= Number(product.grossAmount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
                             <td class="px-6 py-4 text-red-500">₹<%= Number(product.discount).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
                             <td class="px-6 py-4 font-semibold text-emerald-600">₹<%= Number(product.netRevenue).toLocaleString("en-IN", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) %></td>
-                            <td class="px-6 py-4"><%= product.returnOrders %></td>
-                            <td class="px-6 py-4"><%= product.cancelled %></td>
+                            <td class="px-6 py-4 text-amber-600"><%= product.returnItems || 0 %></td>
+                            <td class="px-6 py-4 text-rose-600"><%= product.cancelledItems || 0 %></td>
                         </tr>
                     <% }) %>
                 <% } else { %>
